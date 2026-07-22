@@ -298,7 +298,8 @@ class KaziAnalysisWorker(
                 [Risk analizi raporunu buraya yaz]
             """.trimIndent()
 
-            val text = com.nexus.porsuk.ui.common.GeminiModels.generateContentWithFallback(apiKey, prompt)
+            val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+            val text = service.generateKaziThesis(symbol, run.title, reasoningDepth)
             if (text.isBlank()) {
                 throw Exception("Gerekçe oluşturulamadı.")
             }

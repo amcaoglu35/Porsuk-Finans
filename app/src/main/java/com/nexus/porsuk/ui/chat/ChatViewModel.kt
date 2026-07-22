@@ -2,8 +2,6 @@ package com.nexus.porsuk.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
 import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.data.repository.FinanceRepository
 import kotlinx.coroutines.Dispatchers
@@ -92,48 +90,13 @@ class ChatViewModel(
                 portfolioContext.append(watchlist.joinToString { it.symbol })
                 portfolioContext.append("\n")
 
-                // 4. Gemini Promptunu Hazırla (Samimi Borsa Profesörü Karakteri)
-                val systemInstruction = """
-                    Sen samimi, deneyimli ve esprili bir "Borsa Profesörü" karakterisin. 
-                    Kullanıcının portföy ve borsa takibine yardımcı oluyorsun.
-                    Yatırım tavsiyesi vermeden, verileri objektif ve riskleri belirterek analiz et.
-                    Cevaplarını son derece detaylı, derinlemesine finansal analizler içerecek şekilde kapsamlı tut, anlaşılır ve samimi bir Türkçe kullan.
-                    Sorulan soruları kullanıcının portföy bağlamına, varsa güncel arama sonuçlarına ve aşağıdaki klasik borsa formüllerine göre yanıtla.
-                    
-                    ${com.nexus.porsuk.data.local.InvestmentKnowledgeBase.getClassicFormulas()}
-                    
-                    $portfolioContext
-                    $webContext
-                """.trimIndent()
-
-                val promptContent = content(role = "user") {
-                    text("$systemInstruction\n\nKullanıcı: ${text}")
-                }
-
-                val models = com.nexus.porsuk.ui.common.GeminiModels.fallbackList
-                var replyText = "Özür dilerim, bir yanıt oluşturamadım."
-                var success = false
-                var lastException: Exception? = null
-                
-                for (modelName in models) {
-                    try {
-                        val currentModel = GenerativeModel(
-                            modelName = modelName,
-                            apiKey = apiKey
-                        )
-                        val response = currentModel.generateContent(promptContent)
-                        replyText = response.text ?: "Özür dilerim, bir yanıt oluşturamadım."
-                        if (replyText.isNotBlank()) {
-                            success = true
-                            break
-                        }
-                    } catch (e: Exception) {
-                        lastException = e
-                    }
-                }
-                if (!success) {
-                    throw lastException ?: Exception("Model başlatılamadı.")
-                }
+                // 4. Gemini AI Motorunu Çağır (Merkezi GeminiService)
+                val geminiService = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                val replyText = geminiService.chat(
+                    prompt = text,
+                    portfolioContext = portfolioContext.toString(),
+                    webContext = webContext.toString()
+                )
                 _messages.update { it + ChatMessage(replyText, false) }
             } catch (e: Exception) {
                 _messages.update { it + ChatMessage(com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e), false) }

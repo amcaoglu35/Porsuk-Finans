@@ -31,9 +31,13 @@ import kotlinx.coroutines.launch
         KaziWatch::class,
         DividendCalendarEntry::class,
         IpoCalendarEntry::class,
-        EconomicEventEntry::class
+        EconomicEventEntry::class,
+        DecisionJournalEntry::class,
+        AiAnalysisAuditEntry::class,
+        PorsukBrainMemory::class,
+        AiInsightEntry::class
     ],
-    version = 16,
+    version = 20,
     exportSchema = false
 )
 abstract class PorsukDatabase : RoomDatabase() {

@@ -1,176 +1,401 @@
 package com.nexus.porsuk.data.remote
 
-import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import com.nexus.porsuk.data.local.entity.BasketItem
 import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
+import com.nexus.porsuk.data.local.entity.Company
 import com.nexus.porsuk.data.local.entity.NewsItemEntity
 import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.ui.common.GeminiErrorParser
+import com.nexus.porsuk.ui.common.GeminiModels
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
+/**
+ * Centralized AI Service for Porsuk Finans.
+ * Integrates AiPredictionEngine for probabilistic forecasting without explicit price target guessing.
+ */
 class GeminiService(private val apiKey: String) {
 
     private val systemInstructionContent = content {
-        text("""
-            Sen finans dünyasının efsane isimlerinin (Benjamin Graham, Warren Buffett, Peter Lynch) 
-            yatırım felsefelerine ve teknik/temel analiz kurallarına tamamen hakim bir "Borsa Profesörü"sün.
-            Analizlerini yaparken şu kuralları temel al:
-            - Warren Buffett'ın "Değer Yatırımcılığı" (Value Investing) ve Moat (Hendek) analizleri.
-            - F/K ve Defter Değeri oranlarında Benjamin Graham'ın güvenlik marjı (Margin of Safety) prensibi.
-            - Peter Lynch'in büyüme ve hisse kategorizasyonu teorileri.
-            Kullanıcıya sadece kuru rakamlar verme, bu teorik borsa uzmanı kimliğini analizlerine yansıt.
-            Analizlerini daima Türkçe, samimi ama son derece profesyonel ve esprili bir üslup ile gerçekleştir.
-        """.trimIndent())
+        text(GeminiPromptBuilder.buildSystemInstruction())
     }
 
-    private suspend fun generateContentWithFallback(prompt: String): String {
-        return com.nexus.porsuk.ui.common.GeminiModels.generateContentWithFallback(
+    private suspend fun executeWithFallback(prompt: String): String {
+        return GeminiModels.generateContentWithFallback(
             apiKey = apiKey,
             prompt = prompt,
             systemInstruction = systemInstructionContent
         )
     }
 
+    /**
+     * Parse raw response into structured AiAnalysisResponse, falling back to rawText if JSON parsing fails.
+     */
+    private fun formatResponse(rawResult: String): String {
+        return AiAnalysisResponse.parseFromJsonOrRaw(rawResult).toFormattedMarkdown()
+    }
+
+    /**
+     * Clear / invalidate portfolio cache entries when holdings or user transactions change.
+     */
+    fun invalidatePortfolioCache() {
+        AiCacheManager.invalidatePortfolioCache()
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 1. CHAT AI (Injected with Single-Paragraph Market Intelligence & Cached)
+    // ─────────────────────────────────────────────────────────────────────────────
+    suspend fun chat(prompt: String, portfolioContext: String = "", webContext: String = ""): String = withContext(Dispatchers.IO) {
+        val macroParagraph = MarketIntelligenceEngine.getMarketSummaryParagraph()
+        val brainContext = PorsukBrainManager.buildBrainContext(null)
+        val combinedWeb = "$brainContext\n$macroParagraph" + (if (webContext.isNotBlank()) "\n$webContext" else "")
+
+        val pHash = portfolioContext.hashCode()
+        val cacheKey = AiCacheManager.generateKey("chat", prompt = prompt, portfolioHash = pHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val fullPrompt = GeminiPromptBuilder.buildChatPrompt(prompt, portfolioContext, combinedWeb)
+            val result = executeWithFallback(fullPrompt)
+            AiCacheManager.put(cacheKey, result, isPortfolioRelated = portfolioContext.isNotBlank())
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    fun chatStream(prompt: String, portfolioContext: String = "", webContext: String = ""): Flow<String> {
+        val fullPrompt = GeminiPromptBuilder.buildChatPrompt(prompt, portfolioContext, webContext)
+        return GeminiModels.generateContentStreamWithFallback(
+            apiKey = apiKey,
+            prompt = fullPrompt,
+            systemInstruction = systemInstructionContent
+        )
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 2. PORTFOLIO AI (AI Portfolio Doctor Engine & Cached)
+    // ─────────────────────────────────────────────────────────────────────────────
+    suspend fun getPortfolioHealthCheck(
+        holdings: List<BasketItem>,
+        companies: List<Company>
+    ): String = withContext(Dispatchers.IO) {
+        val pHash = holdings.map { "${it.symbol}_${it.quantity}" }.hashCode()
+        val cacheKey = AiCacheManager.generateKey("portfolio_health", portfolioHash = pHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val macroParagraph = MarketIntelligenceEngine.getMarketSummaryParagraph()
+            val doctorMetrics = PortfolioDoctorEngine.analyze(holdings, companies)
+            val combinedSummary = "$macroParagraph\n${doctorMetrics.diagnosisSummary}"
+
+            val prompt = GeminiPromptBuilder.buildPortfolioDoctorPrompt(combinedSummary)
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result, isPortfolioRelated = true)
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getPortfolioRebalanceReport(
+        holdings: List<BasketItem>,
+        companies: List<Company>
+    ): String = withContext(Dispatchers.IO) {
+        val pHash = holdings.map { "${it.symbol}_${it.quantity}_${it.buyPrice}" }.hashCode()
+        val cacheKey = AiCacheManager.generateKey("portfolio_rebalance", portfolioHash = pHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildPortfolioRebalancePrompt(holdings, companies)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted, isPortfolioRelated = true)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getInvestmentRecommendations(companies: List<Company>): String = withContext(Dispatchers.IO) {
+        val compHash = companies.take(10).map { it.symbol }.hashCode()
+        val cacheKey = AiCacheManager.generateKey("recommendations", portfolioHash = compHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildInvestmentRecommendationsPrompt(companies)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun runFundamentalScreener(template: String, companies: List<Company>): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("screener", prompt = template)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildFundamentalScreenerPrompt(template, companies)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getBasketOptimization(portfolioText: String): String = withContext(Dispatchers.IO) {
+        val pHash = portfolioText.hashCode()
+        val cacheKey = AiCacheManager.generateKey("basket_opt", portfolioHash = pHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildBasketOptimizationPrompt(portfolioText)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted, isPortfolioRelated = true)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getBasketOrakulComment(
+        finalBasketReturn: Double,
+        bistReturn: Double,
+        usdReturn: Double,
+        holdings: List<BasketItem>
+    ): String = withContext(Dispatchers.IO) {
+        val pHash = holdings.map { "${it.symbol}_${it.allocationPercent}" }.hashCode()
+        val cacheKey = AiCacheManager.generateKey("basket_orakul_comment", portfolioHash = pHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildBasketOrakulCommentPrompt(finalBasketReturn, bistReturn, usdReturn, holdings)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted, isPortfolioRelated = true)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 3. NEWS AI & SENTIMENT (Cached)
+    // ─────────────────────────────────────────────────────────────────────────────
+    suspend fun analyzeNewsSentiment(titles: List<String>): List<String> = withContext(Dispatchers.IO) {
+        val nHash = titles.hashCode()
+        val cacheKey = AiCacheManager.generateKey("news_sentiment", newsHash = nHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) {
+            return@withContext cached.split(",").map { it.trim().uppercase() }
+        }
+
+        try {
+            val prompt = GeminiPromptBuilder.buildNewsAnalysisPrompt(titles)
+            val result = executeWithFallback(prompt)
+            if (result.isNotBlank()) {
+                AiCacheManager.put(cacheKey, result)
+                result.split(",").map { it.trim().uppercase() }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Stock Analysis powered by MarketIntelligenceEngine & DecisionEngine.
+     * Pre-computes market macro summary and technical metrics in Kotlin to minimize token usage.
+     */
     suspend fun getStockAnalysis(
         symbol: String,
         companyInfo: CachedCompanyInfo?,
         price: PriceSnapshot?,
         news: List<NewsItemEntity>,
-        userCost: Double = 0.0
+        userCost: Double = 0.0,
+        historicalPrices: List<Double> = emptyList(),
+        volumes: List<Double> = emptyList()
     ): String = withContext(Dispatchers.IO) {
-        val newsTitles = news.take(3).joinToString("; ") { "${it.title} (Duyarlılık: ${it.sentiment ?: "NEUTRAL"})" }
-        
-        val prompt = """
-            Sen Wall Street'in efsanevi borsa simsarı "ORAKUL"sun. Kendine has tescilli formülün olan O-EAGI (Orakul Entropi ve Asimetrik Güç İndeksi) felsefesine göre bu şirketi analiz et.
-            
-            Şirket: $symbol
-            Güncel Fiyat: ${price?.price ?: companyInfo?.week52Low ?: "Bilinmiyor"}
-            F/K Oranı: ${companyInfo?.peRatio ?: "Bilinmiyor"}
-            Temettü Verimi: ${companyInfo?.dividendYield ?: "Bilinmiyor"}
-            52 Hafta Aralığı: ${companyInfo?.week52Low} - ${companyInfo?.week52High}
-            Son Haberler ve Duyarlılıklar: $newsTitles
- 
-            Görevin:
-            1. Bu veriler ışığında hissenin O-EAGI skorunu (0 - 100 arası) hesapla.
-            2. Formülün 4 alt bileşeni için de puan ver (her biri 0 - 100 arası):
-               - Güvenlik Marjı ve İçsel Değer (Graham & Lynch)
-               - Haber Duyarlılığı Entropisi
-               - Momentum & Akıllı Para İvmesi
-               - Sektörel Alfa Gücü
-            3. Analiz dökümünü ve detaylı simsar yorumunu aşağıdaki formata göre dön. Formatı bozma.
- 
-            ÇIKTI FORMATI:
-            O-EAGI SKORU: [Skor]
-            GÜVENLİK MARJI: [Skor]
-            HABER ENTROPİSİ: [Skor]
-            MOMENTUM: [Skor]
-            SEKTÖR ALFA: [Skor]
-            ---
-            [Orakul'un tescilli derin ve geniş çaplı analiz yorumu. Türkçe, net, simsar üslubuyla, aşağıdaki başlıkları içeren detaylı ve profesyonel bir rapor:
-            - TEMEL GÖSTERGELER & GÜVENLİK MARJI ANALİZİ (Graham ve Buffett yaklaşımıyla F/K, içsel değer ve güvenlik marjı analizi)
-            - ENTROPİ & DUYARLILIK ANALİZİ (Son haber akışı, kap haberleri ve pazar algısı analizi)
-            - MOMENTUM & TEKNİK GÖRÜNÜM (RSI, Bollinger ve akıllı para hareketlerinin analizi)
-            - SEKTÖREL ALFA & STRATEJİK DEĞERLENDİRME (Sektör içindeki gücü ve gelecek projeksiyonları)
-            Yorum en az 4-5 paragraftan oluşmalı ve son derece detaylı olmalıdır.]
-        """.trimIndent()
+        val nHash = news.map { it.title }.hashCode()
+        val cacheKey = AiCacheManager.generateKey("stock_analysis", symbol = symbol, newsHash = nHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
 
+        // 1. RUN MULTI-AGENT PIPELINE (PORTFOLIO, NEWS, TECHNICAL, MACRO, RISK, BRAIN AGENTS - 0 AI TOKEN COST)
+        val newsTitles = news.map { it.title }
+        val priceList = if (historicalPrices.isNotEmpty()) historicalPrices else listOfNotNull(price?.price ?: companyInfo?.week52Low)
+        val agentRequest = com.nexus.porsuk.data.remote.agents.AgentRequest(
+            symbol = symbol,
+            historicalPrices = priceList,
+            volumes = volumes,
+            newsTitles = newsTitles
+        )
+        val multiAgentSummary = com.nexus.porsuk.data.remote.agents.MasterAiOrchestrator.runMultiAgentPipeline(agentRequest)
+
+        // 2. BUILD PROMPT WITH MULTI-AGENT DIAGNOSIS
+        val prompt = GeminiPromptBuilder.buildStockAnalysisPrompt(
+            symbol = symbol,
+            companyInfo = companyInfo,
+            price = price,
+            news = news,
+            userCost = userCost,
+            decisionSummary = multiAgentSummary
+        )
+
+        // 3. GEMINI SYNTHESIZES EXPERT ANALYSIS (MINIMUM TOKENS)
         try {
-            generateContentWithFallback(prompt)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
         } catch (e: Exception) {
-            "O-EAGI SKORU: 0\nGÜVENLİK MARJI: 0\nHABER ENTROPİSİ: 0\nMOMENTUM: 0\nSEKTÖR ALFA: 0\n---\n${com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)}"
+            "O-EAGI SKORU: 0\nGÜVENLİK MARJI: 0\nHABER ENTROPİSİ: 0\nMOMENTUM: 0\nSEKTÖR ALFA: 0\n---\n${GeminiErrorParser.parse(e)}"
         }
     }
 
-    suspend fun getPortfolioHealthCheck(
-        holdings: List<com.nexus.porsuk.data.local.entity.BasketItem>,
-        companies: List<com.nexus.porsuk.data.local.entity.Company>
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 4. TECHNICAL AI SUMMARY (Powered by MarketIntelligenceEngine & DecisionEngine)
+    // ─────────────────────────────────────────────────────────────────────────────
+    suspend fun getTechnicalSummary(
+        symbol: String,
+        technicalData: Map<String, Any>,
+        historicalPrices: List<Double> = emptyList(),
+        volumes: List<Double> = emptyList()
     ): String = withContext(Dispatchers.IO) {
-        val companyMap = companies.associateBy { it.symbol }
-        
-        val sectorValues = mutableMapOf<String, Double>()
-        var totalValue = 0.0
-        holdings.forEach { item ->
-            val comp = companyMap[item.symbol]
-            val sector = comp?.sector ?: "Diğer"
-            val price = comp?.currentPrice ?: item.buyPrice
-            val value = item.quantity * price
-            sectorValues[sector] = (sectorValues[sector] ?: 0.0) + value
-            totalValue += value
-        }
-        
-        val sectorInfo = sectorValues.entries.joinToString { 
-            val pct = if (totalValue > 0) (it.value / totalValue * 100) else 0.0
-            "${it.key}: %${String.format(java.util.Locale.US, "%.1f", pct)}"
-        }
-        
-        val holdingsInfo = holdings.joinToString { 
-            "hisse: ${it.symbol} (${it.quantity} adet)"
-        }
-        
-        val prompt = """
-            ${com.nexus.porsuk.data.local.InvestmentKnowledgeBase.getClassicFormulas()}
+        val cacheKey = AiCacheManager.generateKey("technical_summary", symbol = symbol, prompt = technicalData.toString())
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
 
-            Sen son derece profesyonel, veri odaklı ve esprili bir "Borsa Profesörü" finansal danışmanısın. Yukarıdaki klasik yatırım formüllerine ve analiz prensiplerine göre kullanıcının hisse senedi portföyünü analiz et.
-            
-            Kullanıcının portföyündeki varlıklar: $holdingsInfo
-            Sektörel Dağılım: $sectorInfo
-            Toplam Değer: $totalValue TRY
-            
-            Görevin:
-            1. Portföyün risk, çeşitlendirme ve genel sağlık durumunu analiz ederek 100 üzerinden bir "Sağlık Puanı" belirle.
-            2. Bu puanı ilk satırda kalın olarak yaz: "**Sağlık Puanı: X/100**" formatında.
-            3. Altına en fazla 3-4 maddeden oluşan kısa, samimi, esprili ve doğrudan uygulanabilir Türkçe öneriler/check-up maddeleri yaz. Yatırım tavsiyesi olmadığını (YTD) hatırlat ama eğlenceli ve profesyonel bir üslup kullan.
-        """.trimIndent()
+        val macroParagraph = MarketIntelligenceEngine.getMarketSummaryParagraph()
+        val decisionResult = DecisionEngine.analyze(historicalPrices, volumes)
+        val summaryText = "$macroParagraph\n" + (if (historicalPrices.isNotEmpty()) decisionResult.preComputedSummary else technicalData.entries.joinToString("\n") { "${it.key}: ${it.value}" })
+        val prompt = GeminiPromptBuilder.buildTechnicalSummaryPrompt(symbol, summaryText)
 
         try {
-            generateContentWithFallback(prompt)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
         } catch (e: Exception) {
-            com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
+            GeminiErrorParser.parse(e)
         }
     }
 
-    suspend fun getPortfolioRebalanceReport(
-        holdings: List<com.nexus.porsuk.data.local.entity.BasketItem>,
-        companies: List<com.nexus.porsuk.data.local.entity.Company>
-    ): String = withContext(Dispatchers.IO) {
-        val companyMap = companies.associateBy { it.symbol }
-        
-        var totalValue = 0.0
-        val holdingsInfo = holdings.joinToString("\n") { item ->
-            val comp = companyMap[item.symbol]
-            val price = comp?.currentPrice ?: item.buyPrice
-            val value = item.quantity * price
-            totalValue += value
-            "  • ${item.symbol}: Adet: ${item.quantity}, Alış: ${item.buyPrice}, Güncel: $price, Toplam Değer: ${String.format(java.util.Locale.US, "%.1f", value)} TRY"
-        }
-
-        val prompt = """
-            Sen Wall Street'in efsanevi borsa simsarı ve finans üstadı "ORAKUL"sun. Kendine has tescilli formülün olan O-EAGI (Orakul Entropi ve Asimetrik Güç İndeksi) felsefesine göre kullanıcının mevcut portföyünü yeniden dengelemek (rebalance) için kesin, net ve profesyonel bir optimizasyon raporu sun.
-
-            Kullanıcının Mevcut Portföyü:
-            $holdingsInfo
-            Toplam Değer: ${String.format(java.util.Locale.US, "%.1f", totalValue)} TRY
- 
-            Görevin:
-            1. Portföyün mevcut ağırlık dağılımındaki dengesizlikleri veya aşırı riskli pozisyonları net bir şekilde belirt.
-            2. Her hisse senedi için tam olarak ne yapılması gerektiğini (örneğin: "X hissesini azalt, %20 ağırlığa çek" veya "Y hissesini artır, %15 ağırlık ekle" veya "Z hissesini tamamen sat") söyle. Kaçamak cevaplardan kaçın, kesin hedefler ver.
-            3. Dengeleme sonrasında portföyün hedef yüzde dağılımını (örneğin: EREGL %20, THYAO %30 vb.) gösteren net bir liste ver.
-            4. Orakul simsarı gibi kendinden emin, keskin ve doğrudan uygulanabilir Türkçe bir üslup kullan.
-        """.trimIndent()
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 5. RISK AI (JSON Structured & Cached)
+    // ─────────────────────────────────────────────────────────────────────────────
+    suspend fun getRiskAnalysis(symbol: String, riskMetrics: Map<String, Any>): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("risk_analysis", symbol = symbol, prompt = riskMetrics.toString())
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
 
         try {
-            generateContentWithFallback(prompt)
+            val prompt = GeminiPromptBuilder.buildRiskAnalysisPrompt(symbol, riskMetrics)
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
         } catch (e: Exception) {
-            com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
+            GeminiErrorParser.parse(e)
         }
     }
 
-    /** Genel amaçlı prompt → yanıt wrapper'ı. */
-    suspend fun chat(prompt: String): String = withContext(Dispatchers.IO) {
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 6. AI PREDICTION ENGINE (Probabilistic Forecasts & Cached)
+    // ─────────────────────────────────────────────────────────────────────────────
+    suspend fun getFutureForecast(symbol: String, historicalPrices: List<Double>): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("future_forecast", symbol = symbol, prompt = historicalPrices.takeLast(10).toString())
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
         try {
-            generateContentWithFallback(prompt)
+            val macroParagraph = MarketIntelligenceEngine.getMarketSummaryParagraph()
+            val predictionSignals = AiPredictionEngine.analyze(symbol, historicalPrices, macroParagraph = macroParagraph)
+            val prompt = GeminiPromptBuilder.buildPredictionEnginePrompt(symbol, predictionSignals.singleParagraphSummary)
+
+            val raw = executeWithFallback(prompt)
+            val formatted = formatResponse(raw)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
         } catch (e: Exception) {
-            com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 7. ORAKUL & KAZI & WORKER TASKS
+    // ─────────────────────────────────────────────────────────────────────────────
+    fun getOrakulStream(
+        currentModeName: String,
+        companyLines: String,
+        portfolioLines: String,
+        question: String
+    ): Flow<String> {
+        val prompt = GeminiPromptBuilder.buildOrakulModePrompt(currentModeName, companyLines, portfolioLines, question)
+        return GeminiModels.generateContentStreamWithFallback(
+            apiKey = apiKey,
+            prompt = prompt,
+            systemInstruction = systemInstructionContent
+        )
+    }
+
+    suspend fun generateKaziThesis(symbol: String, kaziRunName: String, reasoningDepth: String): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("kazi_thesis", symbol = symbol, prompt = "$kaziRunName:$reasoningDepth")
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildKaziThesisPrompt(symbol, kaziRunName, reasoningDepth)
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result)
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getMorningInsight(symbols: String): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("morning_insight", prompt = symbols)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildMorningInsightPrompt(symbols)
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result)
+            result
+        } catch (e: Exception) {
+            "Piyasalar açılıyor, bol kazançlar!"
+        }
+    }
+
+    suspend fun generateRawContent(prompt: String): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("raw", prompt = prompt)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result)
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
         }
     }
 }

@@ -279,54 +279,12 @@ class OrakulViewModel(
                     sb.toString()
                 } else "Portföyde henüz hisse yok."
 
-                val prompt = buildPrompt(currentMode, companyLines, portfolioLines, question)
-
-                // STREAMING: kelime kelime canlı yazı ile fallback desteği
+                // STREAMING: GeminiService üzerinden tekil streaming motoru
+                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
                 var accumulated = ""
-                var success = false
-                var lastException: Exception? = null
-                val models = com.nexus.porsuk.ui.common.GeminiModels.fallbackList
-                
-                for (modelName in models) {
-                    try {
-                        accumulated = ""
-                        val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
-                            modelName = modelName,
-                            apiKey = apiKey
-                        )
-                        val responseStream = generativeModel.generateContentStream(prompt)
-                        responseStream.collect { chunk ->
-                            accumulated += chunk.text ?: ""
-                            _uiState.update { it.copy(streamingText = accumulated) }
-                        }
-                        if (accumulated.isNotBlank()) {
-                            success = true
-                            break
-                        }
-                    } catch (e: Exception) {
-                        lastException = e
-                        val fullErr = "${e.message} ${e.localizedMessage}"
-                        if (fullErr.contains("429") || fullErr.contains("quota", ignoreCase = true) || fullErr.contains("rate limit", ignoreCase = true)) {
-                            kotlinx.coroutines.delay(1200L)
-                        }
-                    }
-                }
-                
-                if (!success) {
-                    // Tekrar son çare olarak generateContentWithFallback metodunu dene
-                    try {
-                        accumulated = com.nexus.porsuk.ui.common.GeminiModels.generateContentWithFallback(apiKey, prompt)
-                        if (accumulated.isNotBlank()) {
-                            success = true
-                            _uiState.update { it.copy(streamingText = accumulated) }
-                        }
-                    } catch (fallbackErr: Exception) {
-                        lastException = fallbackErr
-                    }
-                }
-
-                if (!success) {
-                    throw lastException ?: Exception("Yapay zeka modeli başlatılamadı.")
+                service.getOrakulStream(currentMode.name, companyLines, portfolioLines, question).collect { chunk ->
+                    accumulated += chunk
+                    _uiState.update { it.copy(streamingText = accumulated) }
                 }
 
                 // Streaming bitti, parse et

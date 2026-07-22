@@ -74,4 +74,45 @@ object GeminiModels {
         }
         throw Exception("Modellerin hiçbirinden yanıt alınamadı.")
     }
+
+    fun generateContentStreamWithFallback(
+        apiKey: String,
+        prompt: String,
+        systemInstruction: Content? = null
+    ): kotlinx.coroutines.flow.Flow<String> = kotlinx.coroutines.flow.channelFlow {
+        var accumulated = ""
+        var success = false
+        var lastException: Exception? = null
+
+        for (modelName in fallbackList) {
+            try {
+                accumulated = ""
+                val model = GenerativeModel(
+                    modelName = modelName,
+                    apiKey = apiKey,
+                    systemInstruction = systemInstruction
+                )
+                val stream = model.generateContentStream(prompt)
+                stream.collect { chunk ->
+                    val text = chunk.text ?: ""
+                    accumulated += text
+                    send(text)
+                }
+                if (accumulated.isNotBlank()) {
+                    success = true
+                    break
+                }
+            } catch (e: Exception) {
+                lastException = e
+                val fullErr = "${e.message} ${e.localizedMessage}"
+                if (fullErr.contains("429") || fullErr.contains("quota", ignoreCase = true) || fullErr.contains("rate limit", ignoreCase = true)) {
+                    delay(1200L)
+                }
+            }
+        }
+
+        if (!success) {
+            throw lastException ?: Exception("Modellerin hiçbirinden yanıt alınamadı.")
+        }
+    }
 }

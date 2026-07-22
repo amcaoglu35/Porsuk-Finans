@@ -188,29 +188,8 @@ class BasketDetailViewModel(
                     $portfolioText
                 """.trimIndent()
 
-                val models = com.nexus.porsuk.ui.common.GeminiModels.fallbackList
-                var success = false
-                var lastException: Exception? = null
-                for (modelName in models) {
-                    try {
-                        val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
-                            modelName = modelName,
-                            apiKey = apiKey
-                        )
-                        val response = generativeModel.generateContent(prompt)
-                        val text = response.text
-                        if (!text.isNullOrBlank()) {
-                            _optimizationResult.value = text
-                            success = true
-                            break
-                        }
-                    } catch (e: Exception) {
-                        lastException = e
-                    }
-                }
-                if (!success) {
-                    throw lastException ?: Exception("Model başlatılamadı.")
-                }
+                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                _optimizationResult.value = service.getBasketOptimization(portfolioText.toString())
             } catch (e: Exception) {
                 _optimizationResult.value = com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
             } finally {
@@ -429,20 +408,8 @@ class BasketDetailViewModel(
                         En fazla 3-4 cümlelik vurucu bir yorum yap. "Olabilir", "belki" deme.
                     """.trimIndent()
 
-                    val models = com.nexus.porsuk.ui.common.GeminiModels.fallbackList
-                    for (modelName in models) {
-                        try {
-                            val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
-                                modelName = modelName,
-                                apiKey = apiKey
-                            )
-                            val response = generativeModel.generateContent(prompt)
-                            orakulComment = response.text ?: ""
-                            if (orakulComment.isNotBlank()) break
-                        } catch (e: Exception) {
-                            // try next
-                        }
-                    }
+                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                    orakulComment = service.getBasketOrakulComment(finalBasketReturn, bistReturn, usdReturn, holdings)
                 }
 
                 if (orakulComment.isBlank()) {

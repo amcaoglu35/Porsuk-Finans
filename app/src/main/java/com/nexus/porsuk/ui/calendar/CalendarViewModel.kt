@@ -164,32 +164,12 @@ class CalendarViewModel(
                     }
                 }
 
-                // AI Model Çağrısı
+                // AI Model Çağrısı (Merkezi GeminiService)
+                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
                 var accumulated = ""
-                var success = false
-                var lastException: Exception? = null
-                val models = com.nexus.porsuk.ui.common.GeminiModels.fallbackList
-
-                for (modelName in models) {
-                    try {
-                        val generativeModel = com.google.ai.client.generativeai.GenerativeModel(
-                            modelName = modelName,
-                            apiKey = apiKey
-                        )
-                        val responseStream = generativeModel.generateContentStream(prompt)
-                        responseStream.collect { chunk ->
-                            accumulated += chunk.text ?: ""
-                            _uiState.update { it.copy(aiInsightText = accumulated) }
-                        }
-                        success = true
-                        break
-                    } catch (e: Exception) {
-                        lastException = e
-                    }
-                }
-
-                if (!success) {
-                    throw lastException ?: Exception("Yapay zeka modeli başlatılamadı.")
+                service.chatStream(prompt).collect { chunk ->
+                    accumulated += chunk
+                    _uiState.update { it.copy(aiInsightText = accumulated) }
                 }
 
                 _uiState.update { it.copy(isAiLoading = false) }

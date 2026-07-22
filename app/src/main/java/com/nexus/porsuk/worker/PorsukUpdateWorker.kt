@@ -68,6 +68,20 @@ class PorsukUpdateWorker(
                 }
             }
 
+            // 1.5. Akıllı AI Bildirim Sistemi Taraması (Spam Korumalı Otomatik Anomali Taraması)
+            try {
+                val holdings = assetDao.getAllBasketItemsDirect()
+                val pricesMap = repository.prices.value
+                com.nexus.porsuk.data.remote.AiSmartNotificationEngine.scanAndNotify(
+                    context = applicationContext,
+                    holdings = holdings,
+                    companies = savedCompanies,
+                    priceMap = pricesMap
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Smart AI Notification Error: ${e.localizedMessage}")
+            }
+
             // 2. Gün Sonu Özeti (18:00 - 22:00)
             val dailySummaryEnabled = try { settingsManager.dailySummary.first() } catch (_: Exception) { true }
             if (dailySummaryEnabled && !apiKey.isNullOrBlank()) {
@@ -198,17 +212,12 @@ class PorsukUpdateWorker(
         if (lastMorning < todayStart) {
             val watchlist = assetDao.getWatchlistDirect()
             val symbols = watchlist.take(5).joinToString { it.symbol }
-            val prompt = "Sen Orakul'sun. Bugün borsa açılmak üzere. Takip listesindeki şu hisseler için ($symbols) O-EAGI formülüne göre çok kısa (maks 15 kelime) ve iddialı bir sabah yorumu yap."
-            
             try {
-                val insight = generateContentWithFallback(apiKey, prompt).ifBlank { "Piyasalar açılıyor, bol kazançlar!" }
+                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                val insight = service.getMorningInsight(symbols).ifBlank { "Piyasalar açılıyor, bol kazançlar!" }
                 com.nexus.porsuk.ui.common.NotificationHelper.sendNotification(applicationContext, "🔮 Orakul Sabah Bülteni", insight, 7777)
                 settingsManager.setLastMorningNotifTime(System.currentTimeMillis())
             } catch (_: Exception) {}
         }
-    }
-
-    private suspend fun generateContentWithFallback(apiKey: String, prompt: String): String {
-        return com.nexus.porsuk.ui.common.GeminiModels.generateContentWithFallback(apiKey, prompt)
     }
 }

@@ -176,25 +176,8 @@ class FinanceRepository(
     private suspend fun analyzeNewsSentiment(titles: List<String>): List<String> {
         val apiKey = settingsManager?.getGeminiApiKey() ?: return emptyList()
         if (apiKey.isBlank()) return emptyList()
-        return try {
-            val titlesText = titles.mapIndexed { index, t -> "$index: $t" }.joinToString("\n")
-            val prompt = """
-                Aşağıdaki haber başlıklarının borsa piyasa duyarlılığını analiz et.
-                Her bir başlık için sırayla sadece POSITIVE, NEGATIVE veya NEUTRAL kelimelerinden birini dön. 
-                Cevabını aralarında virgül olacak şekilde tek bir satırda ver. Örn: POSITIVE, NEUTRAL, NEGATIVE
-                
-                $titlesText
-            """.trimIndent()
-
-            val result = com.nexus.porsuk.ui.common.GeminiModels.generateContentWithFallback(apiKey, prompt)
-            if (result.isNotBlank()) {
-                result.split(",").map { it.trim().uppercase() }
-            } else {
-                emptyList()
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
+        val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+        return service.analyzeNewsSentiment(titles)
     }
 
     suspend fun refreshNews(symbol: String, market: String) {
@@ -240,14 +223,29 @@ class FinanceRepository(
     suspend fun getAllCompaniesDirect(): List<Company> = assetDao.getAllCompaniesDirect()
     
     fun getBasketById(basketId: Int): Flow<Basket?> = assetDao.getBasketById(basketId)
-    suspend fun addBasket(basket: Basket): Long = assetDao.insertBasket(basket)
-    suspend fun updateBasket(basket: Basket) = assetDao.updateBasket(basket)
-    suspend fun deleteBasket(basket: Basket) = assetDao.deleteBasket(basket)
+    suspend fun addBasket(basket: Basket): Long {
+        com.nexus.porsuk.data.remote.AiCacheManager.invalidatePortfolioCache()
+        return assetDao.insertBasket(basket)
+    }
+    suspend fun updateBasket(basket: Basket) {
+        com.nexus.porsuk.data.remote.AiCacheManager.invalidatePortfolioCache()
+        assetDao.updateBasket(basket)
+    }
+    suspend fun deleteBasket(basket: Basket) {
+        com.nexus.porsuk.data.remote.AiCacheManager.invalidatePortfolioCache()
+        assetDao.deleteBasket(basket)
+    }
     
     fun getBasketItems(basketId: Int): Flow<List<BasketItem>> = assetDao.getItemsForBasket(basketId)
     suspend fun getAllBasketItemsDirect(): List<BasketItem> = assetDao.getAllBasketItemsDirect()
-    suspend fun addBasketItem(item: BasketItem) = assetDao.insertBasketItem(item)
-    suspend fun deleteBasketItem(item: BasketItem) = assetDao.deleteBasketItem(item)
+    suspend fun addBasketItem(item: BasketItem) {
+        com.nexus.porsuk.data.remote.AiCacheManager.invalidatePortfolioCache()
+        assetDao.insertBasketItem(item)
+    }
+    suspend fun deleteBasketItem(item: BasketItem) {
+        com.nexus.porsuk.data.remote.AiCacheManager.invalidatePortfolioCache()
+        assetDao.deleteBasketItem(item)
+    }
     
     suspend fun addToWatchlist(symbol: String) = assetDao.insertWatchlistItem(WatchlistItem(symbol))
     suspend fun removeFromWatchlist(item: WatchlistItem) = assetDao.deleteWatchlistItem(item)
@@ -270,6 +268,33 @@ class FinanceRepository(
     // Price History
     fun getStockHistory(symbol: String): Flow<List<StockHistoryEntry>> = assetDao.getStockHistory(symbol)
     suspend fun insertPriceHistoryEntry(symbol: String, price: Double) = assetDao.insertStockHistoryEntry(StockHistoryEntry(symbol = symbol, price = price))
+
+    // Decision Journal
+    fun getAllJournalEntries(): Flow<List<DecisionJournalEntry>> = assetDao.getAllJournalEntries()
+    suspend fun getAllJournalEntriesDirect(): List<DecisionJournalEntry> = assetDao.getAllJournalEntriesDirect()
+    fun getJournalEntriesForStock(symbol: String): Flow<List<DecisionJournalEntry>> = assetDao.getJournalEntriesForStock(symbol)
+    suspend fun addJournalEntry(entry: DecisionJournalEntry): Long = assetDao.insertJournalEntry(entry)
+    suspend fun updateJournalEntry(entry: DecisionJournalEntry) = assetDao.updateJournalEntry(entry)
+    suspend fun deleteJournalEntry(entry: DecisionJournalEntry) = assetDao.deleteJournalEntry(entry)
+
+    // AI Accuracy Audit
+    fun getAllAuditEntries(): Flow<List<AiAnalysisAuditEntry>> = assetDao.getAllAuditEntries()
+    suspend fun getAllAuditEntriesDirect(): List<AiAnalysisAuditEntry> = assetDao.getAllAuditEntriesDirect()
+    fun getAuditEntriesForStock(symbol: String): Flow<List<AiAnalysisAuditEntry>> = assetDao.getAuditEntriesForStock(symbol)
+    suspend fun addAuditEntry(entry: AiAnalysisAuditEntry): Long = assetDao.insertAuditEntry(entry)
+    suspend fun updateAuditEntry(entry: AiAnalysisAuditEntry) = assetDao.updateAuditEntry(entry)
+    suspend fun deleteAuditEntry(entry: AiAnalysisAuditEntry) = assetDao.deleteAuditEntry(entry)
+
+    // Porsuk Brain Memory
+    fun getBrainMemory(): Flow<com.nexus.porsuk.data.local.entity.PorsukBrainMemory?> = assetDao.getBrainMemory()
+    suspend fun getBrainMemoryDirect(): com.nexus.porsuk.data.local.entity.PorsukBrainMemory? = assetDao.getBrainMemoryDirect()
+    suspend fun saveBrainMemory(memory: com.nexus.porsuk.data.local.entity.PorsukBrainMemory) = assetDao.insertOrUpdateBrainMemory(memory)
+
+    // Proactive AI Insights
+    fun getAllInsights(): Flow<List<com.nexus.porsuk.data.local.entity.AiInsightEntry>> = assetDao.getAllInsights()
+    suspend fun getAllInsightsDirect(): List<com.nexus.porsuk.data.local.entity.AiInsightEntry> = assetDao.getAllInsightsDirect()
+    suspend fun addInsight(insight: com.nexus.porsuk.data.local.entity.AiInsightEntry): Long = assetDao.insertInsight(insight)
+    suspend fun deleteInsight(id: Long) = assetDao.deleteInsight(id)
 
     // Transactions
     fun getAllTransactionsFlow(): Flow<List<PortfolioTransaction>> = assetDao.getAllTransactionsFlow()

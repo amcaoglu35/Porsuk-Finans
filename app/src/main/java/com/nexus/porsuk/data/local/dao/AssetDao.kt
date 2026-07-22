@@ -238,4 +238,65 @@ interface AssetDao {
 
     @Query("DELETE FROM economic_events")
     suspend fun clearEconomicEvents()
+
+    // Decision Journal Entries
+    @Query("SELECT * FROM decision_journal_entries ORDER BY createdAt DESC")
+    fun getAllJournalEntries(): Flow<List<DecisionJournalEntry>>
+
+    @Query("SELECT * FROM decision_journal_entries ORDER BY createdAt DESC")
+    suspend fun getAllJournalEntriesDirect(): List<DecisionJournalEntry>
+
+    @Query("SELECT * FROM decision_journal_entries WHERE symbol = :symbol ORDER BY createdAt DESC")
+    fun getJournalEntriesForStock(symbol: String): Flow<List<DecisionJournalEntry>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertJournalEntry(entry: DecisionJournalEntry): Long
+
+    @Update
+    suspend fun updateJournalEntry(entry: DecisionJournalEntry)
+
+    @Delete
+    suspend fun deleteJournalEntry(entry: DecisionJournalEntry)
+
+    // AI Analysis Audit Entries
+    @Query("SELECT * FROM ai_analysis_audit_entries ORDER BY analysisDate DESC")
+    fun getAllAuditEntries(): Flow<List<AiAnalysisAuditEntry>>
+
+    @Query("SELECT * FROM ai_analysis_audit_entries ORDER BY analysisDate DESC")
+    suspend fun getAllAuditEntriesDirect(): List<AiAnalysisAuditEntry>
+
+    @Query("SELECT * FROM ai_analysis_audit_entries WHERE symbol = :symbol ORDER BY analysisDate DESC")
+    fun getAuditEntriesForStock(symbol: String): Flow<List<AiAnalysisAuditEntry>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAuditEntry(entry: AiAnalysisAuditEntry): Long
+
+    @Update
+    suspend fun updateAuditEntry(entry: AiAnalysisAuditEntry)
+
+    @Delete
+    suspend fun deleteAuditEntry(entry: AiAnalysisAuditEntry)
+
+    // Porsuk Brain Memory
+    @Query("SELECT * FROM porsuk_brain_memory WHERE id = 1")
+    fun getBrainMemory(): Flow<PorsukBrainMemory?>
+
+    @Query("SELECT * FROM porsuk_brain_memory WHERE id = 1")
+    suspend fun getBrainMemoryDirect(): PorsukBrainMemory?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdateBrainMemory(memory: PorsukBrainMemory)
+
+    // Proactive AI Insights
+    @Query("SELECT * FROM ai_proactive_insights ORDER BY createdAt DESC")
+    fun getAllInsights(): Flow<List<AiInsightEntry>>
+
+    @Query("SELECT * FROM ai_proactive_insights ORDER BY createdAt DESC")
+    suspend fun getAllInsightsDirect(): List<AiInsightEntry>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertInsight(insight: AiInsightEntry): Long
+
+    @Query("DELETE FROM ai_proactive_insights WHERE id = :id")
+    suspend fun deleteInsight(id: Long)
 }
