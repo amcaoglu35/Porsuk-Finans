@@ -280,6 +280,19 @@ fun OrakulScreen(
                 }
             }
 
+            // Oracle 2.0 — 17 Metrik Portföy Analiz Raporu
+            AnimatedVisibility(
+                visible = uiState.basketReport != null && !uiState.isLoading,
+                enter = fadeIn() + expandVertically()
+            ) {
+                uiState.basketReport?.let { report ->
+                    BasketAnalysisReportCard(
+                        report = report,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
             // Yapay Zeka Tabanlı Portföy Rebalans Sihirbazı Kartı
             if (uiState.selectedMode == OrakulMode.KAZI && uiState.decisions.isNotEmpty() && !uiState.isLoading) {
                 Card(
@@ -2097,5 +2110,227 @@ fun OEagiLayersCard() {
                 }
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Oracle 2.0 — 17 Metrik Portföy Analiz Raporu Kartı
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BasketAnalysisReportCard(
+    report: com.nexus.porsuk.data.remote.OraclePortfolioReport,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(true) }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = BorderStroke(1.dp, PrimaryTeal.copy(alpha = 0.4f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PrimaryTeal, modifier = Modifier.size(18.dp))
+                    Text(
+                        "ORACLE 2.0 — PORTFÖY ANALİZ RAPORU",
+                        fontFamily = IBMPlexMono, fontSize = 10.sp, color = PrimaryTeal, letterSpacing = 1.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                // Health Score badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            when {
+                                report.healthScore >= 70 -> PrimaryTeal.copy(alpha = 0.15f)
+                                report.healthScore >= 50 -> Orange.copy(alpha = 0.15f)
+                                else -> NegatifRed.copy(alpha = 0.15f)
+                            }
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        "Sağlık: ${report.healthScore}/100",
+                        fontFamily = IBMPlexMono, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                        color = when {
+                            report.healthScore >= 70 -> PrimaryTeal
+                            report.healthScore >= 50 -> Orange
+                            else -> NegatifRed
+                        }
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(color = PrimaryTeal.copy(alpha = 0.15f))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // ── Row 1: Return & Volatility & Risk ──
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OracleMetricChip(
+                            label = "Beklenen Getiri",
+                            value = "%${String.format(Locale.US, "+%.1f", report.expectedAnnualReturnPct)}",
+                            color = if (report.expectedAnnualReturnPct >= 0) PrimaryTeal else NegatifRed,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OracleMetricChip(
+                            label = "Volatilite",
+                            value = "%${String.format(Locale.US, "%.1f", report.expectedVolatilityPct)}",
+                            color = Orange,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OracleMetricChip(
+                            label = "Risk",
+                            value = report.riskLevel,
+                            color = when (report.riskLevel) {
+                                "DÜŞÜK" -> PrimaryTeal
+                                "ORTA"  -> Orange
+                                else    -> NegatifRed
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // ── Row 2: Sharpe & Drawdown ──
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OracleMetricChip(
+                            label = "Sharpe",
+                            value = String.format(Locale.US, "%.2f", report.sharpeScore),
+                            color = if (report.sharpeScore >= 1.0) PrimaryTeal else Orange,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OracleMetricChip(
+                            label = "Max Drawdown",
+                            value = "-%${String.format(Locale.US, "%.1f", report.maxDrawdownPct)}",
+                            color = NegatifRed,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // ── Score Bars ──
+                    Text("PUAN MATRİSİ", fontFamily = IBMPlexMono, fontSize = 9.sp, color = SubText, letterSpacing = 1.5.sp)
+                    OracleScoreBar("Çeşitlilik",    report.diversificationScore)
+                    OracleScoreBar("Likidite",       report.liquidityScore)
+                    OracleScoreBar("Temettü",        report.dividendScore)
+                    OracleScoreBar("Büyüme",         report.growthScore)
+                    OracleScoreBar("Defansiflik",    report.defensivenessScore)
+
+                    // ── Sector Allocation ──
+                    if (report.sectorAllocation.isNotEmpty()) {
+                        Text("SEKTÖR DAĞILIMI", fontFamily = IBMPlexMono, fontSize = 9.sp, color = SubText, letterSpacing = 1.5.sp)
+                        report.sectorAllocation.entries.take(5).forEach { (sector, weight) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(sector, fontFamily = Manrope, fontSize = 12.sp, color = InkText, modifier = Modifier.weight(1f))
+                                Text(
+                                    "%${String.format(Locale.US, "%.1f", weight)}",
+                                    fontFamily = IBMPlexMono, fontSize = 11.sp, color = PrimaryTeal, fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    // ── AI Explanation ──
+                    HorizontalDivider(color = PrimaryTeal.copy(alpha = 0.1f))
+                    Text("AI AÇIKLAMASI", fontFamily = IBMPlexMono, fontSize = 9.sp, color = SubText, letterSpacing = 1.5.sp)
+                    Text(report.aiExplanation, fontFamily = Manrope, fontSize = 13.sp, color = InkText)
+
+                    // ── Scenarios ──
+                    HorizontalDivider(color = PrimaryTeal.copy(alpha = 0.1f))
+                    Text("SENARYOLAR", fontFamily = IBMPlexMono, fontSize = 9.sp, color = SubText, letterSpacing = 1.5.sp)
+                    OracleScenarioRow("🟢 İyi", report.bestCaseScenario, PrimaryTeal)
+                    OracleScenarioRow("🟡 Baz", report.baseScenario, Orange)
+                    OracleScenarioRow("🔴 Kötü", report.worstCaseScenario, NegatifRed)
+
+                    // ── Risk Warnings ──
+                    HorizontalDivider(color = PrimaryTeal.copy(alpha = 0.1f))
+                    Text("RİSK UYARILARI", fontFamily = IBMPlexMono, fontSize = 9.sp, color = SubText, letterSpacing = 1.5.sp)
+                    report.riskWarnings.forEach { warning ->
+                        Text(warning, fontFamily = Manrope, fontSize = 12.sp, color = InkText)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OracleMetricChip(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f)),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(value, fontFamily = IBMPlexMono, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(label, fontFamily = Manrope, fontSize = 10.sp, color = SubText, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+private fun OracleScoreBar(label: String, score: Int) {
+    val animatedScore by animateFloatAsState(
+        targetValue = score / 100f,
+        animationSpec = tween(800, easing = EaseOutCubic),
+        label = "score_$label"
+    )
+    val barColor = when {
+        score >= 70 -> PrimaryTeal
+        score >= 45 -> Orange
+        else        -> NegatifRed
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(label, fontFamily = Manrope, fontSize = 12.sp, color = InkText, modifier = Modifier.width(90.dp))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(barColor.copy(alpha = 0.12f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(animatedScore)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(barColor)
+            )
+        }
+        Text("$score", fontFamily = IBMPlexMono, fontSize = 11.sp, color = barColor, fontWeight = FontWeight.Bold, modifier = Modifier.width(28.dp), textAlign = TextAlign.End)
+    }
+}
+
+@Composable
+private fun OracleScenarioRow(tag: String, text: String, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(tag, fontFamily = IBMPlexMono, fontSize = 11.sp, color = color, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp))
+        Text(text, fontFamily = Manrope, fontSize = 12.sp, color = InkText, modifier = Modifier.weight(1f))
     }
 }

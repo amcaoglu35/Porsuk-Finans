@@ -103,7 +103,7 @@ object AiAccuracyAuditManager {
     ): AiAccuracyStatistics {
 
         val totalCount = if (entries.isNotEmpty()) entries.size else 3281
-        val winCount = if (entries.isNotEmpty()) entries.count { it.isSuccessDay7 == true || it.isSuccess30D == true } else 2511
+        val winCount = if (entries.isNotEmpty()) entries.count { it.isSuccessDay7 == true || it.isSuccessDay30 == true } else 2511
         val accuracyRate = if (totalCount > 0) (winCount.toDouble() / totalCount) * 100.0 else 76.0
 
         val avgConfidence = if (entries.isNotEmpty()) entries.map { it.confidenceScore }.average().toInt() else 81

@@ -11,6 +11,7 @@ import kotlinx.coroutines.coroutineScope
 object MasterAiOrchestrator {
 
     val defaultAgents: List<PorsukAgent> = listOf(
+        FundamentalAgent(),
         PortfolioAgent(),
         NewsAgent(),
         TechnicalAgent(),

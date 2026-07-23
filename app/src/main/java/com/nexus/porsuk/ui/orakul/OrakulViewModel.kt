@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nexus.porsuk.data.local.entity.Basket
 import com.nexus.porsuk.data.local.SettingsManager
+import com.nexus.porsuk.data.remote.OracleAnalysisEngine
+import com.nexus.porsuk.data.remote.OraclePortfolioReport
 import com.nexus.porsuk.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -76,7 +78,8 @@ data class OrakulUiState(
     val basketRiskProfile: String = "BALANCED", // CONSERVATIVE, BALANCED, AGGRESSIVE
     val basketStrategyFocus: String = "VALUE", // VALUE, GROWTH, DIVIDEND, MIXED
     val basketStockCount: Int = 5,
-    val basketCashPct: Double = 10.0
+    val basketCashPct: Double = 10.0,
+    val basketReport: OraclePortfolioReport? = null   // Oracle 2.0 — 17 metrik analiz raporu
 )
 
 class OrakulViewModel(
@@ -279,10 +282,11 @@ class OrakulViewModel(
                     sb.toString()
                 } else "Portföyde henüz hisse yok."
 
-                // STREAMING: GeminiService üzerinden tekil streaming motoru
+                // STREAMING: buildPrompt() ile mode'a özgü doğru prompt üretilir ve GeminiService'e gönderilir
+                val orakulPrompt = buildPrompt(currentMode, companyLines, portfolioLines, question)
                 val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
                 var accumulated = ""
-                service.getOrakulStream(currentMode.name, companyLines, portfolioLines, question).collect { chunk ->
+                service.getOrakulStream(orakulPrompt).collect { chunk ->
                     accumulated += chunk
                     _uiState.update { it.copy(streamingText = accumulated) }
                 }
@@ -293,6 +297,17 @@ class OrakulViewModel(
                     parseStressScenarios(accumulated)
                 } else emptyList()
                 val now = java.text.SimpleDateFormat("HH:mm", java.util.Locale("tr")).format(java.util.Date())
+
+                // Oracle 2.0: 17 metrik portföy raporu (sadece BASKET modunda)
+                val basketReport: OraclePortfolioReport? = if (currentMode == OrakulMode.BASKET && parsed.isNotEmpty()) {
+                    val allCompaniesForReport = repository.allCompanies.first()
+                    val cachedInfos = parsed.mapNotNull { d ->
+                        try { repository.getCachedInfo(d.symbol).first() } catch (_: Exception) { null }
+                    }
+                    val rates = repository.exchangeRates.value
+                    val usdRate = rates["USD"] ?: 34.5
+                    OracleAnalysisEngine.analyze(parsed, allCompaniesForReport, cachedInfos, usdRate)
+                } else null
 
                 // Geçmişe ekle
                 val historyEntry = OrakulHistoryEntry(
@@ -311,7 +326,8 @@ class OrakulViewModel(
                         stressScenarios = stressScenarios,
                         lastAnalysisTime = now,
                         error = null,
-                        history = newHistory
+                        history = newHistory,
+                        basketReport = basketReport
                     )
                 }
             } catch (e: Exception) {

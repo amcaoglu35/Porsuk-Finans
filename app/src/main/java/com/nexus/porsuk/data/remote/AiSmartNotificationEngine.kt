@@ -6,6 +6,7 @@ import com.nexus.porsuk.data.local.entity.BasketItem
 import com.nexus.porsuk.data.local.entity.Company
 import com.nexus.porsuk.data.local.entity.NewsItemEntity
 import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.data.model.IndicatorCalculator
 import com.nexus.porsuk.ui.common.NotificationHelper
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -61,7 +62,7 @@ object AiSmartNotificationEngine {
             if (notificationsSentToday >= 2) break // Max 2 smart notifications per run to prevent spam
 
             val company = companyMap[symbol]
-            val snapshot = priceMap[symbol] ?: PriceSnapshot(symbol = symbol, price = company?.currentPrice ?: 0.0, changePercent = company?.changePercent ?: 0.0)
+            val snapshot = priceMap[symbol] ?: PriceSnapshot(symbol = symbol, price = company?.currentPrice ?: 0.0, changePercent = company?.changePercent ?: 0.0, interval = "DAY")
             val newsList = newsMap[symbol] ?: emptyList()
 
             // 1. Ani Yükseliş (Sudden Gain >= +4.0%)

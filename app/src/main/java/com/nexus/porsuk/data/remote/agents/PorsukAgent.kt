@@ -1,6 +1,7 @@
 package com.nexus.porsuk.data.remote.agents
 
 import com.nexus.porsuk.data.local.entity.BasketItem
+import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
 import com.nexus.porsuk.data.local.entity.Company
 
 /**
@@ -12,7 +13,8 @@ data class AgentRequest(
     val volumes: List<Double> = emptyList(),
     val newsTitles: List<String> = emptyList(),
     val holdings: List<BasketItem> = emptyList(),
-    val companies: List<Company> = emptyList()
+    val companies: List<Company> = emptyList(),
+    val companyInfos: List<CachedCompanyInfo> = emptyList()
 )
 
 /**

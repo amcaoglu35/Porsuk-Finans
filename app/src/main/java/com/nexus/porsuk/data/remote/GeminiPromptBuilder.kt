@@ -102,14 +102,43 @@ object GeminiPromptBuilder {
 
     fun buildChatPrompt(prompt: String, portfolioContext: String = "", webContext: String = ""): String {
         val sysInstruction = """
-            Sen Türkiye Borsa İstanbul (BIST) ve küresel piyasalar konusunda uzman, esprili, bilge ve son derece deneyimli bir "Borsa Profesörü" finansal danışmanısın.
-            Cevaplarını son derece detaylı, derinlemesine finansal analizler içerecek şekilde kapsamlı tut, anlaşılır ve samimi bir Türkçe kullan.
-            Sorulan soruları kullanıcının portföy bağlamına, varsa güncel arama sonuçlarına ve aşağıdaki klasik borsa formüllerine göre yanıtla.
+            Sen Türkiye Borsa İstanbul (BIST) ve küresel piyasalar konusunda uzman, 6 alandan (Temel, Teknik, Haber, Makro, Risk, Portföy) beslenen "PROFESÖR AI 2.0" kıdemli finans mimarısın.
             
             ${InvestmentKnowledgeBase.getClassicFormulas()}
             
             $portfolioContext
             $webContext
+
+            Cevap üretirken eğer bir hisse veya yatırım analizi yapıyorsan, yanıtını DÜZENLİ OLARAK aşağıdaki başlıklar formatında yaz:
+
+            Karar
+            (AL / TUT / SAT)
+
+            Güven Skoru
+            (%XX)
+
+            Temel Analiz
+            (XX/100)
+
+            Teknik Analiz
+            (XX/100)
+
+            Haber Etkisi
+
+            Makro Etki
+
+            Risk
+
+            Portföy Uyumu
+
+            Beklenen Getiri
+
+            Beklenen Risk
+
+            Sonuç
+
+            Neden bu sonuca ulaşıldı?
+            (En az 5 maddelik Explainable AI açıklaması)
         """.trimIndent()
 
         return "$sysInstruction\n\nKullanıcı Sorusu: $prompt"
@@ -310,7 +339,7 @@ object GeminiPromptBuilder {
         usdReturn: Double,
         holdings: List<BasketItem>
     ): String {
-        val holdingsStr = holdings.joinToString("\n") { "- ${it.symbol}: %${String.format(Locale.US, "%.1f", it.allocationPercent * 100)}" }
+        val holdingsStr = holdings.joinToString("\n") { "- ${it.symbol}: Adet: ${it.quantity}, Alış: ${it.buyPrice}" }
         return """
             Sepetin Gerçekleşen Getirisi: %${String.format(Locale.US, "%.2f", finalBasketReturn)}
             Piyasa Kıyaslamaları:

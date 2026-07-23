@@ -35,7 +35,7 @@ object GeminiErrorParser {
             fullErrorText.contains("NOT_FOUND", ignoreCase = true)) {
             val sysDetail = extractJsonErrorMessage(fullErrorText) ?: e.message ?: ""
             return "Gemini API Servis Hatası (404):\n\n" +
-                   "Yapay zeka modeli (gemini-2.0-flash vb.) veya API servisi projenizde aktif değil.\n\n" +
+                   "Yapay zeka modeli (${GeminiModels.activeWorkingModel}) veya API servisi projenizde aktif değil.\n\n" +
                    "💡 KESİN ÇÖZÜM:\n" +
                    "1. Google AI Studio (https://aistudio.google.com/) adresine gidin.\n" +
                    "2. 'Get API Key' butonuna basın ve aktif bir API anahtarı seçin veya yeni bir tane oluşturun.\n" +
@@ -52,7 +52,7 @@ object GeminiErrorParser {
             return "İstek Sınırı Aşıldı (429):\n\n" +
                    "Google Gemini API dakikalık/günlük ücretsiz kota sınırına (RPM/RPD) ulaşıldı.\n\n" +
                    "💡 KESİN ÇÖZÜM:\n" +
-                   "1. Uygulama otomatik olarak alternatif 'gemini-2.5-flash', 'gemini-2.0-flash' ve 'gemini-1.5-flash' modellerine geçiş yapmayı dener.\n" +
+                   "1. Uygulama '${GeminiModels.activeWorkingModel}' modeli üzerinden kota yenilenmesini bekler.\n" +
                    "2. 15-30 saniye bekleyip tekrar deneyin.\n" +
                    "3. Dilerseniz Google AI Studio'dan (https://aistudio.google.com/) yeni bir API anahtarı alıp Ayarlar'dan güncelleyebilirsiniz."
         }

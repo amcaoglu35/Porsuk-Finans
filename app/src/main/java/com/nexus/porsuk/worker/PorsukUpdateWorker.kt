@@ -196,7 +196,8 @@ class PorsukUpdateWorker(
 
                 val prompt = "Sen samimi bir 'Borsa Profesörü' karakterisin. Portföyümün bugünkü durumuna göre (%${(kotlin.random.Random.nextFloat() * 4 - 2)}) tek cümlelik, esprili bir kapanış özeti yap. Toplam Portföy: $totalValue TL"
                 
-                val summaryText = generateContentWithFallback(apiKey, prompt).ifBlank { "Bugün de piyasayı izledik, her şey yolunda!" }
+                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                val summaryText = service.generateRawContent(prompt).ifBlank { "Bugün de piyasayı izledik, her şey yolunda!" }
                 com.nexus.porsuk.ui.common.NotificationHelper.sendNotification(applicationContext, "📊 Günlük Portföy Özeti", summaryText, 9999)
                 settingsManager.setLastEveningNotifTime(System.currentTimeMillis())
             } catch (_: Exception) {}

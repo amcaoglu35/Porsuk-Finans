@@ -50,7 +50,15 @@ class GeminiService(private val apiKey: String) {
     suspend fun chat(prompt: String, portfolioContext: String = "", webContext: String = ""): String = withContext(Dispatchers.IO) {
         val macroParagraph = MarketIntelligenceEngine.getMarketSummaryParagraph()
         val brainContext = PorsukBrainManager.buildBrainContext(null)
-        val combinedWeb = "$brainContext\n$macroParagraph" + (if (webContext.isNotBlank()) "\n$webContext" else "")
+
+        // 1. Run Profesör AI 2.0 Multi-Agent & Consensus Engine (0 AI Token Cost)
+        val agentReq = com.nexus.porsuk.data.remote.agents.AgentRequest(
+            symbol = prompt.take(10).trim()
+        )
+        val multiAgentSummary = com.nexus.porsuk.data.remote.agents.MasterAiOrchestrator.runMultiAgentPipeline(agentReq)
+        val consensus = com.nexus.porsuk.data.remote.agents.ProfesorConsensusEngine.evaluate(agentReq, multiAgentSummary)
+
+        val combinedWeb = "$brainContext\n$macroParagraph\n${consensus.structuredSummary}" + (if (webContext.isNotBlank()) "\n$webContext" else "")
 
         val pHash = portfolioContext.hashCode()
         val cacheKey = AiCacheManager.generateKey("chat", prompt = prompt, portfolioHash = pHash)
@@ -178,7 +186,7 @@ class GeminiService(private val apiKey: String) {
         usdReturn: Double,
         holdings: List<BasketItem>
     ): String = withContext(Dispatchers.IO) {
-        val pHash = holdings.map { "${it.symbol}_${it.allocationPercent}" }.hashCode()
+        val pHash = holdings.map { "${it.symbol}_${it.quantity}" }.hashCode()
         val cacheKey = AiCacheManager.generateKey("basket_orakul_comment", portfolioHash = pHash)
         val cached = AiCacheManager.get(cacheKey)
         if (cached != null) return@withContext cached
@@ -342,12 +350,8 @@ class GeminiService(private val apiKey: String) {
     // 7. ORAKUL & KAZI & WORKER TASKS
     // ─────────────────────────────────────────────────────────────────────────────
     fun getOrakulStream(
-        currentModeName: String,
-        companyLines: String,
-        portfolioLines: String,
-        question: String
+        prompt: String
     ): Flow<String> {
-        val prompt = GeminiPromptBuilder.buildOrakulModePrompt(currentModeName, companyLines, portfolioLines, question)
         return GeminiModels.generateContentStreamWithFallback(
             apiKey = apiKey,
             prompt = prompt,

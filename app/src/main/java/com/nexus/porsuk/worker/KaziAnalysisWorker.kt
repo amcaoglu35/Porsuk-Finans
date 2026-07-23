@@ -299,7 +299,7 @@ class KaziAnalysisWorker(
             """.trimIndent()
 
             val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-            val text = service.generateKaziThesis(symbol, run.title, reasoningDepth)
+            val text = service.generateKaziThesis(symbol, "Tarama #${run.id} (${run.riskProfile})", reasoningDepth)
             if (text.isBlank()) {
                 throw Exception("Gerekçe oluşturulamadı.")
             }

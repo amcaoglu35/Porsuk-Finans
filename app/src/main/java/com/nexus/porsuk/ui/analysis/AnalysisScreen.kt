@@ -115,28 +115,134 @@ fun AnalysisScreen(
 
                 // 3. Sekme İçerikleri
                 when (selectedTabIndex) {
-                    0 -> overviewTabItems(uiState, numberFormat, onStockClick)
-                    1 -> riskSimulationTabItems(uiState)
-                    2 -> marketPulseTabItems()
-                    3 -> incomeTaxTabItems(uiState, numberFormat)
-                    4 -> oracleToolsTabItems(
-                        uiState = uiState,
-                        onNavigateToSettings = onNavigateToSettings,
-                        onRunHealthCheck = {
-                            viewModel.runPortfolioHealthCheck()
-                            showHealthCheckSheet = true
-                        },
-                        onOpenScreener = { showScreenerTemplatesSheet = true },
-                        onGetRecs = {
-                            viewModel.generateInvestmentRecommendations()
-                            showRecsSheet = true
-                        },
-                        onGetRebalance = {
-                            viewModel.generateRebalanceReport()
-                            showRebalanceSheet = true
-                        },
-                        onNavigateToDuel = { onNavigateToDuel("THYAO", "PGSUS") }
-                    )
+                    0 -> {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = Surface),
+                                border = BorderStroke(1.dp, BorderLine)
+                            ) {
+                                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    Text("📊 Sektör ve Bölge Dağılımı", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                                    uiState.regionBreakdown.take(5).forEach { summary ->
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("${summary.flag} ${summary.label}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontFamily = Manrope)
+                                            Text("%${String.format(Locale.US, "%.1f", summary.allocationPercent * 100)}", style = MaterialTheme.typography.bodyMedium, color = Aqua, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    1 -> {
+                        item {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                MetricBox(
+                                    value = String.format(Locale.US, "%.2f", uiState.riskMetrics.sharpeRatio),
+                                    label = "Sharpe Oranı",
+                                    accentColor = PrimaryTeal,
+                                    tag = if (uiState.riskMetrics.sharpeRatio >= 1.0) "Yüksek" else "Dengeli",
+                                    tagType = if (uiState.riskMetrics.sharpeRatio >= 1.0) MetricTagType.GOOD else MetricTagType.NEUTRAL,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                MetricBox(
+                                    value = "-%${String.format(Locale.US, "%.1f", uiState.riskMetrics.maxDrawdown)}",
+                                    label = "Max Drawdown",
+                                    accentColor = NegatifRed,
+                                    tag = "Maksimum Düşüş",
+                                    tagType = MetricTagType.BAD,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                MetricBox(
+                                    value = "%${String.format(Locale.US, "%.1f", uiState.riskMetrics.volatility)}",
+                                    label = "Volatilite",
+                                    accentColor = Color(0xFF7C6CF0),
+                                    tag = "Oynaklık",
+                                    tagType = MetricTagType.ACCENT,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                    2 -> {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = Surface),
+                                border = BorderStroke(1.dp, BorderLine)
+                            ) {
+                                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Text("📈 Endeks Karşılaştırması", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        MetricBox(value = "${if (uiState.totalChangePercent >= 0) "+" else ""}${String.format(Locale.US, "%.1f", uiState.totalChangePercent)}%", label = "Portföy", accentColor = PrimaryTeal, tag = "Getiri", tagType = MetricTagType.GOOD, modifier = Modifier.weight(1f))
+                                        MetricBox(value = "${if (uiState.benchmarkChangePercent >= 0) "+" else ""}${String.format(Locale.US, "%.1f", uiState.benchmarkChangePercent)}%", label = uiState.benchmarkLabel, accentColor = Color(0xFF22B8D9), tag = "Endeks", tagType = MetricTagType.NEUTRAL, modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    3 -> {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = Surface),
+                                border = BorderStroke(1.dp, BorderLine)
+                            ) {
+                                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    Text("📊 Kâr / Zarar (P&L) Raporu", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        MetricBox(
+                                            value = CurrencyFormatter.formatTRY(uiState.unrealizedPnL, formatType = numberFormat),
+                                            label = "Gerçekleşmemiş P&L",
+                                            accentColor = if (uiState.unrealizedPnL >= 0) PrimaryTeal else NegatifRed,
+                                            tag = "Açık Pozisyon",
+                                            tagType = if (uiState.unrealizedPnL >= 0) MetricTagType.GOOD else MetricTagType.BAD,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        MetricBox(
+                                            value = CurrencyFormatter.formatTRY(uiState.realizedPnL, formatType = numberFormat),
+                                            label = "Gerçekleşmiş P&L",
+                                            accentColor = if (uiState.realizedPnL >= 0) Color(0xFF22B8D9) else NegatifRed,
+                                            tag = "Realize Edilen",
+                                            tagType = MetricTagType.NEUTRAL,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    4 -> {
+                        item {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Card(
+                                    modifier = Modifier.weight(1f).height(120.dp).clickable { if (uiState.hasGeminiKey) { viewModel.runPortfolioHealthCheck(); showHealthCheckSheet = true } else onNavigateToSettings() },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Surface),
+                                    border = BorderStroke(1.dp, BorderLine)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                                        Text("🩺 Portföy Check-Up", style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.Bold)
+                                        Text("Yapay Zekâ Sağlık Taraması", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                    }
+                                }
+                                Card(
+                                    modifier = Modifier.weight(1f).height(120.dp).clickable { if (uiState.hasGeminiKey) showScreenerTemplatesSheet = true else onNavigateToSettings() },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Surface),
+                                    border = BorderStroke(1.dp, BorderLine)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                                        Text("🔍 Hisse Eleği", style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.Bold)
+                                        Text("Strateji Taraması", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -193,7 +299,7 @@ fun AnalysisScreen(
                             .fillMaxWidth()
                             .clickable {
                                 showScreenerTemplatesSheet = false
-                                viewModel.runFundamentalScreener(template)
+                                viewModel.runStockScreener(template)
                                 showScreenerResultSheet = true
                             },
                         shape = RoundedCornerShape(12.dp),
@@ -283,8 +389,8 @@ fun AnalysisScreen(
 @Composable
 private fun AnalizTopBlock(
     uiState: AnalysisUiState,
-    numberFormat: NumberFormatOption,
-    onRangeSelect: (String) -> Unit,
+    numberFormat: String,
+    onRangeSelect: (PortfolioRange) -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
     Card(
@@ -327,7 +433,7 @@ private fun AnalizTopBlock(
                     Column {
                         Text("Toplam Portföy Değeri", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f), fontFamily = Manrope)
                         Text(
-                            text = CurrencyFormatter.format(uiState.totalPortfolioValue, numberFormat = numberFormat),
+                            text = CurrencyFormatter.formatTRY(uiState.totalPortfolioValue, formatType = numberFormat),
                             style = MaterialTheme.typography.headlineMedium,
                             color = Color.White,
                             fontFamily = JetBrainsMono,
@@ -335,7 +441,7 @@ private fun AnalizTopBlock(
                         )
                     }
 
-                    val isPos = uiState.performanceChangePct >= 0
+                    val isPos = uiState.totalChangePercent >= 0
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -350,7 +456,7 @@ private fun AnalizTopBlock(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = "${if (isPos) "+" else ""}${String.format(Locale.US, "%.2f", uiState.performanceChangePct)}%",
+                                text = "${if (isPos) "+" else ""}${String.format(Locale.US, "%.2f", uiState.totalChangePercent)}%",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (isPos) PrimaryTeal else NegatifRed,
                                 fontFamily = JetBrainsMono,
@@ -365,9 +471,8 @@ private fun AnalizTopBlock(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val ranges = listOf("1H", "1A", "3A", "1Y", "Tümü")
-                    ranges.forEach { range ->
-                        val isSelected = uiState.selectedTimeRange == range
+                    PortfolioRange.values().forEach { range ->
+                        val isSelected = uiState.selectedRange == range
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -378,7 +483,7 @@ private fun AnalizTopBlock(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = range,
+                                text = range.label,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isSelected) Color(0xFF015B4A) else Color.White,
                                 fontFamily = JetBrainsMono,
@@ -388,21 +493,9 @@ private fun AnalizTopBlock(
                     }
                 }
 
-                // Chart (Mint->Aqua glow effect canvas chart)
-                val chartPoints = remember(uiState.selectedTimeRange, uiState.totalPortfolioValue) {
-                    val base = uiState.totalPortfolioValue.toFloat().coerceAtLeast(100f)
-                    val change = uiState.performanceChangePct.toFloat()
-                    val hash = uiState.selectedTimeRange.hashCode()
-                    val pts = mutableListOf<Float>()
-                    for (i in 0..10) {
-                        val factor = 1f + (change / 100f) * (i / 10f) + (kotlin.math.sin(i.toDouble() + hash) * 0.02f).toFloat()
-                        pts.add(base * factor)
-                    }
-                    pts
-                }
-
+                // Chart
                 PremiumLiveCanvasChart(
-                    pricePoints = chartPoints,
+                    pricePoints = uiState.portfolioHistory,
                     isGlassStyle = true
                 )
             }
@@ -471,387 +564,24 @@ private fun AnalizTabRow(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB 0: GENEL BAKIŞ
-// ─────────────────────────────────────────────────────────────────────────────
-private fun LazyListScope.overviewTabItems(
-    uiState: AnalysisUiState,
-    numberFormat: NumberFormatOption,
-    onStockClick: (String, String) -> Unit
-) {
-    // 1. Sektör Dağılımı Kartı
-    item {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(2.dp, RoundedCornerShape(18.dp), spotColor = TextPrimary.copy(alpha = 0.04f)),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface),
-            border = BorderStroke(1.dp, BorderLine)
+@Composable
+private fun EmptyAnalysisState(onCreateBasket: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("📊 Henüz Bir Portföy veya Sepet Oluşturulmadı", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Analiz grafiklerini ve AI içgörülerini görebilmek için ilk sepetini oluştur.", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onCreateBasket,
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)
         ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("📊 Piyasa & Sektör Dağılımı", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                uiState.sectorAllocations.take(4).forEach { (sector, pct) ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(sector, style = MaterialTheme.typography.bodySmall, color = TextPrimary, fontFamily = Manrope, fontWeight = FontWeight.SemiBold)
-                            Text("%${String.format(Locale.US, "%.1f", pct)}", style = MaterialTheme.typography.bodySmall, color = Aqua, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold)
-                        }
-                        LinearProgressIndicator(
-                            progress = { (pct / 100f).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                            color = Aqua,
-                            trackColor = AquaLight
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // 2. En İyi / En Kötü Hisseler (Soft Gradient Kartlar)
-    item {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Top Winner
-            val winner = uiState.topGainers.firstOrNull()
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = TextPrimary.copy(alpha = 0.04f)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                border = BorderStroke(1.dp, BorderLine)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.matchParentSize().background(Brush.linearGradient(listOf(TealSoft, Surface))))
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🟢 EN İYİ PERFORMANS", style = MaterialTheme.typography.labelSmall, color = PrimaryTeal, fontWeight = FontWeight.Bold, fontFamily = JetBrainsMono, fontSize = 8.5.sp)
-                        Text(winner?.symbol ?: "THYAO", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontFamily = JetBrainsMono)
-                        Text("+%${String.format(Locale.US, "%.2f", winner?.changePct ?: 4.85)}", style = MaterialTheme.typography.bodySmall, color = PrimaryTeal, fontWeight = FontWeight.Bold, fontFamily = JetBrainsMono)
-                    }
-                }
-            }
-
-            // Top Loser
-            val loser = uiState.topLosers.firstOrNull()
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = TextPrimary.copy(alpha = 0.04f)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                border = BorderStroke(1.dp, BorderLine)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.matchParentSize().background(Brush.linearGradient(listOf(RedSoft, Surface))))
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🔴 EN ZAYIF PERFORMANS", style = MaterialTheme.typography.labelSmall, color = NegatifRed, fontWeight = FontWeight.Bold, fontFamily = JetBrainsMono, fontSize = 8.5.sp)
-                        Text(loser?.symbol ?: "EREGL", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontFamily = JetBrainsMono)
-                        Text("-%${String.format(Locale.US, "%.2f", kotlin.math.abs(loser?.changePct ?: -2.15))}", style = MaterialTheme.typography.bodySmall, color = NegatifRed, fontWeight = FontWeight.Bold, fontFamily = JetBrainsMono)
-                    }
-                }
-            }
-        }
-    }
-
-    // 3. Benchmark Karşılaştırması
-    item {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(2.dp, RoundedCornerShape(18.dp), spotColor = TextPrimary.copy(alpha = 0.04f)),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface),
-            border = BorderStroke(1.dp, BorderLine)
-        ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("📈 Benchmark Karşılaştırması", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetricBox(value = "+%${String.format(Locale.US, "%.1f", uiState.performanceChangePct)}", label = "Portföyün", accentColor = PrimaryTeal, tag = "Üstün", tagType = MetricTagType.GOOD, modifier = Modifier.weight(1f))
-                    MetricBox(value = "+%12.4", label = "BIST 100", accentColor = Color(0xFF22B8D9), tag = "Endeks", tagType = MetricTagType.NEUTRAL, modifier = Modifier.weight(1f))
-                    MetricBox(value = "+%8.1", label = "Gram Altın", accentColor = Color(0xFFE8A93B), tag = "Emtia", tagType = MetricTagType.NEUTRAL, modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB 1: RİSK & SİMÜLASYON
-// ─────────────────────────────────────────────────────────────────────────────
-private fun LazyListScope.riskSimulationTabItems(uiState: AnalysisUiState) {
-    // 1. MetricBox Grid (Sharpe, Max Drawdown, Volatility)
-    item {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricBox(
-                value = String.format(Locale.US, "%.2f", uiState.riskMetrics.sharpeRatio),
-                label = "Sharpe Oranı",
-                accentColor = PrimaryTeal,
-                tag = if (uiState.riskMetrics.sharpeRatio >= 1.0) "Yüksek Getiri" else "Orta",
-                tagType = if (uiState.riskMetrics.sharpeRatio >= 1.0) MetricTagType.GOOD else MetricTagType.NEUTRAL,
-                modifier = Modifier.weight(1f)
-            )
-            MetricBox(
-                value = "-%${String.format(Locale.US, "%.1f", uiState.riskMetrics.maxDrawdownPct)}",
-                label = "Maks Düşüş",
-                accentColor = NegatifRed,
-                tag = "Zirveden Kayıp",
-                tagType = MetricTagType.BAD,
-                modifier = Modifier.weight(1f)
-            )
-            MetricBox(
-                value = String.format(Locale.US, "%.2f", uiState.riskMetrics.beta),
-                label = "Beta Katsayısı",
-                accentColor = Color(0xFF7C6CF0),
-                tag = "Piyasa Oynaklığı",
-                tagType = MetricTagType.ACCENT,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-
-    // 2. Gelişmiş Risk Metrikleri Card
-    item {
-        val advRisk = remember(uiState) { AdvancedRiskMetricsCalculator.calculate() }
-        AdvancedRiskMetricsCard(metrics = advRisk)
-    }
-
-    // 3. Portföy Korelasyon Matrisi Card
-    item {
-        val corrMatrix = remember(uiState) { PortfolioCorrelationCalculator.calculate() }
-        PortfolioCorrelationMatrixCard(matrix = corrMatrix)
-    }
-
-    // 4. Monte Carlo Simülasyonu Card
-    item {
-        val simulation = remember(uiState.totalPortfolioValue) { MonteCarloSimulationEngine.runSimulation(uiState.totalPortfolioValue) }
-        MonteCarloSimulationCard(simulation = simulation)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB 2: PİYASA NABZI
-// ─────────────────────────────────────────────────────────────────────────────
-private fun LazyListScope.marketPulseTabItems() {
-    // 1. Piyasa Genişliği & MKK Yabancı Payı
-    item {
-        val breadth = remember { MarketBreadthCalculator.calculate() }
-        MarketBreadthCard(breadth = breadth)
-    }
-
-    // 2. TCMB Makro & Getiri Eğrisi
-    item {
-        val macro = remember { MacroMetricsCalculator.getMacroData() }
-        MacroMetricsCard(macro = macro)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB 3: GELİR & VERGİ
-// ─────────────────────────────────────────────────────────────────────────────
-private fun LazyListScope.incomeTaxTabItems(uiState: AnalysisUiState, numberFormat: NumberFormatOption) {
-    // 1. Yıllık Pasif Gelir & Temettü Card
-    item {
-        DividendYieldCard(dividendSummary = uiState.dividendSummary)
-    }
-
-    // 2. P&L Analizi (Gerçekleşmiş & Gerçekleşmemiş Kâr/Zarar)
-    item {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(2.dp, RoundedCornerShape(18.dp), spotColor = TextPrimary.copy(alpha = 0.04f)),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface),
-            border = BorderStroke(1.dp, BorderLine)
-        ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("📊 Kâr / Zarar (P&L) Analizi", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetricBox(
-                        value = "${String.format(Locale.US, "%,.0f", uiState.totalPortfolioValue * 0.14)} TL",
-                        label = "Gerçekleşmemiş Kâr",
-                        accentColor = PrimaryTeal,
-                        tag = "Açık Pozisyon",
-                        tagType = MetricTagType.GOOD,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricBox(
-                        value = "${String.format(Locale.US, "%,.0f", uiState.totalPortfolioValue * 0.03)} TL",
-                        label = "Gerçekleşmiş Kâr",
-                        accentColor = Color(0xFF22B8D9),
-                        tag = "Kapatılan",
-                        tagType = MetricTagType.NEUTRAL,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TAB 4: ORAKUL ARAÇLARI
-// ─────────────────────────────────────────────────────────────────────────────
-private fun LazyListScope.oracleToolsTabItems(
-    uiState: AnalysisUiState,
-    onNavigateToSettings: () -> Unit,
-    onRunHealthCheck: () -> Unit,
-    onOpenScreener: () -> Unit,
-    onGetRecs: () -> Unit,
-    onGetRebalance: () -> Unit,
-    onNavigateToDuel: () -> Unit
-) {
-    // 1. Yapay Zeka Asistan Kartları (Check-Up + Screener)
-    item {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Check-up
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(130.dp)
-                    .clickable { if (uiState.hasGeminiKey) onRunHealthCheck() else onNavigateToSettings() },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                border = BorderStroke(1.dp, BorderLine)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.matchParentSize().background(Brush.linearGradient(listOf(Color(0xFF7C6CF0).copy(alpha = 0.05f), Color.Transparent))))
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF7C6CF0).copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                            Text("🩺", fontSize = 20.sp)
-                        }
-                        Column {
-                            Text("Portföy Check-Up", style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                            Text("Sağlık Raporu & Risk", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = 11.sp, fontFamily = Manrope)
-                        }
-                    }
-                }
-            }
-
-            // Screener
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(130.dp)
-                    .clickable { if (uiState.hasGeminiKey) onOpenScreener() else onNavigateToSettings() },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                border = BorderStroke(1.dp, BorderLine)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.matchParentSize().background(Brush.linearGradient(listOf(Aqua.copy(alpha = 0.05f), Color.Transparent))))
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Aqua.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                            Text("🔍", fontSize = 20.sp)
-                        }
-                        Column {
-                            Text("Hisse Eleği", style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                            Text("AI Formül Taraması", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = 11.sp, fontFamily = Manrope)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 2. Orakul AI Hisse Düellosu Giriş Kartı (CTA Button -> Full-Screen Duel)
-    item {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color(0xFF7C6CF0).copy(alpha = 0.2f)),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface),
-            border = BorderStroke(1.dp, LineBorder)
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF7C6CF0).copy(alpha = 0.08f), PrimaryTeal.copy(alpha = 0.05f))
-                            )
-                        )
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("🥊", fontSize = 18.sp)
-                            Text("Orakul AI Hisse Düellosu", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontFamily = Manrope)
-                        }
-                        Text(
-                            "İki hisseyi seç, 5 finansal raundda hangisinin daha güçlü olduğunu AI motoruna analiz ettir.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted,
-                            fontSize = 11.5.sp,
-                            fontFamily = Manrope
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Button(
-                            onClick = onNavigateToDuel,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.horizontalGradient(listOf(PrimaryTeal, Color(0xFF22B8D9)))),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(" Düello Başlat ⚔️", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope, fontSize = 12.sp)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 3. Profesör'ün Alım Önerileri Kartı
-    item {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(96.dp)
-                .clickable { if (uiState.hasGeminiKey) onGetRecs() else onNavigateToSettings() },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface),
-            border = BorderStroke(1.dp, BorderLine)
-        ) {
-            Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(WarningGold.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                    Text("💡", fontSize = 22.sp)
-                }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column {
-                    Text("Profesör'ün Alım Önerileri", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                    Text("BIST'te öne çıkan fırsat analizleri", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = 11.sp, fontFamily = Manrope)
-                }
-            }
-        }
-    }
-
-    // 4. Profesör'ün Yorumu / AI Rebalans Raporu Kartı
-    item {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { if (uiState.hasGeminiKey) onGetRebalance() else onNavigateToSettings() },
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = Surface),
-            border = BorderStroke(1.dp, BorderLine)
-        ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("👨‍🏫", fontSize = 20.sp)
-                    Text("Profesör'ün Portföy Yorumu & Rebalans", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                }
-                Text("Portföyünün varlık ağırlıklarını Graham & Buffett felsefesiyle optimize et.", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontFamily = Manrope)
-            }
+            Text("Yeni Sepet Oluştur", color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
 }

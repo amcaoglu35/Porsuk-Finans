@@ -409,7 +409,8 @@ class BasketDetailViewModel(
                     """.trimIndent()
 
                     val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                    orakulComment = service.getBasketOrakulComment(finalBasketReturn, bistReturn, usdReturn, holdings)
+                    val basketItems = holdings.map { com.nexus.porsuk.data.local.entity.BasketItem(basketId = 0, symbol = it.symbol, quantity = it.quantity, buyPrice = it.buyPrice, buyDate = System.currentTimeMillis()) }
+                    orakulComment = service.getBasketOrakulComment(finalBasketReturn, bistReturn, usdReturn, basketItems)
                 }
 
                 if (orakulComment.isBlank()) {
