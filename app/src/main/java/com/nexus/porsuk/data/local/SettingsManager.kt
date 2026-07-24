@@ -35,6 +35,9 @@ class SettingsManager(private val context: Context) {
             )
         }
     } catch (e: Exception) {
+        try {
+            context.deleteSharedPreferences("secure_settings")
+        } catch (ex: Exception) { }
         null
     }
 
@@ -116,8 +119,12 @@ class SettingsManager(private val context: Context) {
     val geminiApiKeyFlow: Flow<String?> = _geminiApiKey
 
     init {
-        val prefs = encryptedPrefs ?: backupPrefs
-        _geminiApiKey.value = prefs.getString("gemini_api_key", null)?.trim()
+        try {
+            val prefs = encryptedPrefs ?: backupPrefs
+            _geminiApiKey.value = prefs.getString("gemini_api_key", null)?.trim()
+        } catch (e: Exception) {
+            _geminiApiKey.value = null
+        }
     }
 
     suspend fun setUpdateFrequency(minutes: Int) {
@@ -149,8 +156,12 @@ class SettingsManager(private val context: Context) {
     }
 
     fun saveGeminiApiKey(key: String) {
-        val prefs = encryptedPrefs ?: backupPrefs
-        prefs.edit().putString("gemini_api_key", key).apply()
+        try {
+            val prefs = encryptedPrefs ?: backupPrefs
+            prefs.edit().putString("gemini_api_key", key).apply()
+        } catch (e: Exception) {
+            backupPrefs.edit().putString("gemini_api_key", key).apply()
+        }
         _geminiApiKey.value = key.trim()
     }
 

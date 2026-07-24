@@ -282,7 +282,7 @@ class GeminiService(private val apiKey: String) {
     // ─────────────────────────────────────────────────────────────────────────────
     suspend fun getTechnicalSummary(
         symbol: String,
-        technicalData: Map<String, Any>,
+        technicalData: Map<String, String>,
         historicalPrices: List<Double> = emptyList(),
         volumes: List<Double> = emptyList()
     ): String = withContext(Dispatchers.IO) {
@@ -308,7 +308,7 @@ class GeminiService(private val apiKey: String) {
     // ─────────────────────────────────────────────────────────────────────────────
     // 5. RISK AI (JSON Structured & Cached)
     // ─────────────────────────────────────────────────────────────────────────────
-    suspend fun getRiskAnalysis(symbol: String, riskMetrics: Map<String, Any>): String = withContext(Dispatchers.IO) {
+    suspend fun getRiskAnalysis(symbol: String, riskMetrics: Map<String, String>): String = withContext(Dispatchers.IO) {
         val cacheKey = AiCacheManager.generateKey("risk_analysis", symbol = symbol, prompt = riskMetrics.toString())
         val cached = AiCacheManager.get(cacheKey)
         if (cached != null) return@withContext cached

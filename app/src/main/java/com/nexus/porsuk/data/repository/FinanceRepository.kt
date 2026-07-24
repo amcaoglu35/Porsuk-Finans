@@ -372,12 +372,12 @@ class FinanceRepository(
         assetDao.clearTransactions()
     }
 
-    suspend fun getPortfolioSummary(): PortfolioSummary {
+    suspend fun getPortfolioSummary(): LegacyPortfolioSummary {
         val history = getPortfolioHistory().first()
         val latestValue = history.lastOrNull()?.totalValue ?: 0.0
         val previousValue = if (history.size >= 2) history[history.size - 2].totalValue else latestValue
         val changePercent = if (previousValue > 0.0) ((latestValue - previousValue) / previousValue) * 100.0 else 0.0
-        return PortfolioSummary(
+        return LegacyPortfolioSummary(
             totalValueTry = latestValue,
             dailyChangePercent = changePercent,
             lastUpdated = System.currentTimeMillis(),
@@ -386,7 +386,7 @@ class FinanceRepository(
     }
 }
 
-data class PortfolioSummary(
+data class LegacyPortfolioSummary(
     val totalValueTry: Double,
     val dailyChangePercent: Double,
     val lastUpdated: Long,
