@@ -39,4 +39,8 @@ object BacktestEngineRepositoriesModule {
     @Provides
     @Singleton
     fun provideBenchmarkRepository(impl: BenchmarkRepositoryImpl): BenchmarkRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideBacktestDataProvider(impl: com.nexus.porsuk.data.provider.DefaultBacktestDataProvider): com.nexus.porsuk.data.provider.BacktestDataProvider = impl
 }

@@ -2,6 +2,7 @@ package com.nexus.porsuk.feature.dividend
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nexus.porsuk.domain.model.*
 import com.nexus.porsuk.domain.repository.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -40,11 +41,16 @@ class DividendViewModel @Inject constructor(
                     val items = upcoming.map { ev ->
                         DividendStockItem(
                             symbol = ev.symbol,
-                            name = ev.companyName,
+                            companyName = ev.companyName,
+                            marketType = ScanMarketType.BIST,
+                            lastPrice = 280.0,
                             dividendYieldPct = 5.2,
+                            annualDividendUsd = 12.5,
                             payoutRatioPct = 45.0,
                             exDividendDateText = ev.exDate.toString(),
-                            score = DividendScore(82, 85, 80, 78, 88, 83)
+                            paymentDateText = ev.paymentDate,
+                            frequency = DividendFrequency.ANNUAL,
+                            scores = DividendQualityScores()
                         )
                     }
                     _uiState.update { it.copy(upcomingDividends = items) }

@@ -19,9 +19,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.theme.*
+
+data class ModelPortfolio(
+    val name: String,
+    val market: String,
+    val yield: String,
+    val description: String,
+    val items: List<Pair<String, Double>>,
+    val emoji: String
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -194,7 +204,7 @@ fun ModelSepetlerScreen(
                                     color = InkText,
                                     fontFamily = Manrope,
                                     maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -240,7 +250,8 @@ fun ModelSepetlerScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            portfolio.items.forEach { (symbol, weight) ->
+                            portfolio.items.forEach { pair ->
+                                val (symbol, weight) = pair
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -333,12 +344,3 @@ fun ModelSepetlerScreen(
         }
     }
 }
-
-data class ModelPortfolio(
-    val name: String,
-    val market: String,
-    val yield: String,
-    val description: String,
-    val items: List<Pair<String, Double>>,
-    val emoji: String
-)

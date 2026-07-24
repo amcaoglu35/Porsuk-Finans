@@ -48,5 +48,17 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object HisseDuello : Screen("hisse_duello?symbol1={symbol1}&symbol2={symbol2}", "Hisse Düellosu", Icons.Outlined.Psychology) {
         fun createRoute(symbol1: String = "THYAO", symbol2: String = "PGSUS") = "hisse_duello?symbol1=$symbol1&symbol2=$symbol2"
     }
+    object DevOpsRelease : Screen("devops_release", "DevOps & Release Platform", Icons.Outlined.Settings)
+    object PluginManager : Screen("plugin_manager", "Plugin & Extension SDK", Icons.Outlined.Settings)
+    object RealtimeStreaming : Screen("realtime_streaming", "Real-Time Streaming Platform", Icons.AutoMirrored.Outlined.TrendingUp)
+    object QuantResearch : Screen("quant_research", "Quant Research Studio", Icons.Outlined.Psychology)
+    object AiCopilot : Screen("ai_copilot", "AI Copilot Assistant", Icons.Outlined.Psychology)
+    object RegulatoryFiling : Screen("regulatory_filing", "KAP & Regulatory Filings", Icons.AutoMirrored.Outlined.List)
+    object DerivativesPlatform : Screen("derivatives_platform", "Options & Futures Platform", Icons.AutoMirrored.Outlined.TrendingUp)
+    object MacroIntelligence : Screen("macro_intelligence", "Macro Intelligence Platform", Icons.AutoMirrored.Outlined.TrendingUp)
+    object EnterpriseApi : Screen("enterprise_api", "Enterprise API Platform", Icons.Outlined.Settings)
+    object PortfolioOptimization : Screen("portfolio_optimization", "Portfolio Optimization Engine", Icons.AutoMirrored.Outlined.TrendingUp)
+    object EsgPlatform : Screen("esg_platform", "ESG & Sustainability Intelligence", Icons.AutoMirrored.Outlined.List)
+    object AlternativeData : Screen("alternative_data", "Alternative Data Intelligence", Icons.AutoMirrored.Outlined.TrendingUp)
 }
 

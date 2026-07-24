@@ -23,4 +23,8 @@ object ChartCenterRepositoriesModule {
     @Provides
     @Singleton
     fun provideChartIndicatorRepository(impl: ChartIndicatorRepositoryImpl): ChartIndicatorRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideChartRendererEngine(impl: com.nexus.porsuk.data.engine.DefaultComposeChartRenderer): com.nexus.porsuk.data.engine.ChartRendererEngine = impl
 }

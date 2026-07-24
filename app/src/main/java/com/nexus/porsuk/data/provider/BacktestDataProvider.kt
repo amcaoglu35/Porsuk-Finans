@@ -2,6 +2,7 @@ package com.nexus.porsuk.data.provider
 
 import com.nexus.porsuk.domain.model.CandleStickItem
 import com.nexus.porsuk.domain.model.ChartTimeFrame
+import javax.inject.Inject
 
 /**
  * Porsuk Backtesting Engine — Veri Sağlayıcıdan Bağımsız Arayüz (BacktestDataProvider)
@@ -20,7 +21,7 @@ interface BacktestDataProvider {
 /**
  * Varsayılan Backtest Veri Sağlayıcı Somut Sınıfı (DefaultBacktestDataProvider)
  */
-class DefaultBacktestDataProvider : BacktestDataProvider {
+class DefaultBacktestDataProvider @Inject constructor() : BacktestDataProvider {
     override fun fetchHistoricalCandles(
         symbol: String,
         timeFrame: ChartTimeFrame,

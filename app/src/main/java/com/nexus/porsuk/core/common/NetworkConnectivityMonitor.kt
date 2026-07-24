@@ -8,6 +8,7 @@ import android.net.NetworkRequest
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,7 +20,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class NetworkConnectivityMonitor @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
 
     private val connectivityManager =

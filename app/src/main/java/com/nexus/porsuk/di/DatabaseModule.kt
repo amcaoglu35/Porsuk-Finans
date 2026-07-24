@@ -39,6 +39,7 @@ object DatabaseModule {
     @Provides fun provideAppSettingsDao(db: PorsukDatabase): AppSettingsDao = db.appSettingsDao()
     @Provides fun provideMarketQuoteDao(db: PorsukDatabase): MarketQuoteDao = db.marketQuoteDao()
     @Provides fun provideSyncLogDao(db: PorsukDatabase): SyncLogDao = db.syncLogDao()
+    @Provides fun provideSubscriptionDao(db: PorsukDatabase): SubscriptionDao = db.subscriptionDao()
 }
 
 /**

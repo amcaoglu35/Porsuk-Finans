@@ -1,6 +1,7 @@
 package com.nexus.porsuk.data.engine
 
 import com.nexus.porsuk.domain.model.*
+import javax.inject.Inject
 
 /**
  * Porsuk Professional Chart Center — Soyut Grafik Çizici Arayüzü (ChartRendererEngine)
@@ -17,7 +18,7 @@ interface ChartRendererEngine {
 /**
  * Jetpack Compose Canvas Varsayılan Grafik Çizicisi (DefaultComposeChartRenderer)
  */
-class DefaultComposeChartRenderer : ChartRendererEngine {
+class DefaultComposeChartRenderer @Inject constructor() : ChartRendererEngine {
 
     override fun renderCandles(symbol: String, timeFrame: ChartTimeFrame, chartType: ChartType): List<CandleStickItem> {
         val now = System.currentTimeMillis()

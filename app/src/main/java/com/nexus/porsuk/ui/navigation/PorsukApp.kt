@@ -544,6 +544,78 @@ fun PorsukApp(
                             onStockClick = { s, m -> navController.navigate(Screen.CompanyDetail.createRoute(s, m)) }
                         )
                     }
+
+                    composable(Screen.DevOpsRelease.route) {
+                        com.nexus.porsuk.feature.devops.DevOpsReleaseScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.PluginManager.route) {
+                        com.nexus.porsuk.feature.plugins.PluginManagerScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.RealtimeStreaming.route) {
+                        com.nexus.porsuk.feature.streaming.StreamingPlatformScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.QuantResearch.route) {
+                        com.nexus.porsuk.feature.quant.QuantResearchScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.AiCopilot.route) {
+                        com.nexus.porsuk.feature.copilot.AiCopilotScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.RegulatoryFiling.route) {
+                        com.nexus.porsuk.feature.filings.RegulatoryFilingScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.DerivativesPlatform.route) {
+                        com.nexus.porsuk.feature.derivatives.DerivativesPlatformScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.MacroIntelligence.route) {
+                        com.nexus.porsuk.feature.macro.MacroIntelligenceScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.EnterpriseApi.route) {
+                        com.nexus.porsuk.feature.api.EnterpriseApiScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.PortfolioOptimization.route) {
+                        com.nexus.porsuk.feature.optimization.PortfolioOptimizationScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.EsgPlatform.route) {
+                        com.nexus.porsuk.feature.esg.EsgPlatformScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.AlternativeData.route) {
+                        com.nexus.porsuk.feature.alternative.AlternativeDataScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
         }

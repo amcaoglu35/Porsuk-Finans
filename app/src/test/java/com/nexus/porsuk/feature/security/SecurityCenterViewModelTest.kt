@@ -34,7 +34,7 @@ class SecurityCenterViewModelTest {
     }
 
     private val fakeAuditRepository = object : AuditRepository {
-        override fun getAuditLogs() = flowOf(listOf(SecurityAuditLog(title = "Test Log")))
+        override fun getAuditLogs() = flowOf(listOf(SecurityAuditLog(title = "Test Log", description = "Test Description")))
         override suspend fun logSecurityEvent(title: String, description: String, category: AuditCategory) {}
     }
 

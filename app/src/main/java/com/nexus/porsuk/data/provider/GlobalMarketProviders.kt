@@ -5,11 +5,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Porsuk Global Markets Center — Soyut Borsa Veri Sağlayıcı Arayüzü (MarketDataProvider)
+ * Porsuk Global Markets Center — Soyut Bölge Borsa Veri Sağlayıcı Arayüzü (GlobalRegionMarketDataProvider)
  *
  * İleride yeni borsalar, REST API'lar veya WebSocket servisleri bu arayüz uygulanarak eklenir.
  */
-interface MarketDataProvider {
+interface GlobalRegionMarketDataProvider {
     fun getRegion(): MarketRegion
     fun fetchTickers(): List<MarketTickerItem>
     fun getExchangeStatus(): ExchangeStatusInfo
@@ -19,7 +19,7 @@ interface MarketDataProvider {
  * Türkiye BIST, VİOP, TEFAS Sağlayıcısı (BistMarketProvider)
  */
 @Singleton
-class BistMarketProvider @Inject constructor() : MarketDataProvider {
+class BistMarketProvider @Inject constructor() : GlobalRegionMarketDataProvider {
     override fun getRegion() = MarketRegion.TURKEY
 
     override fun fetchTickers(): List<MarketTickerItem> {
@@ -39,7 +39,7 @@ class BistMarketProvider @Inject constructor() : MarketDataProvider {
  * ABD NYSE, NASDAQ Sağlayıcısı (UsMarketProvider)
  */
 @Singleton
-class UsMarketProvider @Inject constructor() : MarketDataProvider {
+class UsMarketProvider @Inject constructor() : GlobalRegionMarketDataProvider {
     override fun getRegion() = MarketRegion.USA
 
     override fun fetchTickers(): List<MarketTickerItem> {
@@ -58,7 +58,7 @@ class UsMarketProvider @Inject constructor() : MarketDataProvider {
  * Avrupa XETRA & LSE Sağlayıcısı (EuropeMarketProvider)
  */
 @Singleton
-class EuropeMarketProvider @Inject constructor() : MarketDataProvider {
+class EuropeMarketProvider @Inject constructor() : GlobalRegionMarketDataProvider {
     override fun getRegion() = MarketRegion.EUROPE
 
     override fun fetchTickers(): List<MarketTickerItem> {
