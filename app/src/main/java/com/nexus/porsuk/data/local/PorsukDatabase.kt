@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.nexus.porsuk.data.local.dao.*
 import com.nexus.porsuk.data.local.entity.*
+import com.nexus.porsuk.data.local.db.FundConverters
+import com.nexus.porsuk.data.local.db.IpoCorporateConverters
 
 /**
- * Porsuk Finans — Ana Room Veritabanı (PorsukDatabase - Version 39)
+ * Porsuk Finans — Ana Room Veritabanı (PorsukDatabase - Version 40)
  *
  * Security & Privacy Center `SecurityAuditEntity`, `SecuritySessionEntity` ve `SecurityAuditDao` güncellemelerini içerir.
  */
@@ -54,6 +57,13 @@ import com.nexus.porsuk.data.local.entity.*
         EarningsEntity::class,
         AIHistoryEntity::class,
         AppSettingsEntity::class,
+        FundIntelligenceEntity::class,
+        FundPerformanceEntity::class,
+        FundAllocationEntity::class,
+        FundRiskEntity::class,
+        IpoIntelligenceEntity::class,
+        CorporateActionEntity::class,
+        DividendHistoryProEntity::class,
         // Legacy/Existing Entities
         Company::class,
         Basket::class,
@@ -81,9 +91,10 @@ import com.nexus.porsuk.data.local.entity.*
         MarketQuoteEntity::class,
         SyncLogEntity::class
     ],
-    version = 39,
+    version = 41,
     exportSchema = false
 )
+@TypeConverters(FundConverters::class, IpoCorporateConverters::class)
 abstract class PorsukDatabase : RoomDatabase() {
 
     abstract fun securityAuditDao(): SecurityAuditDao
@@ -117,6 +128,8 @@ abstract class PorsukDatabase : RoomDatabase() {
     abstract fun assetDao(): AssetDao
     abstract fun marketQuoteDao(): MarketQuoteDao
     abstract fun syncLogDao(): SyncLogDao
+    abstract fun fundIntelligenceDao(): FundIntelligenceDao
+    abstract fun ipoCorporateDao(): IpoCorporateDao
 
     companion object {
         @Volatile

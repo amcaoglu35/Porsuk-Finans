@@ -1,5 +1,6 @@
 package com.nexus.porsuk.di
 
+import com.nexus.porsuk.data.quant.*
 import com.nexus.porsuk.data.repository.*
 import com.nexus.porsuk.domain.repository.*
 import dagger.Module
@@ -31,4 +32,16 @@ object QuantResearchEngineRepositoriesModule {
     @Provides
     @Singleton
     fun provideQuantWorkspaceRepository(impl: QuantWorkspaceRepositoryImpl): QuantWorkspaceRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideQuantRepository(impl: QuantRepositoryImpl): QuantRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideExperimentRepository(impl: ExperimentRepositoryImpl): ExperimentRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideValidationRepository(impl: ValidationRepositoryImpl): ValidationRepository = impl
 }

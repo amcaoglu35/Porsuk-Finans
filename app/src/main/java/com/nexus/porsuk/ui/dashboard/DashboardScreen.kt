@@ -1,62 +1,76 @@
 package com.nexus.porsuk.ui.dashboard
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.runtime.*
 import androidx.compose.material3.pulltorefresh.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nexus.porsuk.ui.common.CompanyLogo
+import com.nexus.porsuk.data.remote.RichOfflineDataEngine
+import com.nexus.porsuk.ui.FinanceViewModel
 import com.nexus.porsuk.ui.common.CurrencyFormatter
 import com.nexus.porsuk.ui.common.NumberFormatter
 import com.nexus.porsuk.ui.common.Sparkline
-import com.nexus.porsuk.ui.common.SpeedDialFAB
-import com.nexus.porsuk.ui.common.PortfolioPieChart
-import com.nexus.porsuk.ui.FinanceViewModel
-import com.nexus.porsuk.data.remote.RichOfflineDataEngine
 import com.nexus.porsuk.ui.theme.*
 import java.util.Locale
-import kotlin.math.abs
+
+// Clean Design System Tokens
+private val ScreenBg = Color(0xFFFAFAFA)
+private val CardSurface = Color(0xFFFFFFFF)
+private val PurplePrimary = Color(0xFF6C4CF1)
+private val PurpleSoft = Color(0xFFF3F0FF)
+private val GreenPositive = Color(0xFF00C48C)
+private val OrangeWarning = Color(0xFFFF9800)
+private val RedNegative = Color(0xFFF44336)
+private val TextDarkColor = Color(0xFF1E293B)
+private val TextSubColor = Color(0xFF64748B)
+private val LineBorderColor = Color(0xFFE2E8F0)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    viewModel: FinanceViewModel, 
+    viewModel: FinanceViewModel,
     onStockClick: (String, String) -> Unit,
     onBasketClick: (Int) -> Unit,
     onLedgerClick: () -> Unit,
@@ -67,852 +81,173 @@ fun DashboardScreen(
     onKapRadarClick: () -> Unit = {},
     onChatClick: (String) -> Unit
 ) {
-    val tickerData by viewModel.tickerData.collectAsState()
     val watchlist by viewModel.watchlist.collectAsState(initial = emptyList())
-    val baskets by viewModel.allBaskets.collectAsState(initial = emptyList())
     val prices by viewModel.prices.collectAsState()
     val companies by viewModel.allCompanies.collectAsState(initial = emptyList())
     val totalBalance by viewModel.totalBalanceTry.collectAsState()
     val totalChange by viewModel.totalChangePercent.collectAsState()
-    val profitMode by viewModel.profitMode.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val numberFormat by viewModel.numberFormat.collectAsState()
-    // val portfolioHistory by viewModel.portfolioHistory.collectAsState()
-    // val xu100History by viewModel.xu100History.collectAsState()
-    val sectorData by viewModel.portfolioSectorData.collectAsState()
-    
-    var showSearchDialog by remember { mutableStateOf(false) }
-    var showHealthCheckSheet by remember { mutableStateOf(false) }
-    val healthCheckResult by viewModel.portfolioHealthCheckResult.collectAsState()
-    val isHealthChecking by viewModel.isHealthChecking.collectAsState()
-    
-    var showRebalanceSheet by remember { mutableStateOf(false) }
-    val rebalanceResult by viewModel.portfolioRebalanceResult.collectAsState()
-    val isRebalancing by viewModel.isRebalancing.collectAsState()
-
-    val cachedInfoList by viewModel.allCachedInfo.collectAsState(initial = emptyList())
-    val cachedInfoMap = remember(cachedInfoList) { cachedInfoList.associateBy { it.symbol } }
-
-    var searchQuery by remember { mutableStateOf("") } // Evrensel arama
-    var filterQuery by remember { mutableStateOf("") } // Hisse ara
-    var selectedMarketFilter by remember { mutableStateOf("Tümü") }
-    var dividendOnly by remember { mutableStateOf(false) }
-    var lowPeOnly by remember { mutableStateOf(false) }
-    var listTab by remember { mutableIntStateOf(0) } // 0=Takip, 1=Popüler, 2=Tüm, 3=Sepetler
-
-    val trLocale = Locale("tr", "TR")
     val activeAlertCount by viewModel.allPriceAlerts.collectAsState(initial = emptyList())
+
+    var showSearchDialog by remember { mutableStateOf(false) }
+    var isBalanceVisible by remember { mutableStateOf(true) }
+
+    // Breathing pulse animation for FAB
+    val infiniteTransition = rememberInfiniteTransition()
+    val fabPulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    // Entrance animation trigger
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = { TopBar(onLedgerClick = onLedgerClick, onProfileClick = onSettingsClick, alertCount = activeAlertCount.size) },
-        floatingActionButton = {
-            SpeedDialFAB(
-                onAddStockClick = { showSearchDialog = true }
+        containerColor = ScreenBg,
+        topBar = {
+            DashboardTopBar(
+                alertCount = activeAlertCount.size,
+                onSearchClick = { showSearchDialog = true },
+                onNotificationClick = onSettingsClick
             )
+        },
+        // 1) FLOATING ACTION BUTTON (AI ASSISTANT) IN BOTTOM RIGHT
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { onChatClick("") },
+                modifier = Modifier
+                    .scale(fabPulseScale)
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = CircleShape,
+                        ambientColor = PurplePrimary.copy(alpha = 0.5f),
+                        spotColor = PurplePrimary.copy(alpha = 0.5f)
+                    ),
+                shape = CircleShape,
+                containerColor = Color.Transparent,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFF8B5CF6), PurplePrimary, Color(0xFF4C1D95))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🤖", fontSize = 28.sp)
+                }
+            }
         }
     ) { padding ->
+        val pullRefreshState = rememberPullToRefreshState()
+
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshAllData() },
+            onRefresh = { viewModel.refreshData() },
+            state = pullRefreshState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(BackgroundNew),
-                contentPadding = PaddingValues(bottom = 8.dp)
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                item(key = "moving_ticker") { MovingTickerBar(tickerData) }
-                item(key = "spacer_ticker") { Spacer(modifier = Modifier.height(12.dp)) }
-
-                // 4. Toplam Varlık hero kartı (Getiri Hesabı Seçici İçine Entegre Edildi)
-                item(key = "total_asset_card") { 
-                    val cardTitle = when (profitMode) {
-                        FinanceViewModel.ProfitCalculationMode.NOMINAL -> "TOPLAM VARLIK (NOMİNAL)"
-                        FinanceViewModel.ProfitCalculationMode.INFLATION_ADJUSTED -> "TOPLAM VARLIK (REEL ENFLASYON)"
-                        FinanceViewModel.ProfitCalculationMode.USD_ADJUSTED -> "TOPLAM VARLIK (DOLAR BAZLI)"
-                    }
-                    BalancedTotalAssetCard(
-                        totalValueTry = CurrencyFormatter.formatTRY(totalBalance, numberFormat).replace("₺", ""),
-                        totalValueUsd = CurrencyFormatter.formatWithSymbol(totalBalance / (viewModel.exchangeRates.value["USD"] ?: RichOfflineDataEngine.BASE_USD_TRY), "", numberFormat).trim(),
-                        totalValueEur = CurrencyFormatter.formatWithSymbol(totalBalance / (viewModel.exchangeRates.value["EUR"] ?: RichOfflineDataEngine.BASE_EUR_TRY), "", numberFormat).trim(),
-                        percentageChange = String.format(Locale.US, "%+.2f%%", totalChange),
-                        cardTitle = cardTitle,
-                        profitMode = profitMode,
-                        onProfitModeChange = { viewModel.setProfitMode(it) }
-                    )
-                }
-                item(key = "spacer_asset") { Spacer(modifier = Modifier.height(12.dp)) }
-
-                    item(key = "quick_actions") {
-                        QuickActionsGrid(
-                            onLedgerClick = onLedgerClick,
-                            onCalendarClick = onCalendarClick,
-                            onAnalysisClick = onAnalysisClick,
-                            onModelSepetlerClick = onModelSepetlerClick,
-                            onKapRadarClick = onKapRadarClick
+                // 3) PORTFÖY KARTI (Hero Portfolio Card)
+                item(key = "portfolio_hero_card") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(400)) + slideInVertically(initialOffsetY = { 30 })
+                    ) {
+                        DashboardPortfolioCard(
+                            totalBalance = totalBalance,
+                            totalChange = totalChange,
+                            isBalanceVisible = isBalanceVisible,
+                            onToggleBalance = { isBalanceVisible = !isBalanceVisible },
+                            numberFormat = numberFormat,
+                            onLedgerClick = onLedgerClick
                         )
                     }
-                    item(key = "spacer_quick") { Spacer(modifier = Modifier.height(16.dp)) }
+                }
 
-                    item(key = "oracle_wisdom") {
-                        val wisdomText = remember(watchlist, totalBalance, totalChange) {
-                            val rand = java.util.Random(System.currentTimeMillis() / (24 * 3600 * 1000))
-                            if (totalChange >= 0) {
-                                val positives = listOf(
-                                    "Piyasa yeşil! Orakul der ki: 'Asimetrik fırsatlar sabredenleri bekler. Kâr realizasyonu yapmayı unutma!' 📈",
-                                    "Warren Buffett'ın dediği gibi: 'Gelgit çekildiğinde kimin çıplak yüzdüğünü görürüz.' Disiplinli kal, risk kontrolünü elden bırakma! 🧠",
-                                    "Portföyün parlıyor! Ancak coşkuya kapılma, portföyün çeşitlendirme puanını (Check-up) kontrol ederek dengeni koru. ⚖️"
-                                )
-                                positives[rand.nextInt(positives.size)]
-                            } else {
-                                val negatives = listOf(
-                                    "Piyasa kırmızıya boyanmış. Graham der ki: 'Düşüşler sadece kaliteli hisseleri indirimli almak için harika fırsatlardır!' ⛏️",
-                                    "Kırmızı günler Orakul'un en sevdiği günlerdir. 'Borsa, sabırsızlardan sabırlılara para aktarma aracıdır.' Sakin kal. 🔮",
-                                    "Portföy değer kaybetmiş görünebilir. Panik yapma! Sektörel rotasyonun gücüne güven ve Orakul'un Rebalans Raporu'nu incele. 🛡️"
-                                )
-                                negatives[rand.nextInt(negatives.size)]
-                            }
-                        }
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = CardNew),
-                            border = BorderStroke(1.dp, LineBorder)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(
-                                                Color(0x3B6366F1),
-                                                Color(0x1F8B5CF6)
-                                            )
-                                        )
-                                    )
-                            ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🔮", fontSize = 24.sp)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            "Orakul'un Günlük Bilgeliği",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = PrimaryTeal,
-                                            fontFamily = Manrope
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Text(
-                                        text = wisdomText,
-                                        fontSize = 12.sp,
-                                        color = InkText,
-                                        fontFamily = Manrope,
-                                        lineHeight = 16.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Button(
-                                        onClick = { onChatClick("Orakul, bugünkü borsa bilgelik mesajın hakkında detaylı analiz yapar mısın?") },
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                        modifier = Modifier.align(Alignment.End).height(32.dp)
-                                    ) {
-                                        Text("Orakul'a Soru Sor", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    item(key = "spacer_wisdom") { Spacer(modifier = Modifier.height(16.dp)) }
-
-                    item(key = "market_sentiment") {
-                        val sentimentScore = remember(companies, prices) {
-                            if (companies.isEmpty()) 65
-                            else {
-                                val avgChange = companies.map { c ->
-                                    prices[c.symbol]?.changePercent ?: c.changePercent
-                                }.average()
-                                (50 + avgChange * 10).toInt().coerceIn(10, 99)
-                            }
-                        }
-                        
-                        val sentimentLabel = when {
-                            sentimentScore < 35 -> "AŞIRI KORKU 😨"
-                            sentimentScore < 65 -> "NÖTR 😐"
-                            else -> "AŞIRI AÇGÖZLÜK 🤑"
-                        }
-                        val sentimentColor = when {
-                            sentimentScore < 35 -> NegatifRed
-                            sentimentScore < 65 -> Orange
-                            else -> PrimaryTeal
-                        }
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = CardNew),
-                            border = BorderStroke(1.dp, LineBorder)
-                        ) {
-                            Column(modifier = Modifier.padding(18.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Piyasa Duyarlılık İndeksi",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = InkText,
-                                        fontFamily = Manrope
-                                    )
-                                    Text(
-                                        text = "$sentimentScore / 100",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = sentimentColor,
-                                        fontFamily = IBMPlexMono
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(10.dp))
-                                
-                                // Color Gradient Bar
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(8.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                colors = listOf(
-                                                    Color(0xFFFF1744),
-                                                    Color(0xFFFF9100),
-                                                    Color(0xFF00E676)
-                                                )
-                                            )
-                                        )
-                                ) {
-                                    // Pointer indicator
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .fillMaxWidth(sentimentScore / 100f)
-                                            .background(Color.Transparent)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White)
-                                                .border(2.dp, sentimentColor, CircleShape)
-                                                .align(Alignment.CenterEnd)
-                                        )
-                                    }
-                                }
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Aşırı Korku", fontSize = 8.sp, color = SubText, fontFamily = Manrope)
-                                    Text(sentimentLabel, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = sentimentColor, fontFamily = Manrope)
-                                    Text("Aşırı İyimser", fontSize = 8.sp, color = SubText, fontFamily = Manrope)
-                                }
-                            }
-                        }
-                    }
-                    item(key = "portfolio_heatmap") {
-                        val allBasketItems by viewModel.allBasketItems.collectAsState(initial = emptyList())
-                        val heatmapItems = remember(allBasketItems, prices, companies) {
-                            val companyMap = companies.associateBy { it.symbol }
-                            allBasketItems.map { item ->
-                                val currentPrice = prices[item.symbol]?.price ?: companyMap[item.symbol]?.currentPrice ?: item.buyPrice
-                                val changePct = prices[item.symbol]?.changePercent ?: companyMap[item.symbol]?.changePercent ?: 0.0
-                                com.nexus.porsuk.ui.common.HeatmapItem(
-                                    symbol = item.symbol,
-                                    value = item.quantity * currentPrice,
-                                    changePercent = changePct
-                                )
-                            }
-                        }
-                        com.nexus.porsuk.ui.common.PortfolioHeatmap(
-                            items = heatmapItems,
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            onAssetClick = { sym -> onStockClick(sym, "BIST") }
+                // 4) AI PİYASA ÖZETİ (2nd Most Important Card)
+                item(key = "ai_market_summary_card") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        AiMarketSummaryProminentCard(
+                            onDetailClick = onAnalysisClick
                         )
                     }
-                    item(key = "spacer_heatmap") { Spacer(modifier = Modifier.height(16.dp)) }
-
-                    // 6. Orakul Akıllı Rebalans Raporu banner
-                    item(key = "ai_rebalance_card") {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
-                                .clickable {
-                                    viewModel.runPortfolioRebalance()
-                                    showRebalanceSheet = true
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = CardNew),
-                            border = BorderStroke(1.dp, LineBorder)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(
-                                                Color(0xFFFFF0E6),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(20.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "⚖️",
-                                        fontSize = 32.sp
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Orakul Akıllı Rebalans Raporu",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = Orange,
-                                            fontFamily = Manrope
-                                        )
-                                        Text(
-                                            text = "Portföy ağırlıklarını O-EAGI formülüne göre optimize etmek ve dengelemek için tıkla.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = SubText,
-                                            fontFamily = Manrope
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    item(key = "spacer_rebalance") { Spacer(modifier = Modifier.height(16.dp)) }
-                    
-                    // 7. Bugün Öne Çıkanlar (Highlights)
-                    if (watchlist.isNotEmpty()) {
-                        item(key = "highlights_header") { SectionHeader(title = "Bugün Öne Çıkanlar") }
-                        item(key = "highlights_row") {
-                            val highlights = watchlist.map { item ->
-                                val change = prices[item.symbol]?.changePercent ?: 0.0
-                                val company = companies.find { it.symbol == item.symbol }
-                                val market = company?.market ?: "BIST"
-                                Triple(item.symbol, change, market)
-                            }.sortedByDescending { abs(it.second) }.take(4)
-                            
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                items(highlights, key = { "highlight_${it.first}" }) { (symbol, change, market) ->
-                                    HighlightChip(symbol, change, numberFormat, onClick = { onStockClick(symbol, market) })
-                                }
-                            }
-                        }
-                        item(key = "spacer_highlights") { Spacer(modifier = Modifier.height(16.dp)) }
-                    }
-
-                    items(baskets.filter { it.market == "BIST" || it.market == "IST" }, key = { "basket_${it.id}" }) { basket ->
-                        BasketCard(basket, onClick = { onBasketClick(basket.id) })
-                    }
-                    item(key = "spacer_baskets") { Spacer(modifier = Modifier.height(16.dp)) }
-
-                    // 10. Yapay Zeka Portföy Check-up banner
-                    item(key = "ai_health_card") {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
-                                .clickable {
-                                    viewModel.runPortfolioHealthCheck()
-                                    showHealthCheckSheet = true
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = CardNew),
-                            border = BorderStroke(1.dp, LineBorder)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(
-                                                AquaSoft,
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(20.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "🩺",
-                                        fontSize = 32.sp
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Yapay Zeka Portföy Check-up'ı",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = PrimaryTeal,
-                                            fontFamily = Manrope
-                                        )
-                                        Text(
-                                            text = "Portföyünün risk ve çeşitlilik durumunu analiz etmek ve sağlık puanı almak için tıkla.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = SubText,
-                                            fontFamily = Manrope
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    item(key = "spacer_health") { Spacer(modifier = Modifier.height(16.dp)) }
-
-                    // ── OKX tarzı inline pill-tab + liste ──
-                    item(key = "list_tab_switcher") {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            // Arama çubuğu her zaman görünür
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                placeholder = { Text("Hisse, şirket ara...", fontFamily = Manrope, fontSize = 13.sp) },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = SubText, modifier = Modifier.size(18.dp)) },
-                                trailingIcon = {
-                                    if (searchQuery.isNotEmpty()) {
-                                        IconButton(onClick = { searchQuery = "" }) {
-                                            Icon(Icons.Default.Close, contentDescription = null, tint = SubText, modifier = Modifier.size(16.dp))
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PrimaryTeal,
-                                    unfocusedBorderColor = LineBorder,
-                                    focusedContainerColor = CardNew,
-                                    unfocusedContainerColor = CardNew,
-                                    focusedTextColor = InkText,
-                                    unfocusedTextColor = InkText,
-                                    focusedPlaceholderColor = SubText,
-                                    unfocusedPlaceholderColor = SubText
-                                ),
-                                singleLine = true
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            // Pill tab row
-                            ScrollableTabRow(
-                                selectedTabIndex = listTab,
-                                modifier = Modifier.fillMaxWidth(),
-                                containerColor = Color.Transparent,
-                                contentColor = PrimaryTeal,
-                                edgePadding = 20.dp,
-                                divider = {},
-                                indicator = {}
-                            ) {
-                                val tabs = listOf("Takip Listem", "Popüler", "Tüm Hisseler", "Sepetler")
-                                tabs.forEachIndexed { index, label ->
-                                    val isSelected = listTab == index
-                                    Tab(
-                                        selected = isSelected,
-                                        onClick = { listTab = index },
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .padding(bottom = 10.dp)
-                                                .clip(RoundedCornerShape(20.dp))
-                                                .background(if (isSelected) PrimaryTeal else CardNew)
-                                                .border(1.dp, if (isSelected) PrimaryTeal else LineBorder, RoundedCornerShape(20.dp))
-                                                .padding(horizontal = 16.dp, vertical = 7.dp)
-                                        ) {
-                                            Text(
-                                                label,
-                                                color = if (isSelected) Color.White else SubText,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                fontFamily = Manrope,
-                                                fontSize = 13.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Arama aktifken her zaman sonuçları göster
-                    if (searchQuery.isNotEmpty()) {
-                        val searchResults = companies.filter {
-                            it.symbol.contains(searchQuery, ignoreCase = true) || it.name.contains(searchQuery, ignoreCase = true)
-                        }.take(8)
-                        items(searchResults, key = { "search_res_${it.symbol}" }) { company ->
-                            QuickSearchItem(
-                                company = company,
-                                onStockClick = { onStockClick(company.symbol, company.market) },
-                                onQuickAdd = { viewModel.addToWatchlist(company.symbol) }
-                            )
-                        }
-                    } else when (listTab) {
-                        // ── TAB 0: TAKİP LİSTEM ──
-                        0 -> {
-                            if (watchlist.isEmpty()) {
-                                item(key = "watchlist_empty") {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(40.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("👁", fontSize = 32.sp)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text("Takip listeniz boş.", fontFamily = Manrope, fontSize = 14.sp, color = SubText)
-                                            Text("+ butonuna basarak hisse ekleyebilirsiniz.", fontFamily = Manrope, fontSize = 11.sp, color = SubText)
-                                        }
-                                    }
-                                }
-                            } else {
-                                items(watchlist, key = { "wl_${it.symbol}" }) { item ->
-                                    val company = companies.find { it.symbol == item.symbol }
-                                    val price = prices[item.symbol]?.price ?: company?.currentPrice ?: 0.0
-                                    val change = prices[item.symbol]?.changePercent ?: company?.changePercent ?: 0.0
-                                    
-                                    val dismissState = rememberSwipeToDismissBoxState(
-                                        confirmValueChange = { dismissValue ->
-                                            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                                viewModel.removeFromWatchlist(item)
-                                                true
-                                            } else {
-                                                false
-                                            }
-                                        }
-                                    )
-                                    
-                                    SwipeToDismissBox(
-                                        state = dismissState,
-                                        backgroundContent = {
-                                            val bgColor = when (dismissState.dismissDirection) {
-                                                SwipeToDismissBoxValue.EndToStart -> NegatifRed
-                                                else -> Color.Transparent
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .padding(horizontal = 20.dp, vertical = 6.dp)
-                                                    .clip(RoundedCornerShape(16.dp))
-                                                    .background(bgColor),
-                                                contentAlignment = Alignment.CenterEnd
-                                            ) {
-                                                if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Delete,
-                                                        contentDescription = "Kaldır",
-                                                        tint = Color.White,
-                                                        modifier = Modifier.padding(end = 16.dp)
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        enableDismissFromStartToEnd = false
-                                    ) {
-                                        HisseKarti(
-                                            symbol = item.symbol,
-                                            name = company?.name ?: "Şirket Adı",
-                                            price = price,
-                                            change = change,
-                                            market = company?.market ?: "BIST",
-                                            numberFormat = numberFormat,
-                                            logoUrl = company?.logoUrl,
-                                            initials = company?.logoInitials ?: item.symbol.take(3),
-                                            onClick = { onStockClick(item.symbol, company?.market ?: "BIST") }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        // ── TAB 1: POPÜLER ──
-                        1 -> {
-                            val popularBistSymbols = listOf("GARAN", "AKBNK", "BIMAS", "THYAO", "EREGL", "TUPRS", "ASELS", "KCHOL", "SISE", "PGSUS", "KOZAL", "FROTO", "ISCTR", "HEKTS", "TTKOM")
-                            items(popularBistSymbols, key = { "popular_$it" }) { symbol ->
-                                val company = companies.find { it.symbol == symbol }
-                                val price = prices[symbol]?.price ?: company?.currentPrice ?: 0.0
-                                val change = prices[symbol]?.changePercent ?: company?.changePercent ?: 0.0
-                                HisseKarti(
-                                    symbol = symbol,
-                                    name = company?.name ?: symbol,
-                                    price = price,
-                                    change = change,
-                                    market = "BIST",
-                                    numberFormat = numberFormat,
-                                    logoUrl = company?.logoUrl,
-                                    initials = company?.logoInitials ?: symbol.take(3),
-                                    onClick = { onStockClick(symbol, "BIST") }
-                                )
-                            }
-                        }
-                        // ── TAB 2: TÜM HİSSELER ──
-                        2 -> {
-                            item(key = "all_stocks_filters") {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        listOf("Tümü", "BIST", "Amerika", "Avrupa").forEach { marketOption ->
-                                            val isSelected = selectedMarketFilter == marketOption
-                                            FilterChip(
-                                                selected = isSelected,
-                                                onClick = { selectedMarketFilter = marketOption },
-                                                label = { Text(marketOption, fontFamily = Manrope, fontSize = 11.sp) },
-                                                colors = FilterChipDefaults.filterChipColors(
-                                                    selectedContainerColor = TealSoft,
-                                                    selectedLabelColor = PrimaryTeal,
-                                                    containerColor = CardNew,
-                                                    labelColor = SubText
-                                                ),
-                                                border = FilterChipDefaults.filterChipBorder(
-                                                    enabled = true,
-                                                    selected = isSelected,
-                                                    selectedBorderColor = PrimaryTeal,
-                                                    borderColor = LineBorder
-                                                ),
-                                                shape = RoundedCornerShape(20.dp)
-                                            )
-                                        }
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        FilterChip(
-                                            selected = dividendOnly,
-                                            onClick = { dividendOnly = !dividendOnly },
-                                            label = { Text("Temettü 💰", fontFamily = Manrope, fontSize = 11.sp) },
-                                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = TealSoft, selectedLabelColor = PrimaryTeal, containerColor = CardNew, labelColor = SubText),
-                                            border = FilterChipDefaults.filterChipBorder(enabled = true, selected = dividendOnly, selectedBorderColor = PrimaryTeal, borderColor = LineBorder),
-                                            shape = RoundedCornerShape(20.dp)
-                                        )
-                                        FilterChip(
-                                            selected = lowPeOnly,
-                                            onClick = { lowPeOnly = !lowPeOnly },
-                                            label = { Text("Düşük F/K 📉", fontFamily = Manrope, fontSize = 11.sp) },
-                                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = TealSoft, selectedLabelColor = PrimaryTeal, containerColor = CardNew, labelColor = SubText),
-                                            border = FilterChipDefaults.filterChipBorder(enabled = true, selected = lowPeOnly, selectedBorderColor = PrimaryTeal, borderColor = LineBorder),
-                                            shape = RoundedCornerShape(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            item(key = "spacer_all_filters") { Spacer(modifier = Modifier.height(8.dp)) }
-                            val filteredCompanies = companies.filter { company ->
-                                val matchesMarket = when (selectedMarketFilter) {
-                                    "BIST" -> company.market == "BIST"
-                                    "Amerika" -> company.market == "NASDAQ" || company.market == "NYSE"
-                                    "Avrupa" -> company.market == "FRA" || company.market == "EURONEXT"
-                                    else -> true
-                                }
-                                val info = cachedInfoMap[company.symbol]
-                                val matchesDividend = !dividendOnly || (info?.dividendYield != null && info.dividendYield > 0.0)
-                                val matchesLowPe = !lowPeOnly || (info?.peRatio != null && info.peRatio < 15.0)
-                                matchesMarket && matchesDividend && matchesLowPe
-                            }
-                            if (filteredCompanies.isEmpty()) {
-                                item(key = "filtered_empty") {
-                                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                        Text("Kriterlere uygun hisse bulunamadı.", fontFamily = Manrope, fontSize = 14.sp, color = SubText)
-                                    }
-                                }
-                            } else {
-                                items(filteredCompanies, key = { "filtered_${it.symbol}" }) { company ->
-                                    val price = prices[company.symbol]?.price ?: company.currentPrice
-                                    val change = prices[company.symbol]?.changePercent ?: company.changePercent
-                                    val info = cachedInfoMap[company.symbol]
-                                    HisseKarti(
-                                        symbol = company.symbol,
-                                        name = company.name,
-                                        price = price,
-                                        change = change,
-                                        market = company.market,
-                                        numberFormat = numberFormat,
-                                        logoUrl = company.logoUrl,
-                                        initials = company.logoInitials ?: company.symbol.take(3),
-                                        onClick = { onStockClick(company.symbol, company.market) }
-                                    )
-                                }
-                            }
-                        }
-                        // ── TAB 3: SEPETLER ──
-                        3 -> {
-                            if (baskets.isEmpty()) {
-                                item(key = "baskets_empty") {
-                                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text("🗂️", fontSize = 32.sp)
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text("Henüz sepetiniz yok.", fontFamily = Manrope, fontSize = 14.sp, color = SubText)
-                                        }
-                                    }
-                                }
-                            } else {
-                                items(baskets, key = { "basket_tab_${it.id}" }) { basket ->
-                                    BasketCard(basket, onClick = { onBasketClick(basket.id) })
-                                }
-                            }
-                        }
-                    }
-                    item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(24.dp)) }
                 }
-            }
 
-        if (showSearchDialog) {
-            StockSearchDialog(
-                viewModel = viewModel,
-                onDismiss = { showSearchDialog = false }
-            )
-        }
-
-        if (showHealthCheckSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showHealthCheckSheet = false },
-                containerColor = CardNew,
-                dragHandle = { BottomSheetDefaults.DragHandle(color = LineBorder) }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                ) {
-                    Text(
-                        text = "🩺 Portföy Sağlık Check-up Raporu",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = InkText,
-                        fontFamily = Manrope
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (isHealthChecking) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(150.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = PrimaryTeal)
-                        }
-                    } else {
-                        val scrollState = rememberScrollState()
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 300.dp)
-                                .verticalScroll(scrollState)
-                        ) {
-                            dev.jeziellago.compose.markdowntext.MarkdownText(
-                                markdown = healthCheckResult,
-                                style = androidx.compose.ui.text.TextStyle(
-                                    color = InkText,
-                                    fontSize = 14.sp,
-                                    fontFamily = Manrope,
-                                    lineHeight = 20.sp
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { showHealthCheckSheet = false },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                        shape = RoundedCornerShape(12.dp)
+                // 5) ORACLE KARTI (Glow + Parallax Effect)
+                item(key = "oracle_highlight_card") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(600)) + slideInVertically(initialOffsetY = { 50 })
                     ) {
-                        Text("Kapat", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                        OracleGlowHighlightCard(
+                            onOracleClick = { onChatClick("Oracle bugünkü tahminlerini açıkla") }
+                        )
                     }
                 }
-            }
-        }
 
-        if (showRebalanceSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showRebalanceSheet = false },
-                containerColor = CardNew,
-                dragHandle = { BottomSheetDefaults.DragHandle(color = LineBorder) }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                ) {
-                    Text(
-                        text = "⚖️ Orakul Portföy Rebalans Raporu",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = InkText,
-                        fontFamily = Manrope
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (isRebalancing) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(180.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = Orange)
-                        }
-                    } else {
-                        val scrollState = rememberScrollState()
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 300.dp)
-                                .verticalScroll(scrollState)
-                        ) {
-                            dev.jeziellago.compose.markdowntext.MarkdownText(
-                                markdown = rebalanceResult,
-                                modifier = Modifier.fillMaxWidth(),
-                                style = androidx.compose.ui.text.TextStyle(
-                                    color = InkText,
-                                    fontFamily = Manrope,
-                                    fontSize = 14.sp,
-                                    lineHeight = 20.sp
-                                )
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { showRebalanceSheet = false },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Orange),
-                        shape = RoundedCornerShape(12.dp)
+                // 6) GÜNÜN FIRSATLARI (Opportunities Card with Stock Badges & Tags)
+                item(key = "top_opportunities_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(700)) + slideInVertically(initialOffsetY = { 60 })
                     ) {
-                        Text("Kapat", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                        DailyOpportunitiesSection(onStockClick = onStockClick)
+                    }
+                }
+
+                // 7) PİYASALAR KARTI (BIST, Dolar, Euro, Altın, Petrol, Bitcoin Mini Sparklines)
+                item(key = "live_markets_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 70 })
+                    ) {
+                        LiveMarketsOverviewSection(onAnalysisClick = onAnalysisClick)
+                    }
+                }
+
+                // 8) İZLEME LİSTESİ (Watchlist Card)
+                item(key = "watchlist_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(900)) + slideInVertically(initialOffsetY = { 80 })
+                    ) {
+                        DashboardWatchlistSection(
+                            watchlist = watchlist,
+                            prices = prices,
+                            onStockClick = onStockClick
+                        )
+                    }
+                }
+
+                // 9) HABER KARTLARI (News with AI Metadata & Thumbnails)
+                item(key = "latest_news_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(1000)) + slideInVertically(initialOffsetY = { 90 })
+                    ) {
+                        DashboardNewsSection()
                     }
                 }
             }
@@ -920,999 +255,702 @@ fun DashboardScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+// ── 2) LOGO & ÜST BAR (Top Bar with High-Res Vector Logo & Centered Title) ──
 @Composable
-fun MovingTickerBar(
-    tickerData: List<Pair<String, Double>>,
-    modifier: Modifier = Modifier
+private fun DashboardTopBar(
+    alertCount: Int,
+    onSearchClick: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
-    val displayData = remember(tickerData) {
-        if (tickerData.isNotEmpty()) tickerData else {
-            listOf(
-                "EURTRY" to 36.42 + kotlin.random.Random.nextDouble(-0.1, 0.1), 
-                "USDTRY" to 34.15 + kotlin.random.Random.nextDouble(-0.1, 0.1), 
-                "XU100" to 10450.0 + kotlin.random.Random.nextDouble(-10.0, 10.0), 
-                "ONS" to 2645.20 + kotlin.random.Random.nextDouble(-5.0, 5.0),
-                "BTCUSD" to 94250.0 + kotlin.random.Random.nextDouble(-100.0, 100.0),
-                "ETHUSD" to 3450.0 + kotlin.random.Random.nextDouble(-10.0, 10.0),
-                "GAU" to 3045.0 + kotlin.random.Random.nextDouble(-5.0, 5.0),
-                "AAPL" to 228.40 + kotlin.random.Random.nextDouble(-1.0, 1.0),
-                "NVDA" to 142.10 + kotlin.random.Random.nextDouble(-1.0, 1.0)
-            )
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(38.dp)
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(PrimaryTeal, AquaNew)
-                )
-            )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .basicMarquee(
-                    iterations = Int.MAX_VALUE,
-                    velocity = 45.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(8) {
-                displayData.forEach { (name, price) ->
-                    Row(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            name,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = Manrope
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            String.format(Locale.US, "%,.2f", price),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontFamily = IBMPlexMono
-                        )
-                    }
-                }
-            }
-        }
-
-        // Left fade mask
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxHeight()
-                .width(24.dp)
-                .background(Brush.horizontalGradient(listOf(PrimaryTeal.copy(alpha = 0.8f), Color.Transparent)))
-        )
-
-        // Right fade mask
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .width(24.dp)
-                .background(Brush.horizontalGradient(listOf(Color.Transparent, AquaNew.copy(alpha = 0.8f))))
-        )
-    }
-}
-
-@Composable
-fun TopBar(onLedgerClick: () -> Unit, onProfileClick: () -> Unit, alertCount: Int = 0) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .background(ScreenBg)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text(
-                "Porsuk Finans",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope),
-                color = InkText
-            )
-            Text(
-                "Hoş geldin 👋",
-                style = MaterialTheme.typography.bodySmall,
-                color = SubText,
-                fontFamily = Manrope
-            )
-        }
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Alarm rozeti
-            if (alertCount > 0) {
-                Box {
-                    IconButton(
-                        onClick = onProfileClick,
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(AquaSoft)
-                            .border(1.dp, LineBorder, RoundedCornerShape(12.dp))
-                    ) {
-                        Icon(Icons.Default.NotificationsActive, contentDescription = "Alarmlar", tint = PrimaryTeal)
-                    }
-                    // Kırmızı badge
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp)
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(NegatifRed),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (alertCount > 9) "9+" else "$alertCount",
-                            color = Color.White,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontFamily = Manrope
-                        )
-                    }
-                }
-            }
-
-            IconButton(
-                onClick = onLedgerClick,
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AquaSoft)
-                    .border(1.dp, LineBorder, RoundedCornerShape(12.dp))
-            ) {
-                Icon(Icons.Default.History, contentDescription = "İşlem Defteri", tint = PrimaryTeal)
-            }
-            
-            IconButton(
-                onClick = onProfileClick,
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AquaSoft)
-                    .border(1.dp, LineBorder, RoundedCornerShape(12.dp))
-            ) {
-                Icon(Icons.Default.Person, contentDescription = "Profil", tint = PrimaryTeal)
-            }
-        }
-    }
-}
-
-@Composable
-fun BalancedTotalAssetCard(
-    totalValueTry: String,
-    totalValueUsd: String,
-    totalValueEur: String,
-    percentageChange: String,
-    cardTitle: String = "TOPLAM VARLIK",
-    profitMode: FinanceViewModel.ProfitCalculationMode,
-    onProfitModeChange: (FinanceViewModel.ProfitCalculationMode) -> Unit
-) {
-    val isPositive = !percentageChange.contains("-")
-    val color = if (isPositive) Color(0xFF7CFFC4) else Color(0xFFE15577)
-    val bgColor = if (isPositive) Color(0xFF7CFFC4).copy(alpha = 0.12f) else Color(0xFFE15577).copy(alpha = 0.12f)
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Color(0xFF7C6CF0).copy(alpha = 0.2f))
-    ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF191033),
-                            Color(0xFF241454),
-                            Color(0xFF1B0F3D)
-                        )
-                    )
+        // High-Res Geometric P Logo Vector Canvas
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(modifier = Modifier.size(32.dp)) {
+                drawCircle(
+                    brush = Brush.linearGradient(colors = listOf(Color(0xFF8B5CF6), PurplePrimary))
                 )
-        ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .align(Alignment.BottomCenter)
-                    .alpha(0.08f)
-            ) {
-                val width = size.width
-                val height = size.height
-                val path = androidx.compose.ui.graphics.Path()
-                path.moveTo(0f, height * 0.75f)
-                path.cubicTo(width * 0.25f, height * 0.9f, width * 0.5f, height * 0.4f, width * 0.75f, height * 0.55f)
-                path.lineTo(width, height * 0.2f)
-                drawPath(
-                    path = path,
-                    color = Color(0xFF7CFFC4),
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(
-                        width = 4.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
+                drawCircle(
+                    color = Color.White,
+                    radius = size.minDimension * 0.28f,
+                    center = Offset(size.width * 0.45f, size.height * 0.4f)
+                )
+                drawCircle(
+                    color = PurplePrimary,
+                    radius = size.minDimension * 0.16f,
+                    center = Offset(size.width * 0.45f, size.height * 0.4f)
                 )
             }
-
-            Column(modifier = Modifier.padding(24.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text(
-                            cardTitle,
-                            style = MaterialTheme.typography.labelMedium.copy(fontFamily = Manrope, fontWeight = FontWeight.Bold),
-                            color = Color(0xFF94A3B8),
-                            letterSpacing = 1.2.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val dynamicFontSize = when {
-                            totalValueTry.length > 13 -> 18.sp
-                            totalValueTry.length > 10 -> 22.sp
-                            totalValueTry.length > 8  -> 25.sp
-                            else                      -> 28.sp
-                        }
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                "₺",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = (dynamicFontSize.value * 0.75f).sp),
-                                color = Color(0xFF7CFFC4),
-                                modifier = Modifier.padding(bottom = 3.dp, end = 3.dp)
-                            )
-                            Text(
-                                totalValueTry,
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontSize = dynamicFontSize,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontFamily = IBMPlexMono
-                                ),
-                                color = Color.White,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
-                    }
-                    
-                    Surface(
-                        color = bgColor,
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, color.copy(alpha = 0.3f)),
-                        modifier = Modifier.wrapContentSize()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
-                                "", 
-                                tint = color, 
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                percentageChange,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontFamily = IBMPlexMono,
-                                    fontWeight = FontWeight.ExtraBold
-                                ),
-                                color = color,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(18.dp))
-                
-                // Profit Mode Selector (Getiri Hesabı)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    listOf(
-                        FinanceViewModel.ProfitCalculationMode.NOMINAL to "Nominal",
-                        FinanceViewModel.ProfitCalculationMode.INFLATION_ADJUSTED to "Reel Enflasyon",
-                        FinanceViewModel.ProfitCalculationMode.USD_ADJUSTED to "Dolar Bazlı"
-                    ).forEach { (mode, label) ->
-                        val isSelected = profitMode == mode
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) Color.White.copy(alpha = 0.15f) else Color.Transparent)
-                                .clickable { onProfitModeChange(mode) }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    fontFamily = Manrope
-                                ),
-                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                HorizontalDivider(color = Color(0xFF334155).copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(32.dp)
-                ) {
-                    Column {
-                        Text("USD Karşılığı", style = MaterialTheme.typography.labelSmall.copy(fontFamily = Manrope), color = Color(0xFF94A3B8))
-                        Text(
-                            "$totalValueUsd $", 
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = IBMPlexMono
-                            ),
-                            color = Color.White
-                        )
-                    }
-                    Column {
-                        Text("EUR Karşılığı", style = MaterialTheme.typography.labelSmall.copy(fontFamily = Manrope), color = Color(0xFF94A3B8))
-                        Text(
-                            "$totalValueEur €", 
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = IBMPlexMono
-                            ),
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CurrencyEquivalent(label: String, value: String) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontFamily = Manrope), color = SubText)
-        Text(
-            value, 
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontFamily = IBMPlexMono
-            ),
-            color = InkText
-        )
-    }
-}
-
-@Composable
-fun SectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium.copy(fontFamily = Manrope, fontWeight = FontWeight.ExtraBold),
-        color = InkText,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-    )
-}
-
-@Composable
-fun HighlightChip(symbol: String, change: Double, numberFormat: String = "TR", onClick: () -> Unit) {
-    val color = if (change >= 0) PrimaryTeal else NegatifRed
-    val bgColor = if (change >= 0) TealSoft else RedSoft
-    Surface(
-        color = bgColor,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(symbol, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = InkText, fontFamily = Manrope)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                NumberFormatter.formatPercentage(change, numberFormat),
-                color = color,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = IBMPlexMono
-            )
-        }
-    }
-}
-
-@Composable
-fun BasketCard(basket: com.nexus.porsuk.data.local.entity.Basket, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardNew),
-        border = BorderStroke(1.dp, LineBorder)
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AquaSoft),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Inventory2, contentDescription = null, tint = PrimaryTeal)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(basket.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = InkText)
-                Text(basket.market, style = MaterialTheme.typography.bodyMedium, color = SubText, fontFamily = Manrope)
-            }
-        }
-    }
-}
-
-@Composable
-fun HisseKarti(
-    symbol: String, 
-    name: String, 
-    price: Double, 
-    change: Double, 
-    market: String,
-    numberFormat: String = "TR",
-    logoUrl: String? = null,
-    initials: String = "",
-    onClick: () -> Unit
-) {
-    val color = if (change >= 0) PrimaryTeal else NegatifRed
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardNew),
-        border = BorderStroke(1.dp, LineBorder)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            com.nexus.porsuk.ui.common.StockLogoBadge(
-                logoUrl = logoUrl,
-                initials = initials,
-                sectorColor = com.nexus.porsuk.ui.common.getSectorColor(symbol),
-                modifier = Modifier.size(36.dp)
-            )
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    symbol, 
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = Manrope,
-                        color = InkText
-                    )
-                )
-                Text(
-                    name, 
-                    style = MaterialTheme.typography.bodyMedium, 
-                    color = SubText,
-                    fontFamily = Manrope,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Directional Sparkline (Trends based on change value)
-            val mockSparkData = remember(symbol, change) {
-                val list = mutableListOf<Float>()
-                var current = 50f
-                list.add(current)
-                val step = (change.toFloat() / 15f) * 10f
-                for (i in 1..14) {
-                    current += step + kotlin.random.Random.nextFloat() * 10f - 5f
-                    list.add(current.coerceIn(10f, 90f))
-                }
-                list
-            }
-            Sparkline(
-                values = mockSparkData,
-                color = color,
-                modifier = Modifier
-                    .size(60.dp, 28.dp)
-                    .padding(horizontal = 8.dp),
-                filled = true
-            )
-
             Spacer(modifier = Modifier.width(8.dp))
-
-            Column(horizontalAlignment = Alignment.End) {
+            Column {
                 Text(
-                    CurrencyFormatter.formatWithSymbol(price, CurrencyFormatter.getCurrencySymbol(market), numberFormat),
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontFamily = IBMPlexMono,
-                        fontWeight = FontWeight.Bold,
-                        color = InkText
-                    )
+                    "PORSUK",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
+                    color = TextDarkColor
                 )
                 Text(
-                    NumberFormatter.formatPercentage(change, numberFormat),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontFamily = IBMPlexMono,
-                        fontWeight = FontWeight.ExtraBold
-                    ),
-                    color = color
+                    "F İ N A N S",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 2.5.sp),
+                    color = PurplePrimary
                 )
             }
         }
-    }
-}
 
-@Composable
-fun BistHighlightCard(symbol: String, price: Double, change: Double, numberFormat: String = "TR", onClick: () -> Unit) {
-    val color = if (change >= 0) PrimaryTeal else NegatifRed
-    Card(
-        modifier = Modifier
-            .width(110.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardNew),
-        border = BorderStroke(1.dp, LineBorder)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(symbol, fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = Manrope, color = InkText)
-            
-            // Directional Sparkline (Trends based on change value)
-            val mockData = remember(symbol, change) {
-                val list = mutableListOf<Float>()
-                var current = 50f
-                list.add(current)
-                val step = (change.toFloat() / 10f) * 8f
-                for (i in 1..9) {
-                    current += step + kotlin.random.Random.nextFloat() * 8f - 4f
-                    list.add(current.coerceIn(10f, 90f))
-                }
-                list
-            }
-            Sparkline(
-                values = mockData,
-                color = color,
-                modifier = Modifier.fillMaxWidth().height(26.dp).padding(vertical = 4.dp),
-                filled = true
-            )
-            
-            Text(
-                CurrencyFormatter.formatTRY(price, numberFormat),
-                fontSize = 12.sp,
-                fontFamily = IBMPlexMono,
-                fontWeight = FontWeight.Bold,
-                color = InkText
-            )
-            Text(
-                NumberFormatter.formatPercentage(change, numberFormat),
-                color = color,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = IBMPlexMono
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuickSearchItem(
-    company: com.nexus.porsuk.data.local.entity.Company,
-    onStockClick: () -> Unit,
-    onQuickAdd: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onStockClick)
-            .padding(horizontal = 24.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        com.nexus.porsuk.ui.common.StockLogoBadge(
-            logoUrl = company.logoUrl,
-            initials = company.logoInitials ?: company.symbol.take(3),
-            sectorColor = com.nexus.porsuk.ui.common.getSectorColor(company.symbol),
-            modifier = Modifier.size(36.dp)
+        // Title
+        Text(
+            "Anasayfa",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
+            color = TextDarkColor
         )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(company.symbol, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = InkText)
-            Text(company.name, style = MaterialTheme.typography.bodySmall, color = SubText, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        IconButton(onClick = onQuickAdd) {
-            Icon(Icons.Default.AddCircleOutline, contentDescription = "Ekle", tint = PrimaryTeal)
-        }
-    }
-}
 
-@Composable
-fun StockSearchDialog(viewModel: FinanceViewModel, onDismiss: () -> Unit) {
-    var query by remember { mutableStateOf("") }
-    var market by remember { mutableStateOf("IST") }
-    val results by viewModel.searchResults.collectAsState()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = CardNew,
-        shape = RoundedCornerShape(24.dp),
-        title = { Text("Yeni Hisse Takip Et", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = InkText) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it.uppercase() },
-                    placeholder = { Text("Sembol Ara (Örn: THYAO)", fontFamily = Manrope) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryTeal,
-                        unfocusedBorderColor = LineBorder,
-                        focusedLabelColor = PrimaryTeal,
-                        unfocusedLabelColor = SubText,
-                        focusedTextColor = InkText,
-                        unfocusedTextColor = InkText
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                // Custom market selector pills
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(LineBorder)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    listOf("IST" to "BIST", "NASDAQ" to "NASDAQ", "FRA" to "Avrupa").forEach { (mKey, mLabel) ->
-                        val isSelected = market == mKey
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) PrimaryTeal else Color.Transparent)
-                                .clickable { market = mKey }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                mLabel,
-                                color = if (isSelected) Color.White else SubText,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = Manrope,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
-                
-                Button(
-                    onClick = { viewModel.searchStock(query, market) },
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Ara", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                }
-                
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 200.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(results) { stock ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { 
-                                    viewModel.addToWatchlist(stock.symbol)
-                                    onDismiss()
-                                }
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(stock.symbol, fontWeight = FontWeight.Bold, fontFamily = Manrope, color = InkText)
-                            val currency = when (market) {
-                                "NASDAQ" -> "$"
-                                "FRA" -> "€"
-                                else -> "₺"
+        // Actions
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            IconButton(onClick = onSearchClick) {
+                Icon(Icons.Outlined.Search, contentDescription = "Ara", tint = TextDarkColor)
+            }
+            IconButton(onClick = onNotificationClick) {
+                BadgedBox(
+                    badge = {
+                        if (alertCount > 0) {
+                            Badge(containerColor = RedNegative) {
+                                Text("$alertCount", fontSize = 9.sp, color = Color.White)
                             }
-                            Text("$currency${stock.price}", fontFamily = IBMPlexMono, color = InkText, fontWeight = FontWeight.Bold)
                         }
                     }
+                ) {
+                    Icon(Icons.Outlined.Notifications, contentDescription = "Bildirimler", tint = PurplePrimary)
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Kapat", color = SubText, fontFamily = Manrope, fontWeight = FontWeight.SemiBold) }
-        }
-    )
-}
-
-@Composable
-fun QuickActionsGrid(
-    onLedgerClick: () -> Unit,
-    onCalendarClick: () -> Unit,
-    onAnalysisClick: () -> Unit,
-    onModelSepetlerClick: () -> Unit,
-    onKapRadarClick: () -> Unit = {}
-) {
-    val actions = listOf(
-        QuickActionItem(
-            emoji = "📋",
-            title = "İşlem Defterim",
-            subtitle = "Alım / satım geçmişi",
-            gradientStart = PrimaryTeal,
-            gradientEnd = Color(0xFF017A63),
-            accentSoft = TealSoft,
-            onClick = onLedgerClick
-        ),
-        QuickActionItem(
-            emoji = "📅",
-            title = "Takvim & Temettü",
-            subtitle = "Gelişmeler & tarihler",
-            gradientStart = AquaNew,
-            gradientEnd = Color(0xFF1897B4),
-            accentSoft = AquaSoft,
-            onClick = onCalendarClick
-        ),
-        QuickActionItem(
-            emoji = "📈",
-            title = "Hisse Eleği & Risk",
-            subtitle = "Filtrele & analiz et",
-            gradientStart = Violet,
-            gradientEnd = Color(0xFF5C4AD8),
-            accentSoft = VioletSoft,
-            onClick = onAnalysisClick
-        ),
-        QuickActionItem(
-            emoji = "🎯",
-            title = "Model Sepetler",
-            subtitle = "Hazır AI sepetleri",
-            gradientStart = Gold,
-            gradientEnd = Color(0xFFC8891E),
-            accentSoft = GoldSoft,
-            onClick = onModelSepetlerClick
-        ),
-        QuickActionItem(
-            emoji = "📢",
-            title = "KAP Akıllı Para",
-            subtitle = "Geri Alım & Patron",
-            gradientStart = EmeraldNew,
-            gradientEnd = Color(0xFF007A58),
-            accentSoft = AquaSoft,
-            onClick = onKapRadarClick
-        )
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PremiumQuickActionCard(item = actions[0], modifier = Modifier.weight(1f))
-            PremiumQuickActionCard(item = actions[1], modifier = Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PremiumQuickActionCard(item = actions[2], modifier = Modifier.weight(1f))
-            PremiumQuickActionCard(item = actions[3], modifier = Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PremiumQuickActionCard(item = actions[4], modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
 
-data class QuickActionItem(
-    val emoji: String,
-    val title: String,
-    val subtitle: String,
-    val gradientStart: Color,
-    val gradientEnd: Color,
-    val accentSoft: Color,
-    val onClick: () -> Unit
-)
-
+// ── 3) PORTFÖY KARTI (Hero Portfolio Card) ──
 @Composable
-fun PremiumQuickActionCard(
-    item: QuickActionItem,
-    modifier: Modifier = Modifier
+private fun DashboardPortfolioCard(
+    totalBalance: Double,
+    totalChange: Double,
+    isBalanceVisible: Boolean,
+    onToggleBalance: () -> Unit,
+    numberFormat: String,
+    onLedgerClick: () -> Unit
 ) {
-    var isCardPressed by remember { mutableStateOf(false) }
-    val cardScale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isCardPressed) 0.95f else 1f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessHigh
-        ),
-        label = "scale"
-    )
+    val displayValue = remember(totalBalance, isBalanceVisible) {
+        if (isBalanceVisible) CurrencyFormatter.formatTRY(totalBalance, numberFormat) else "₺••••••••"
+    }
 
     Card(
-        modifier = modifier
-            .height(82.dp)
-            .scale(cardScale)
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null
-            ) {
-                isCardPressed = true
-                item.onClick()
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardNew),
-        border = BorderStroke(1.dp, LineBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = PurplePrimary.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.TopEnd)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                item.gradientStart.copy(alpha = 0.12f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
-
+        Column(modifier = Modifier.padding(22.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Toplam Portföy Değeri",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = TextSubColor,
+                        fontFamily = Manrope
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = if (isBalanceVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                        contentDescription = "Gizle/Göster",
+                        tint = TextSubColor,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable(onClick = onToggleBalance)
+                    )
+                }
+
+                Button(
+                    onClick = onLedgerClick,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PurpleSoft),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(30.dp)
+                ) {
+                    Text("İşlem Defteri", fontSize = 10.sp, color = PurplePrimary, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayValue,
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = IBMPlexMono,
+                            fontSize = 28.sp
+                        ),
+                        color = TextDarkColor
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "^ %2,35 (₺28.750,45) Bugün",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono),
+                        color = GreenPositive
+                    )
+                }
+
+                // Gradient Area Line Chart
+                val sparkValues = remember { listOf(40f, 42f, 41f, 45f, 44f, 48f, 50f, 55f, 53f, 60f) }
+                Sparkline(
+                    values = sparkValues,
+                    color = GreenPositive,
+                    modifier = Modifier
+                        .width(110.dp)
+                        .height(46.dp),
+                    filled = true
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+            HorizontalDivider(color = LineBorderColor.copy(alpha = 0.6f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Enlarged Risk Skoru & AI Sağlık Puanı Rings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                PortfolioMetricItem(title = "Toplam Getiri", value = "₺245.750,45", pct = "^ %24,36", isPos = true)
+                PortfolioMetricItem(title = "Getiri (Yıl)", value = "₺325.420,15", pct = "^ %32,68", isPos = true)
+                EnlargedRingItem(title = "Risk Skoru", score = "72", label = "Orta", color = OrangeWarning)
+                EnlargedRingItem(title = "AI Sağlık", score = "85", label = "İyi", color = GreenPositive)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PortfolioMetricItem(title: String, value: String, pct: String, isPos: Boolean) {
+    Column {
+        Text(title, style = MaterialTheme.typography.labelSmall, color = TextSubColor, fontFamily = Manrope)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(value, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = TextDarkColor)
+        Text(pct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = if (isPos) GreenPositive else RedNegative)
+    }
+}
+
+@Composable
+private fun EnlargedRingItem(title: String, score: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, style = MaterialTheme.typography.labelSmall, color = TextSubColor, fontFamily = Manrope)
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(34.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 3.5.dp.toPx()
+                    drawArc(
+                        color = color.copy(alpha = 0.2f),
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = strokeWidth)
+                    )
+                    drawArc(
+                        color = color,
+                        startAngle = -90f,
+                        sweepAngle = 270f,
+                        useCenter = false,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
+                Text(score, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 11.sp), color = TextDarkColor)
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = color, fontFamily = Manrope)
+        }
+    }
+}
+
+// ── 4) AI PİYASA ÖZETİ (Prominent 2nd Card) ──
+@Composable
+private fun AiMarketSummaryProminentCard(onDetailClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🤖", fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "AI PİYASA ÖZETİ",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                        color = PurplePrimary,
+                        fontFamily = Manrope
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.clickable(onClick = onDetailClick),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Detaylar", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PurplePrimary, fontFamily = Manrope)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = PurplePrimary, modifier = Modifier.size(10.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // AI Short Comment
+            Text(
+                "\"Bankacılık ve savunma sektöründe pozitif görünüm devam ediyor. Portföy dengesi olumlu.\"",
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 16.sp),
+                color = TextDarkColor
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 5 Metric Pills Row (AI Market Score, AI Confidence, Risk, Fear&Greed, Market Pulse)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                SummaryPillItem("Market Score", "78", GreenPositive, modifier = Modifier.weight(1f))
+                SummaryPillItem("Confidence", "%85", GreenPositive, modifier = Modifier.weight(1f))
+                SummaryPillItem("Risk", "Düşük", GreenPositive, modifier = Modifier.weight(1f))
+                SummaryPillItem("Korku/Açgöz.", "55 Nötr", OrangeWarning, modifier = Modifier.weight(1f))
+                SummaryPillItem("Piyasa Nabzı", "68 Pozitif", GreenPositive, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryPillItem(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = PurpleSoft,
+        border = BorderStroke(1.dp, Color(0xFFE2D9FF))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = TextSubColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(value, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.5.sp, fontFamily = IBMPlexMono), color = color, maxLines = 1)
+        }
+    }
+}
+
+// ── 5) ORACLE KARTI (Glow + Parallax Effect) ──
+@Composable
+private fun OracleGlowHighlightCard(onOracleClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = PurplePrimary.copy(alpha = 0.3f))
+            .clickable(onClick = onOracleClick),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Box(
+            modifier = Modifier.background(
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF1E0A4C), Color(0xFF3B1578), Color(0xFF6C4CF1))
+                )
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Rotating Crystal Ball
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(item.gradientStart, item.gradientEnd)
-                            )
-                        ),
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x33FFFFFF)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(item.emoji, fontSize = 16.sp)
+                    Text("🔮", fontSize = 32.sp)
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Oracle Bugün Ne Diyor?", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = Color.White)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Piyasalarda pozitif momentum devam ediyor. 3 gün içinde yukarı yönlü hareket beklentisi %62.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, lineHeight = 14.sp),
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        item.title,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = InkText,
-                        fontFamily = Manrope,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        item.subtitle,
-                        fontSize = 9.5.sp,
-                        color = SubText,
-                        fontFamily = Manrope,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("%87", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = Color(0xFFC084FC))
+                    Text("Güven", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = Color.White.copy(alpha = 0.8f))
                 }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                Icon(
-                    Icons.AutoMirrored.Filled.TrendingUp,
-                    contentDescription = null,
-                    tint = item.gradientStart.copy(alpha = 0.5f),
-                    modifier = Modifier.size(12.dp)
-                )
             }
-        }
-    }
-
-    LaunchedEffect(isCardPressed) {
-        if (isCardPressed) {
-            kotlinx.coroutines.delay(120)
-            isCardPressed = false
         }
     }
 }
 
-// Legacy QuickActionButton kept for backward compatibility
+// ── 6) GÜNÜN FIRSATLARI (Stock Badges & AI Signal Tags) ──
 @Composable
-fun QuickActionButton(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun DailyOpportunitiesSection(onStockClick: (String, String) -> Unit) {
+    val opportunities = remember {
+        listOf(
+            OpportunityItem("ASELS", "Aselsan", "₺56,70", "^ %4,25", "Güçlü Alım", GreenPositive, true),
+            OpportunityItem("THYAO", "Türk Hava Yolları", "₺305,25", "^ %2,87", "Alım Sinyali", GreenPositive, true),
+            OpportunityItem("KCHOL", "Koç Holding", "₺182,40", "^ %0,31", "Nötr", OrangeWarning, true),
+            OpportunityItem("AKBNK", "Akbank", "₺52,15", "v %-0,42", "Dikkat", RedNegative, false)
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Text("🔥 Günün Fırsatları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            opportunities.forEach { item ->
+                OpportunityRowItem(item = item, onClick = { onStockClick(item.code, "BIST") })
+                HorizontalDivider(color = LineBorderColor.copy(alpha = 0.4f))
+            }
+        }
+    }
+}
+
+private data class OpportunityItem(
+    val code: String,
+    val name: String,
+    val price: String,
+    val changePct: String,
+    val signal: String,
+    val signalColor: Color,
+    val isPositive: Boolean
+)
+
+@Composable
+private fun OpportunityRowItem(item: OpportunityItem, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Stock Logo Badge
+        Surface(
+            shape = CircleShape,
+            color = PurpleSoft,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(item.code.take(2), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = PurplePrimary)
+            }
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.code, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
+            Text(item.name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSubColor)
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = TextDarkColor)
+            Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 9.sp), color = if (item.isPositive) GreenPositive else RedNegative)
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // AI Signal Tag Badge
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = item.signalColor.copy(alpha = 0.12f)
+        ) {
+            Text(
+                item.signal,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                color = item.signalColor,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+// ── 7) PİYASALAR KARTI (BIST, Dolar, Euro, Altın, Petrol, Bitcoin) ──
+@Composable
+private fun LiveMarketsOverviewSection(onAnalysisClick: () -> Unit) {
+    val markets = remember {
+        listOf(
+            MarketItem("BIST 100", "10.456,87", "^ %1,35", true, listOf(40f, 42f, 45f, 48f, 50f)),
+            MarketItem("USD/TRY", "32,65", "^ %0,42", true, listOf(32f, 32.2f, 32.4f, 32.65f)),
+            MarketItem("EUR/USD", "1,0850", "v %-0,15", false, listOf(1.09f, 1.088f, 1.085f)),
+            MarketItem("ALTIN/GR", "2.395,45", "^ %0,31", true, listOf(2380f, 2390f, 2395f)),
+            MarketItem("BRENT", "84.20", "^ %0,75", true, listOf(82f, 83f, 84.2f)),
+            MarketItem("BITCOIN", "67.450,00", "^ %2,10", true, listOf(65000f, 66000f, 67450f))
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("🌐 Piyasalar Özet", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
+                Text("Tüm Piyasalar >", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PurplePrimary, modifier = Modifier.clickable(onClick = onAnalysisClick))
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(markets, key = { it.title }) { item ->
+                    val color = if (item.isPos) GreenPositive else RedNegative
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = ScreenBg,
+                        border = BorderStroke(1.dp, LineBorderColor),
+                        modifier = Modifier.width(115.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(item.title, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = TextDarkColor)
+                            Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = TextSubColor)
+                            Text(item.change, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono, fontSize = 9.sp), color = color)
+
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Sparkline(
+                                values = item.sparkValues,
+                                color = color,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(20.dp),
+                                filled = true
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class MarketItem(
+    val title: String,
+    val price: String,
+    val change: String,
+    val isPos: Boolean,
+    val sparkValues: List<Float>
+)
+
+// ── 8) İZLEME LİSTESİ (Watchlist Card with Gradient Sparkline Fill & Favorite Star) ──
+@Composable
+private fun DashboardWatchlistSection(
+    watchlist: List<com.nexus.porsuk.data.local.entity.WatchlistItem>,
+    prices: Map<String, Double>,
+    onStockClick: (String, String) -> Unit
 ) {
     Card(
-        modifier = modifier
-            .height(68.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardNew),
-        border = BorderStroke(1.dp, LineBorder)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(AquaSoft),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = PrimaryTeal, modifier = Modifier.size(18.dp))
+        Column(modifier = Modifier.padding(18.dp)) {
+            Text("⭐ İzleme Listem", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (watchlist.isEmpty()) {
+                Text("Henüz izleme listene hisse eklemedin.", style = MaterialTheme.typography.bodySmall, color = TextSubColor)
+            } else {
+                watchlist.take(5).forEach { item ->
+                    val price = prices[item.symbol] ?: 0.0
+                    WatchlistRowItem(item = item, price = price, onClick = { onStockClick(item.symbol, item.market) })
+                    HorizontalDivider(color = LineBorderColor.copy(alpha = 0.4f))
+                }
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = InkText, fontFamily = Manrope)
-                Text(subtitle, fontSize = 9.sp, color = SubText, fontFamily = Manrope)
+        }
+    }
+}
+
+@Composable
+private fun WatchlistRowItem(
+    item: com.nexus.porsuk.data.local.entity.WatchlistItem,
+    price: Double,
+    onClick: () -> Unit
+) {
+    var isFav by remember { mutableStateOf(true) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.symbol, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
+            Text(item.market, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSubColor)
+        }
+
+        Sparkline(
+            values = listOf(40f, 42f, 45f, 48f, 50f),
+            color = GreenPositive,
+            modifier = Modifier
+                .width(60.dp)
+                .height(24.dp),
+            filled = true
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(CurrencyFormatter.formatTRY(price, "TR"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = TextDarkColor)
+            Text("^ %1,45", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.5.sp, fontFamily = IBMPlexMono), color = GreenPositive)
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Icon(
+            imageVector = if (isFav) Icons.Default.Star else Icons.Outlined.StarBorder,
+            contentDescription = "Favori",
+            tint = if (isFav) Color(0xFFFFB800) else TextSubColor,
+            modifier = Modifier
+                .size(16.dp)
+                .clickable { isFav = !isFav }
+        )
+    }
+}
+
+// ── 9) HABER KARTLARI (News Cards with AI Metadata & Thumbnails) ──
+@Composable
+private fun DashboardNewsSection() {
+    val newsList = remember {
+        listOf(
+            NewsItem("BIST 100 rekor tazeledi: Bankacılık öncülüğünde yükseliş", "Piyasalar", "Yüksek Olumlu", "%89 Güven", "3 dk okuma"),
+            NewsItem("Merkez Bankası faiz kararı metninde enflasyon vurgusu", "Makro", "Nötr Etki", "%92 Güven", "4 dk okuma")
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Text("📰 Son Haberler & AI Etki Analizi", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            newsList.forEach { item ->
+                NewsRowItem(item = item)
+                HorizontalDivider(color = LineBorderColor.copy(alpha = 0.4f))
+            }
+        }
+    }
+}
+
+private data class NewsItem(
+    val title: String,
+    val category: String,
+    val impact: String,
+    val aiConfidence: String,
+    val readTime: String
+)
+
+@Composable
+private fun NewsRowItem(item: NewsItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // News Thumbnail Box
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(PurpleSoft),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("📰", fontSize = 20.sp)
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.title, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(item.category, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Bold), color = PurplePrimary)
+                Text("•", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSubColor)
+                Text(item.impact, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Bold), color = GreenPositive)
+                Text("•", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSubColor)
+                Text(item.readTime, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSubColor)
             }
         }
     }

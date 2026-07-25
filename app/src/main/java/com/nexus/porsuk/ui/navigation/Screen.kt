@@ -60,5 +60,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object PortfolioOptimization : Screen("portfolio_optimization", "Portfolio Optimization Engine", Icons.AutoMirrored.Outlined.TrendingUp)
     object EsgPlatform : Screen("esg_platform", "ESG & Sustainability Intelligence", Icons.AutoMirrored.Outlined.List)
     object AlternativeData : Screen("alternative_data", "Alternative Data Intelligence", Icons.AutoMirrored.Outlined.TrendingUp)
+    object InstitutionalIntelligence : Screen("institutional_intelligence", "Institutional & Insider Intelligence", Icons.AutoMirrored.Outlined.List)
+    object EarningsCallTranscripts : Screen("earnings_call_transcripts", "Earnings Call & Transcripts Intelligence", Icons.AutoMirrored.Outlined.List)
+    object CorporateEventsIntelligence : Screen("corporate_events_intelligence", "M&A & Corporate Events Intelligence", Icons.AutoMirrored.Outlined.List)
+    object IpoIntelligence : Screen("ipo_intelligence", "IPO Intelligence", Icons.Outlined.Home)
+    object CorporateActions : Screen("corporate_actions", "Corporate Actions", Icons.Outlined.Home)
 }
-

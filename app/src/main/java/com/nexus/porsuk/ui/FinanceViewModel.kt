@@ -23,7 +23,10 @@ data class BasketWithStats(
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class FinanceViewModel(
     private val repository: FinanceRepository,
-    private val settingsManager: SettingsManager
+    private val settingsManager: SettingsManager,
+    private val ipoRepository: com.nexus.porsuk.domain.repository.IpoRepository? = null,
+    private val corporateActionRepository: com.nexus.porsuk.domain.repository.CorporateActionRepository? = null,
+    private val dividendRepositoryPro: com.nexus.porsuk.domain.repository.DividendRepositoryPro? = null
 ) : ViewModel() {
 
     val prices: StateFlow<Map<String, PriceSnapshot>> = repository.prices.asStateFlow()
@@ -816,6 +819,34 @@ class FinanceViewModel(
                     items.forEach { repository.addBasketItem(it) }
                 }
             }
+        }
+    }
+
+    // --- IPO & Corporate Actions Intelligence Platform ---
+    private val _ipoIntelligence = MutableStateFlow<com.nexus.porsuk.domain.model.IpoIntelligence?>(null)
+    val ipoIntelligence = _ipoIntelligence.asStateFlow()
+
+    private val _corporateActions = MutableStateFlow<List<com.nexus.porsuk.domain.model.CorporateAction>>(emptyList())
+    val corporateActions = _corporateActions.asStateFlow()
+
+    private val _dividendAnalytics = MutableStateFlow<com.nexus.porsuk.domain.model.DividendAnalytics?>(null)
+    val dividendAnalytics = _dividendAnalytics.asStateFlow()
+
+    fun loadIpoIntelligence(symbol: String) {
+        viewModelScope.launch {
+            ipoRepository?.getIpoDetail(symbol)?.collect { _ipoIntelligence.value = it }
+        }
+    }
+
+    fun loadCorporateActions(symbol: String) {
+        viewModelScope.launch {
+            corporateActionRepository?.getActionsForSymbol(symbol)?.collect { _corporateActions.value = it }
+        }
+    }
+
+    fun loadDividendAnalytics(symbol: String) {
+        viewModelScope.launch {
+            dividendRepositoryPro?.getDividendAnalytics(symbol)?.collect { _dividendAnalytics.value = it }
         }
     }
 }

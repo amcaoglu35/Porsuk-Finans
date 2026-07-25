@@ -34,6 +34,8 @@ import com.nexus.porsuk.data.remote.RichOfflineDataEngine
 import com.nexus.porsuk.ui.FinanceViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import com.nexus.porsuk.ui.common.MetricBox
+import com.nexus.porsuk.ui.common.MetricTagType
 import com.nexus.porsuk.ui.common.CurrencyFormatter
 import com.nexus.porsuk.ui.common.NumberFormatter
 import com.nexus.porsuk.ui.common.FormattedCurrencyEquivalents
@@ -535,6 +537,11 @@ fun CompanyDetailScreen(
             // 5c. Derin Analiz Akordeon Modülleri (7 Adet Derin Analiz)
             item {
                 DeepAnalysisAccordion(symbol = symbol)
+            }
+
+            // 5d. Corporate Actions & Dividends (NEW Intelligence Module)
+            item {
+                CorporateActionsIntelligenceSection(symbol = symbol, viewModel = viewModel)
             }
 
             // 6. Orakul Haber Duyarlılığı kartı + CTA
@@ -1177,6 +1184,88 @@ fun NewsSentimentCard(
                 ) {
                     Text("Analizi Yenile", color = PrimaryTeal, fontSize = 11.sp, fontFamily = Manrope, fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun CorporateActionsIntelligenceSection(symbol: String, viewModel: FinanceViewModel) {
+    val actions by viewModel.corporateActions.collectAsState()
+    val dividendAnalytics by viewModel.dividendAnalytics.collectAsState()
+
+    LaunchedEffect(symbol) {
+        viewModel.loadCorporateActions(symbol)
+        viewModel.loadDividendAnalytics(symbol)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = BorderStroke(1.dp, LineBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("📅", fontSize = 16.sp)
+                Text(
+                    "CORPORATE ACTIONS & DIVIDENDS",
+                    fontSize = 11.sp,
+                    fontFamily = JetBrainsMono,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryTeal,
+                    letterSpacing = 1.2.sp
+                )
+            }
+            
+            if (dividendAnalytics != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MetricBox(
+                        value = "%${String.format(Locale.US, "%.1f", dividendAnalytics!!.currentYield)}",
+                        label = "Verim",
+                        modifier = Modifier.weight(1f),
+                        tag = "Yıllık"
+                    )
+                    MetricBox(
+                        value = "${dividendAnalytics!!.sustainabilityScore}/100",
+                        label = "Sürdürülebilirlik",
+                        modifier = Modifier.weight(1f),
+                        tag = "AI Skoru",
+                        tagType = MetricTagType.GOOD
+                    )
+                }
+            }
+
+            if (actions.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Recent Events", style = MaterialTheme.typography.labelSmall, color = SubText)
+                Spacer(modifier = Modifier.height(8.dp))
+                actions.take(3).forEach { action ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(action.type.name.replace("_", " "), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(java.text.SimpleDateFormat("dd MMM yyyy", Locale.US).format(java.util.Date(action.effectiveDate)), fontSize = 10.sp, color = SubText)
+                        }
+                        if (action.amount != null) {
+                            Text("${action.amount} ${action.currency}", fontSize = 12.sp, fontFamily = IBMPlexMono, fontWeight = FontWeight.Bold, color = PrimaryTeal)
+                        } else if (action.ratio != null) {
+                            Text("%${String.format(Locale.US, "%.0f", action.ratio!! * 100)}", fontSize = 12.sp, fontFamily = IBMPlexMono, fontWeight = FontWeight.Bold, color = Orange)
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Yakın zamanda kurumsal bir aksiyon bulunmuyor.", fontSize = 11.sp, color = SubText, fontFamily = Manrope)
             }
         }
     }

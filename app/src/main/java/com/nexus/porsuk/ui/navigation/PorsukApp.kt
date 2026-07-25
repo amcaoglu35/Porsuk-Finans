@@ -304,16 +304,19 @@ fun PorsukApp(
                     }
 
                     composable(Screen.Sepetler.route) {
-                        FundScreen(
+                        com.nexus.porsuk.ui.portfolio.PortfolioScreen(
                             viewModel = financeViewModel,
-                            onFundClick = { id, _ ->
-                                navController.navigate(Screen.BasketDetail.createRoute(id))
-                            },
-                            onKaziNavigate = {
-                                navController.navigate(Screen.KaziConfig.route)
+                            onStockClick = { symbol, market ->
+                                navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
                             onNavigateToSettings = {
                                 navController.navigate(Screen.Ayarlar.route)
+                            },
+                            onLedgerClick = {
+                                navController.navigate(Screen.IslemDefteri.route)
+                            },
+                            onAnalysisClick = {
+                                navController.navigate(Screen.Analiz.route)
                             }
                         )
                     }
@@ -322,7 +325,7 @@ fun PorsukApp(
                         val analysisViewModel: AnalysisViewModel = viewModel(
                             factory = FinanceViewModelFactory(context)
                         )
-                        AnalysisScreen(
+                        com.nexus.porsuk.ui.markets.MarketsScreen(
                             viewModel = analysisViewModel,
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
@@ -330,11 +333,11 @@ fun PorsukApp(
                             onNavigateToSettings = {
                                 navController.navigate(Screen.Ayarlar.route)
                             },
-                            onCreateBasket = {
-                                navController.navigate(Screen.BasketCreate.route)
+                            onCalendarClick = {
+                                navController.navigate(Screen.Calendar.route)
                             },
-                            onNavigateToDuel = { symbol1, symbol2 ->
-                                navController.navigate(Screen.HisseDuello.createRoute(symbol1, symbol2))
+                            onScreenerClick = {
+                                navController.navigate(Screen.KapRadar.route)
                             }
                         )
                     }
@@ -353,10 +356,13 @@ fun PorsukApp(
                         val chatViewModel: com.nexus.porsuk.ui.chat.ChatViewModel = viewModel(
                             factory = FinanceViewModelFactory(context)
                         )
-                        com.nexus.porsuk.ui.chat.ChatScreen(
+                        com.nexus.porsuk.ui.ailab.AiLabScreen(
                             viewModel = chatViewModel,
                             onNavigateToSettings = { navController.navigate(Screen.Ayarlar.route) },
-                            initialPrompt = initialPrompt
+                            initialPrompt = initialPrompt,
+                            onStockClick = { symbol, market ->
+                                navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
+                            }
                         )
                     }
 
@@ -614,6 +620,36 @@ fun PorsukApp(
                     composable(Screen.AlternativeData.route) {
                         com.nexus.porsuk.feature.alternative.AlternativeDataScreen(
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.InstitutionalIntelligence.route) {
+                        com.nexus.porsuk.feature.institutional.InstitutionalScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.EarningsCallTranscripts.route) {
+                        com.nexus.porsuk.feature.transcript.TranscriptScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.CorporateEventsIntelligence.route) {
+                        com.nexus.porsuk.feature.ma.CorporateEventScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.IpoIntelligence.route) {
+                        com.nexus.porsuk.feature.ipo.IpoIntelligenceScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.CorporateActions.route) {
+                        com.nexus.porsuk.feature.ipo.CorporateActionsScreen(
+                            onBack = { navController.popBackStack() }
                         )
                     }
                 }
