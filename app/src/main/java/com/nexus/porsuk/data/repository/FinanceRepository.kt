@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 class FinanceRepository(
     private val assetDao: AssetDao,
     private val scraper: GoogleFinanceScraper,
+    private val eventBus: com.nexus.porsuk.core.common.PorsukEventBus? = null,
     private val finnhubService: FinnhubService? = null,
     private val yahooService: YahooFinanceService? = null,
     private val settingsManager: com.nexus.porsuk.data.local.SettingsManager? = null
@@ -80,7 +81,21 @@ class FinanceRepository(
         }
         
         // 4. Google Finance Scraper (Last resort fallback)
-        return scraper.fetchPrice(symbol, market)
+        val finalResult = scraper.fetchPrice(symbol, market)
+        
+        // Notify EventBus on success
+        if (finalResult is ScrapeResult.Success) {
+            val snapshot = finalResult.data
+            eventBus?.publish(
+                com.nexus.porsuk.core.common.PorsukEvent.PriceUpdated(
+                    symbol = symbol,
+                    newPrice = snapshot.price,
+                    changePct = snapshot.changePercent
+                )
+            )
+        }
+        
+        return finalResult
     }
 
     suspend fun refreshCompanyInfo(symbol: String, market: String) {

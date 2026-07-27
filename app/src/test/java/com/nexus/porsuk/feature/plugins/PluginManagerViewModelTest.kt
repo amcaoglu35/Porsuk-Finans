@@ -38,6 +38,11 @@ class PluginManagerViewModelTest {
         override suspend fun installPlugin(manifest: PluginManifest) = true
         override suspend fun uninstallPlugin(pluginId: String) = true
         override suspend fun setPluginState(pluginId: String, state: PluginState) = true
+
+        override fun getPluginHealth(pluginId: String) = flowOf<ApiHealthMetrics?>(null)
+        override suspend fun updatePluginHealth(metrics: ApiHealthMetrics) {}
+        override suspend fun getApiConfig(pluginId: String): ApiConfig? = null
+        override suspend fun saveApiConfig(config: ApiConfig) {}
     }
 
     private val fakeSDKRepository = object : SDKRepository {

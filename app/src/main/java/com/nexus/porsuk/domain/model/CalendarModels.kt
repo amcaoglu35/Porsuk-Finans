@@ -13,7 +13,8 @@ data class EconomicEvent(
     val forecastValue: String? = null,
     val previousValue: String? = null,
     val eventTime: Long = System.currentTimeMillis(),
-    val symbol: String? = null
+    val symbol: String? = null,
+    val aiEvaluation: AiEventImpact? = null
 )
 
 /**
@@ -27,7 +28,8 @@ data class EarningsEvent(
     val epsForecast: Double = 0.0,
     val epsActual: Double? = null,
     val revenueForecast: Double = 0.0,
-    val revenueActual: Double? = null
+    val revenueActual: Double? = null,
+    val aiEvaluation: AiEventImpact? = null
 )
 
 /**
@@ -40,7 +42,21 @@ data class DividendEvent(
     val exDate: String,
     val paymentDate: String,
     val amount: Double,
-    val currency: String = "TRY"
+    val currency: String = "TRY",
+    val aiEvaluation: AiEventImpact? = null
+)
+
+/**
+ * AI Etkinlik Etki Analizi Modeli
+ */
+data class AiEventImpact(
+    val eventId: String,
+    val expectedImpact: String, // OLUMLU, OLUMSUZ, NÖTR
+    val realizedImpact: String? = null,
+    val affectedSectors: List<String>,
+    val riskLevel: Int, // 1-10
+    val opportunityLevel: Int, // 1-10
+    val aiCommentary: String
 )
 
 /**

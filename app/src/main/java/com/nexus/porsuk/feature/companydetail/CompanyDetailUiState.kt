@@ -4,16 +4,14 @@ import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.domain.model.MarketQuote
 
 /**
- * Porsuk Company Detail Module — 7 Sekme Tanımları
+ * Porsuk Company Detail Module — 5 Premium Sekme Tanımları
  */
 enum class CompanyDetailTab(val title: String) {
-    OVERVIEW("Genel Bilgiler"),
+    OVERVIEW("Genel Bakış"),
     FINANCIALS("Finansallar"),
-    DIVIDENDS("Temettü"),
-    EARNINGS("Kazançlar"),
+    ANALYSIS("Analizler"),
     NEWS("Haberler"),
-    STATS("İstatistikler"),
-    AI_ORAKUL("AI Orakul (Gelecek)")
+    CORPORATE("Kurumsallar")
 }
 
 /**
@@ -30,5 +28,114 @@ data class CompanyDetailUiState(
     val isFavorite: Boolean = false,
     val selectedTab: CompanyDetailTab = CompanyDetailTab.OVERVIEW,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // Redesign - AI & Summary
+    val aiSummary: String = "",
+    val aiRisks: List<String> = emptyList(),
+    val aiOpportunities: List<String> = emptyList(),
+    val aiTargetPrice: Double = 0.0,
+    val aiPotentialReturn: Double = 0.0,
+    val aiAgents: List<AiAgentConsensus> = emptyList(),
+
+    // Redesign - Quick Metrics
+    val quickMetrics: List<QuickMetricItem> = emptyList(),
+
+    // Redesign - Financials Data
+    val financialSummary: FinancialSummaryData = FinancialSummaryData(),
+    val quarterlyPerformance: List<QuarterlyBarData> = emptyList(),
+    val marginAnalysis: List<MarginLineData> = emptyList(),
+    val financialHealth: FinancialHealthData = FinancialHealthData(),
+
+    // Redesign - Analysis Data
+    val valuationModules: List<ScoreCardData> = emptyList(),
+    val qualityModules: List<ScoreCardData> = emptyList(),
+    val riskModules: List<ScoreCardData> = emptyList(),
+    val aiScenarios: List<AiScenarioData> = emptyList(),
+    val analystConsensus: Double = 0.0,
+    val aiConfidenceScore: Double = 0.0,
+
+    // Redesign - Corporate Data
+    val boardMembers: List<BoardMember> = emptyList(),
+    val ownershipStructure: List<OwnerData> = emptyList(),
+    val corporateTimeline: List<TimelineEvent> = emptyList()
+)
+
+data class AiAgentConsensus(
+    val name: String,
+    val avatarUrl: String?,
+    val consensus: String, // BUY, HOLD, SELL
+    val confidence: Double
+)
+
+data class QuickMetricItem(
+    val label: String,
+    val value: String,
+    val trend: Double? = null // Positive for green, negative for red
+)
+
+data class FinancialSummaryData(
+    val revenue: String = "",
+    val grossProfit: String = "",
+    val ebitda: String = "",
+    val netIncome: String = "",
+    val eps: String = "",
+    val equity: String = "",
+    val totalAssets: String = "",
+    val totalDebt: String = "",
+    val netDebt: String = ""
+)
+
+data class QuarterlyBarData(
+    val quarter: String,
+    val revenue: Double,
+    val ebitda: Double,
+    val netIncome: Double
+)
+
+data class MarginLineData(
+    val date: String,
+    val grossMargin: Double,
+    val netMargin: Double,
+    val ebitdaMargin: Double
+)
+
+data class FinancialHealthData(
+    val liquidity: Double = 0.0,
+    val leverage: Double = 0.0,
+    val interestCoverage: Double = 0.0,
+    val cashPosition: Double = 0.0,
+    val currentRatio: Double = 0.0,
+    val quickRatio: Double = 0.0
+)
+
+data class ScoreCardData(
+    val title: String,
+    val value: String,
+    val score: Double, // 0.0 - 1.0 for color coding
+    val status: String // Undervalued, Overvalued, Excellent, etc.
+)
+
+data class AiScenarioData(
+    val type: String, // Bull, Bear, Base
+    val description: String,
+    val targetPrice: Double,
+    val probability: Double
+)
+
+data class BoardMember(
+    val name: String,
+    val role: String,
+    val avatarUrl: String? = null
+)
+
+data class OwnerData(
+    val name: String,
+    val share: Double
+)
+
+data class TimelineEvent(
+    val date: String,
+    val title: String,
+    val description: String
 )

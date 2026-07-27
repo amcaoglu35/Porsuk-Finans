@@ -23,6 +23,8 @@ class QuantResearchViewModelTest {
     private val fakeResearchRepository = object : ResearchRepository {
         override fun getActiveResearchWorkspace() = flowOf(ResearchWorkspace(title = "Test Quant Model"))
         override suspend fun saveWorkspaceNotes(notes: String) {}
+        override fun getResearchSessions() = flowOf(emptyList<ResearchWorkspace>())
+        override suspend fun createNewSession(title: String, author: String) = ResearchWorkspace()
     }
 
     private val fakeFactorRepository = object : FactorRepository {
@@ -40,21 +42,61 @@ class QuantResearchViewModelTest {
             )
         )
         override suspend fun calculateCompositeFactorScore(symbol: String) = 85.0
+        override fun getAlphaFactorDefinitions() = flowOf(emptyList<AlphaFactorDefinition>())
+        override suspend fun calculateFactorRanking(factorId: String) = FactorRankingResult(factorId, emptyList(), emptyList(), emptyList())
+        override suspend fun calculateFactorExposure(symbol: String) = FactorExposureResult(symbol, emptyMap(), MultiFactorCategory.VALUE, 0.0)
+        override suspend fun combineFactors(symbols: List<String>, strategy: FactorCombinationStrategy) = emptyList<FactorCombinationResult>()
+        override suspend fun saveCustomFactorFormula(title: String, expression: String) = CustomFactorFormula("f_custom", title, expression)
     }
 
     private val fakeStatisticsRepository = object : StatisticsRepository {
         override fun getStatisticalAnalysis(assetPair: String) = flowOf(StatisticalAnalysisResult())
         override fun getPortfolioResearchMetrics() = flowOf(PortfolioResearchMetrics())
+        override suspend fun calculateAcademicModel(symbol: String, modelType: AcademicModelType) = AcademicModelResult(
+            symbol, modelType, 0.0, 0.0, false, 0.0, 0.0, 0.0, emptyList(), 0.0, 0.0
+        )
+        override suspend fun getFactorDecay(factorId: String) = FactorDecayMetrics(factorId, 0.0, 0.0, 0.0, 0.0, 0.0)
+        override suspend fun getFactorPersistence(factorId: String) = FactorPersistenceMetrics(factorId, 0.0, 0.0, 0.0, 0.0, 0.0, emptyList())
+        override suspend fun getFactorCorrelationMatrix() = FactorCorrelationMatrix(emptyList(), emptyList())
+        override suspend fun getPerformanceAttribution(symbolOrPortfolio: String) = PerformanceAttributionResult(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, emptyMap())
     }
 
     private val fakeDatasetRepository = object : DatasetRepository {
         override fun getAvailableDatasets() = flowOf(listOf(DatasetItem()))
         override suspend fun loadDataset(datasetId: String) = true
+        override fun getFeatureStoreDefinitions() = flowOf(emptyList<FeatureDefinition>())
+        override suspend fun applyFeatureTransformation(featureId: String, transformation: FeatureTransformationType) = emptyList<Double>()
     }
 
     private val fakeWorkspaceRepository = object : QuantWorkspaceRepository {
         override fun getSavedWorkspaces() = flowOf(listOf(ResearchWorkspace()))
         override suspend fun switchWorkspace(workspaceId: String) {}
+    }
+
+    private val fakeQuantRepository = object : QuantRepository {
+        override fun getFutureReadySuite() = flowOf(FutureReadyQuantSuite())
+        override fun getMlModelConfigs() = flowOf(emptyList<MlModelConfig>())
+        override suspend fun runMlModelEvaluation(modelId: String) = MlEvaluationResult(modelId, MlTaskType.REGRESSION, 0.0, 0.0, 0.0, emptyMap())
+    }
+
+    private val fakeExperimentRepository = object : ExperimentRepository {
+        override fun getSavedExperiments() = flowOf(emptyList<QuantExperiment>())
+        override suspend fun saveExperiment(title: String, params: Map<String, String>, metrics: Map<String, Double>, notes: String) = QuantExperiment(
+            "exp_1", title, "v1", params, metrics, notes
+        )
+        override suspend fun deleteExperiment(experimentId: String) {}
+    }
+
+    private val fakeValidationRepository = object : ValidationRepository {
+        override suspend fun runWalkForwardAnalysis(strategyId: String, inSampleMonths: Int, outOfSampleMonths: Int) = WalkForwardResult(
+            strategyId, inSampleMonths, outOfSampleMonths, 0, false, 0.0, 0.0, 0.0, 0.0, emptyList()
+        )
+        override suspend fun runRollingWindowAnalysis(symbol: String, windowDays: Int) = RollingWindowResult(
+            symbol, windowDays, emptyList(), emptyList(), emptyList()
+        )
+        override suspend fun runBootstrapSimulation(strategyId: String, simulationsCount: Int) = BootstrapResult(
+            simulationsCount, 0.0, 0.0, 0.0, 0.0, 0.0
+        )
     }
 
     @Before
@@ -74,7 +116,10 @@ class QuantResearchViewModelTest {
             factorRepository = fakeFactorRepository,
             statisticsRepository = fakeStatisticsRepository,
             datasetRepository = fakeDatasetRepository,
-            workspaceRepository = fakeWorkspaceRepository
+            workspaceRepository = fakeWorkspaceRepository,
+            quantRepository = fakeQuantRepository,
+            experimentRepository = fakeExperimentRepository,
+            validationRepository = fakeValidationRepository
         )
 
         testScheduler.advanceUntilIdle()

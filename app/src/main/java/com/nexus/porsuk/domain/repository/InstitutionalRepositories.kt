@@ -41,3 +41,14 @@ interface FundFlowRepository {
     suspend fun getSmartMoneyAiCommentary(companySymbol: String): SmartMoneyAiCommentary
     fun getFutureStubs(): Flow<InstitutionalFutureStubs>
 }
+
+/**
+ * 5. Kurumsal Analitik Süiti (InstitutionalAnalyticsRepository)
+ */
+interface InstitutionalAnalyticsRepository {
+    fun getMarketOverview(): Flow<InstitutionalMarketOverview>
+    fun getSectorAnalytics(): Flow<List<SectorAnalytics>>
+    fun getCompanyInstitutionalAnalysis(symbol: String): Flow<InstitutionalCompanyAnalysis>
+    fun getPortfolioInstitutionalAnalytics(): Flow<InstitutionalPortfolioAnalytics>
+    fun getInstitutionalAiInsights(): Flow<List<InstitutionalAiInsight>>
+}

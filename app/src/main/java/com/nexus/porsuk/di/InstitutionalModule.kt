@@ -28,4 +28,12 @@ object InstitutionalModule {
     @Provides
     @Singleton
     fun provideFundFlowRepository(impl: FundFlowRepositoryImpl): FundFlowRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideInstitutionalAnalyticsRepository(impl: InstitutionalAnalyticsRepositoryImpl): InstitutionalAnalyticsRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideReportingRepository(impl: ReportingRepositoryImpl): ReportingRepository = impl
 }

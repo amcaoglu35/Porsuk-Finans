@@ -1,7 +1,7 @@
 package com.nexus.porsuk.domain.model
 
 /**
- * Fiyat Mumu Verisi (CandleStickItem)
+ * Mum Verisi (CandleStickItem)
  */
 data class CandleStickItem(
     val timestamp: Long,
@@ -13,33 +13,27 @@ data class CandleStickItem(
 )
 
 /**
- * Grafik Üzeri Çizim Nesnesi (ChartDrawingObject)
+ * Grafik Çizim Nesnesi
  */
 data class ChartDrawingObject(
-    val id: String,
-    val toolType: DrawingToolType,
+    val id: String = "draw_${System.currentTimeMillis()}",
+    val type: DrawingToolType,
     val startTimestamp: Long,
     val startPrice: Double,
     val endTimestamp: Long? = null,
     val endPrice: Double? = null,
-    val textNote: String? = null,
-    val colorHex: Long = 0xFF00B0FF
+    val text: String? = null,
+    val colorHex: Long = 0xFF00A388,
+    // Add legacy support fields if needed, but let's try to unify
+    val toolType: DrawingToolType = type,
+    val textNote: String? = text
 )
 
 /**
- * Portföy İşlem Türü (Transaction Type for Chart Overlay)
- */
-enum class OverlayMarkerType(val displayName: String, val colorHex: Long) {
-    BUY("Alış", 0xFF00C853),
-    SELL("Satış", 0xFFD50000),
-    DIVIDEND("Temettü", 0xFFFFD600);
-}
-
-/**
- * Portföy Alış/Satış/Temettü Grafik İşaretçisi (PortfolioTransactionMarker)
+ * Portföy İşlem İşaretçisi
  */
 data class PortfolioTransactionMarker(
-    val markerId: String,
+    val id: String,
     val symbol: String,
     val markerType: OverlayMarkerType,
     val price: Double,
@@ -48,11 +42,36 @@ data class PortfolioTransactionMarker(
 )
 
 /**
- * Geleceğe Hazır AI Chart Analysis Stub Modeli
+ * Grafik Ayarları
  */
-data class AiChartPatternStub(
-    val symbol: String,
-    val detectedPattern: String = "Fincan Kulp Formasyonu (Cup & Handle)",
-    val targetPrice: Double = 310.0,
-    val confidencePct: Double = 91.5
+data class ChartSettings(
+    val chartType: ChartType = ChartType.CANDLESTICK,
+    val timeFrame: ChartTimeFrame = ChartTimeFrame.DAILY,
+    val showVolume: Boolean = true,
+    val showGrid: Boolean = true,
+    val activeIndicators: List<IndicatorConfig> = emptyList(),
+    val drawings: List<ChartDrawingObject> = emptyList()
+)
+
+/**
+ * İndikatör Yapılandırması
+ */
+data class IndicatorConfig(
+    val type: IndicatorType,
+    val params: Map<String, Any> = emptyMap(),
+    val isVisible: Boolean = true
+)
+
+/**
+ * AI Grafik Analiz Sonucu
+ */
+data class AiChartAnalysis(
+    val trend: String,
+    val pattern: String?,
+    val supportLevels: List<Double>,
+    val resistanceLevels: List<Double>,
+    val riskScore: Int,
+    val confidence: Int,
+    val scenario: String,
+    val signal: TechnicalSignalType
 )

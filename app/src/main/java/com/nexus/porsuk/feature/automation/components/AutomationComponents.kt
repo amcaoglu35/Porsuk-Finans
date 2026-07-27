@@ -1,132 +1,209 @@
 package com.nexus.porsuk.feature.automation.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nexus.porsuk.domain.model.AutomationRuleModel
-import com.nexus.porsuk.domain.model.AutomationWorkflow
-import com.nexus.porsuk.domain.model.NotificationCenterItem
+import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.domain.model.*
+import com.nexus.porsuk.ui.theme.*
 
-/**
- * Bildirim Kartı (NotificationItemCard)
- */
 @Composable
-fun NotificationItemCard(
-    item: NotificationCenterItem,
-    modifier: Modifier = Modifier
+fun AutomationRuleCard(
+    rule: AutomationRuleModel,
+    onToggle: (Boolean) -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        )
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "${item.category.iconEmoji} ${item.title}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(item.priority.colorHex).copy(alpha = 0.2f)
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(rule.category.iconEmoji, fontSize = 20.sp)
                     Text(
-                        text = item.priority.displayName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(item.priority.colorHex),
+                        text = rule.title,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        color = InkText,
+                        fontFamily = Manrope
                     )
                 }
+                Switch(
+                    checked = rule.isEnabled,
+                    onCheckedChange = onToggle,
+                    colors = SwitchDefaults.colors(checkedTrackColor = PrimaryTeal)
+                )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = item.message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            ConditionActionBox(rule.ifConditionText, rule.actionText)
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, null, tint = NegatifRed)
+                }
+            }
         }
     }
 }
 
-/**
- * Otomasyon Kural Kartı (AutomationRuleRowCard)
- */
 @Composable
-fun AutomationRuleRowCard(
-    rule: AutomationRuleModel,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-        )
+fun ConditionActionBox(condition: String, action: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(BackgroundNew)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = "⚡ ${rule.title}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "EĞER: ${rule.ifConditionText}",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "AKSİYON: ${rule.actionText}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(PrimaryTeal.copy(alpha = 0.1f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text("IF", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryTeal, fontFamily = JetBrainsMono)
+            }
+            Text(condition, style = MaterialTheme.typography.bodySmall, color = InkText, fontFamily = Manrope)
+        }
+        
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Violet.copy(alpha = 0.1f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text("THEN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Violet, fontFamily = JetBrainsMono)
+            }
+            Text(action, style = MaterialTheme.typography.bodySmall, color = InkText, fontFamily = Manrope)
         }
     }
 }
 
-/**
- * Otomasyon İş Akışı Kartı (WorkflowTemplateCard)
- */
 @Composable
-fun WorkflowTemplateCard(
-    workflow: AutomationWorkflow,
-    modifier: Modifier = Modifier
-) {
+fun AutomationHistoryCard(entry: AutomationHistoryModel) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        )
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column {
-                Text(workflow.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("Zamanlama: ${workflow.cronScheduleText}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val statusColor = when (entry.status) {
+                "SUCCESS" -> PrimaryTeal
+                "FAILED" -> NegatifRed
+                else -> SubText
             }
-            Badge(containerColor = Color(0xFF00C853)) {
-                Text(workflow.lastRunStatusText, modifier = Modifier.padding(4.dp))
+            
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(statusColor.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when (entry.status) {
+                        "SUCCESS" -> Icons.Default.CheckCircle
+                        "FAILED" -> Icons.Default.Error
+                        else -> Icons.Default.Schedule
+                    },
+                    contentDescription = null,
+                    tint = statusColor
+                )
+            }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(entry.resultSummary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = InkText, fontFamily = Manrope)
+                Text(
+                    java.text.SimpleDateFormat("dd MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(entry.executionTime)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SubText,
+                    fontFamily = IBMPlexMono
+                )
+            }
+            
+            Text("${entry.durationMs}ms", style = MaterialTheme.typography.labelSmall, color = SubText, fontFamily = IBMPlexMono)
+        }
+    }
+}
+
+@Composable
+fun AiSuggestionCard(suggestion: AiAutomationSuggestionModel, onApply: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(suggestion.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = PrimaryTeal, fontFamily = Manrope)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(suggestion.description, style = MaterialTheme.typography.bodySmall, color = InkText, fontFamily = Manrope)
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onApply,
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)
+            ) {
+                Text("Öneriyi Uygula", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+            }
+        }
+    }
+}
+
+@Composable
+fun TemplateCard(template: AutomationRuleModel, onUse: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(template.category.iconEmoji, fontSize = 20.sp)
+                Text(template.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = InkText, fontFamily = Manrope)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            ConditionActionBox(template.ifConditionText, template.actionText)
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onUse,
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BackgroundNew)
+            ) {
+                Text("Bu Şablonu Kullan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryTeal, fontFamily = Manrope)
             }
         }
     }

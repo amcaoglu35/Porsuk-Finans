@@ -1,44 +1,66 @@
 package com.nexus.porsuk.domain.model
 
 /**
- * 7 Grafik Türü (Chart Types)
+ * Advanced Chart Studio — Grafik Türleri
  */
-enum class ChartType(val displayName: String) {
-    CANDLESTICK("Mum Grafik (Candlestick)"),
-    LINE("Çizgi Grafik (Line)"),
-    AREA("Alan Grafik (Area)"),
-    BAR("Bar Grafik (Bar)"),
-    HEIKIN_ASHI("Heikin Ashi"),
-    HOLLOW_CANDLES("Hollow Candles"),
-    BASELINE("Baseline Chart");
+enum class ChartType(val label: String, val icon: String) {
+    CANDLESTICK("Mum Grafik", "🕯️"),
+    LINE("Çizgi Grafik", "📈"),
+    AREA("Alan Grafik", "🟦"),
+    BAR("Bar Grafik", "📊"),
+    HEIKIN_ASHI("Heikin Ashi", "🏮"),
+    HOLLOW_CANDLES("Boş Mumlar", "🕯️")
 }
 
 /**
- * 10 Zaman Dilimi (Chart TimeFrames)
+ * Advanced Chart Studio — Zaman Aralıkları
  */
 enum class ChartTimeFrame(val code: String, val displayName: String) {
-    ONE_MIN("1m", "1 Dakika"),
-    FIVE_MIN("5m", "5 Dakika"),
-    FIFTEEN_MIN("15m", "15 Dakika"),
-    THIRTY_MIN("30m", "30 Dakika"),
-    ONE_HOUR("1h", "1 Saat"),
-    FOUR_HOUR("4h", "4 Saat"),
+    ONE_MIN("1m", "1 dk"),
+    FIVE_MIN("5m", "5 dk"),
+    FIFTEEN_MIN("15m", "15 dk"),
+    THIRTY_MIN("30m", "30 dk"),
+    ONE_HOUR("1h", "1 sa"),
+    FOUR_HOUR("4h", "4 sa"),
     DAILY("1D", "Günlük"),
     WEEKLY("1W", "Haftalık"),
-    MONTHLY("1M", "Aylık"),
-    YEARLY("1Y", "Yıllık");
+    MONTHLY("1M", "Aylık")
 }
 
 /**
- * Çizim Araçları Türü (Drawing Tool Types)
+ * Advanced Chart Studio — Teknik İndikatörler
  */
-enum class DrawingToolType(val displayName: String, val iconEmoji: String) {
-    SELECT("Seç", "👆"),
-    CROSSHAIR("Crosshair", "🎯"),
-    TREND_LINE("Trend Çizgisi", "📈"),
-    HORIZONTAL_LINE("Yatay Destek/Direnç", "➖"),
-    VERTICAL_LINE("Dikey Çizgi", "│"),
-    RECTANGLE("Dikdörtgen Alan", "▭"),
-    TEXT("Metin Notu", "📝"),
-    MEASURE("Fiyat/Zaman Ölçüm", "📏");
+enum class IndicatorType(val label: String, val category: String) {
+    RSI("RSI", "Oscillator"),
+    MACD("MACD", "Momentum"),
+    BOLLINGER("Bollinger Bands", "Volatility"),
+    EMA("EMA", "Trend"),
+    SMA("SMA", "Trend"),
+    VWAP("VWAP", "Volume"),
+    ATR("ATR", "Volatility"),
+    ADX("ADX", "Trend"),
+    STOCH_RSI("Stoch RSI", "Oscillator"),
+    ICHIMOKU("Ichimoku Cloud", "Trend"),
+    OBV("OBV", "Volume"),
+    SUPERTREND("SuperTrend", "Trend")
+}
+
+/**
+ * Advanced Chart Studio — Çizim Araçları
+ */
+enum class DrawingToolType(val code: String, val displayName: String, val iconEmoji: String) {
+    CROSSHAIR("CROSS", "İmleç", "🖱️"),
+    TREND_LINE("TREND", "Trend Çizgisi", "📏"),
+    HORIZONTAL_LINE("HORIZ", "Yatay Çizgi", "➖"),
+    VERTICAL_LINE("VERT", "Dikey Çizgi", "📍"),
+    CHANNEL("CHANNEL", "Kanal", "🛤️"),
+    FIBONACCI("FIBO", "Fibonacci", "🌀"),
+    RECTANGLE("RECT", "Bölge", "⬛"),
+    TEXT("TEXT", "Not", "📝")
+}
+
+enum class OverlayMarkerType(val displayName: String, val colorHex: Long) {
+    BUY("Alış", 0xFF00C853), 
+    SELL("Satış", 0xFFD50000), 
+    DIVIDEND("Temettü", 0xFFFFB300)
 }

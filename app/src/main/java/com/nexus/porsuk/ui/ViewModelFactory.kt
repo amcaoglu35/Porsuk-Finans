@@ -44,9 +44,11 @@ class FinanceViewModelFactory(
             return repository ?: synchronized(this) {
                 val database = PorsukDatabase.getDatabase(context.applicationContext)
                 val sm = getSettingsManager(context)
+                val eventBus = com.nexus.porsuk.core.common.PorsukEventBus() // Simple instance for factory
                 val instance = FinanceRepository(
                     database.assetDao(),
                     GoogleFinanceScraper(),
+                    eventBus,
                     FinnhubService(ApiKeys.FINNHUB),
                     YahooFinanceService(ApiKeys.YAHOO),
                     sm

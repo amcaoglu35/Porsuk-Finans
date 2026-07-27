@@ -19,4 +19,14 @@ class PorsukApplication : Application(), Configuration.Provider {
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
+
+    override fun onCreate() {
+        super.onCreate()
+        // Initialize Core Infrastructure
+        com.nexus.porsuk.core.common.GlobalCrashHandler.initialize(this)
+
+        // Schedule System Workers
+        com.nexus.porsuk.worker.AutomationWorker.schedule(this)
+        com.nexus.porsuk.worker.DailySummaryWorker.schedule(this)
+    }
 }

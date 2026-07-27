@@ -11,6 +11,8 @@ interface CalendarRepository {
     fun getEventsByCategory(category: CalendarEventCategory): Flow<List<EconomicEvent>>
     fun getEventsByCountry(country: String): Flow<List<EconomicEvent>>
     fun getEventsByImpactLevel(impactLevel: CalendarImpactLevel): Flow<List<EconomicEvent>>
+    suspend fun refreshEvents()
+    suspend fun getAiImpactAnalysis(eventId: String): AiEventImpact?
 }
 
 /**

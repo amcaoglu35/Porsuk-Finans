@@ -8,10 +8,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,11 +45,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.data.remote.RichOfflineDataEngine
 import com.nexus.porsuk.ui.FinanceViewModel
 import com.nexus.porsuk.ui.common.CurrencyFormatter
@@ -54,6 +56,20 @@ import com.nexus.porsuk.ui.common.NumberFormatter
 import com.nexus.porsuk.ui.common.Sparkline
 import com.nexus.porsuk.ui.theme.*
 import java.util.Locale
+
+data class SmartInsightItem(
+    val title: String,
+    val summary: String,
+    val category: String, // Portföy, Risk, Haber, Temettü, Döviz
+    val icon: String,
+    val impactScore: String,
+    val fullExplanation: String,
+    val aiCommentary: String,
+    val riskAnalysis: String,
+    val scenarioBullish: String,
+    val scenarioBearish: String,
+    val recommendedAction: String
+)
 
 // Clean Design System Tokens
 private val ScreenBg = Color(0xFFFAFAFA)
@@ -77,8 +93,13 @@ fun DashboardScreen(
     onSettingsClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onAnalysisClick: () -> Unit,
+    onMarketsClick: () -> Unit = {},
     onModelSepetlerClick: () -> Unit,
     onKapRadarClick: () -> Unit = {},
+    onInstitutionalClick: () -> Unit = {},
+    onReportingClick: () -> Unit = {},
+    onAiEngineClick: () -> Unit = {},
+    onPluginsClick: () -> Unit = {},
     onChatClick: (String) -> Unit
 ) {
     val watchlist by viewModel.watchlist.collectAsState(initial = emptyList())
@@ -92,6 +113,7 @@ fun DashboardScreen(
 
     var showSearchDialog by remember { mutableStateOf(false) }
     var isBalanceVisible by remember { mutableStateOf(true) }
+    var selectedInsightForDetail by remember { mutableStateOf<SmartInsightItem?>(null) }
 
     // Breathing pulse animation for FAB
     val infiniteTransition = rememberInfiniteTransition()
@@ -155,7 +177,7 @@ fun DashboardScreen(
 
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshData() },
+            onRefresh = { viewModel.refreshAllData() },
             state = pullRefreshState,
             modifier = Modifier
                 .fillMaxSize()
@@ -183,6 +205,20 @@ fun DashboardScreen(
                     }
                 }
 
+                // 3.5) AI COPILOT HERO CARD & SMART INSIGHTS
+                item(key = "ai_copilot_hero_card") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(450)) + slideInVertically(initialOffsetY = { 35 })
+                    ) {
+                        AiCopilotHeroCard(
+                            onInsightClick = { insightItem ->
+                                selectedInsightForDetail = insightItem
+                            }
+                        )
+                    }
+                }
+
                 // 4) AI PİYASA ÖZETİ (2nd Most Important Card)
                 item(key = "ai_market_summary_card") {
                     AnimatedVisibility(
@@ -190,9 +226,24 @@ fun DashboardScreen(
                         enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
                     ) {
                         AiMarketSummaryProminentCard(
-                            onDetailClick = onAnalysisClick
+                            onDetailClick = onMarketsClick
                         )
                     }
+                }
+
+                // 4.5) QUICK ACTIONS GRID
+                item(key = "quick_actions_grid") {
+                    QuickActionsGrid(
+                        onLedgerClick = onLedgerClick,
+                        onCalendarClick = onCalendarClick,
+                        onAnalysisClick = onAnalysisClick,
+                        onModelSepetlerClick = onModelSepetlerClick,
+                        onKapRadarClick = onKapRadarClick,
+                        onInstitutionalClick = onInstitutionalClick,
+                        onReportingClick = onReportingClick,
+                        onAiEngineClick = onAiEngineClick,
+                        onPluginsClick = onPluginsClick
+                    )
                 }
 
                 // 5) ORACLE KARTI (Glow + Parallax Effect)
@@ -223,7 +274,7 @@ fun DashboardScreen(
                         visible = isVisible,
                         enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 70 })
                     ) {
-                        LiveMarketsOverviewSection(onAnalysisClick = onAnalysisClick)
+                        LiveMarketsOverviewSection(onMarketsClick = onMarketsClick)
                     }
                 }
 
@@ -251,6 +302,13 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+
+        selectedInsightForDetail?.let { insight ->
+            InsightDetailBottomSheet(
+                insight = insight,
+                onDismiss = { selectedInsightForDetail = null }
+            )
         }
     }
 }
@@ -724,7 +782,7 @@ private fun OpportunityRowItem(item: OpportunityItem, onClick: () -> Unit) {
 
 // ── 7) PİYASALAR KARTI (BIST, Dolar, Euro, Altın, Petrol, Bitcoin) ──
 @Composable
-private fun LiveMarketsOverviewSection(onAnalysisClick: () -> Unit) {
+private fun LiveMarketsOverviewSection(onMarketsClick: () -> Unit) {
     val markets = remember {
         listOf(
             MarketItem("BIST 100", "10.456,87", "^ %1,35", true, listOf(40f, 42f, 45f, 48f, 50f)),
@@ -752,7 +810,7 @@ private fun LiveMarketsOverviewSection(onAnalysisClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("🌐 Piyasalar Özet", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
-                Text("Tüm Piyasalar >", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PurplePrimary, modifier = Modifier.clickable(onClick = onAnalysisClick))
+                Text("Tüm Piyasalar >", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PurplePrimary, modifier = Modifier.clickable(onClick = onMarketsClick))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -767,7 +825,9 @@ private fun LiveMarketsOverviewSection(onAnalysisClick: () -> Unit) {
                         shape = RoundedCornerShape(16.dp),
                         color = ScreenBg,
                         border = BorderStroke(1.dp, LineBorderColor),
-                        modifier = Modifier.width(115.dp)
+                        modifier = Modifier
+                            .width(115.dp)
+                            .clickable(onClick = onMarketsClick)
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(item.title, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = TextDarkColor)
@@ -803,7 +863,7 @@ private data class MarketItem(
 @Composable
 private fun DashboardWatchlistSection(
     watchlist: List<com.nexus.porsuk.data.local.entity.WatchlistItem>,
-    prices: Map<String, Double>,
+    prices: Map<String, com.nexus.porsuk.data.local.entity.PriceSnapshot>,
     onStockClick: (String, String) -> Unit
 ) {
     Card(
@@ -823,8 +883,8 @@ private fun DashboardWatchlistSection(
                 Text("Henüz izleme listene hisse eklemedin.", style = MaterialTheme.typography.bodySmall, color = TextSubColor)
             } else {
                 watchlist.take(5).forEach { item ->
-                    val price = prices[item.symbol] ?: 0.0
-                    WatchlistRowItem(item = item, price = price, onClick = { onStockClick(item.symbol, item.market) })
+                    val price = prices[item.symbol]?.price ?: 0.0
+                    WatchlistRowItem(item = item, price = price, onClick = { onStockClick(item.symbol, "BIST") })
                     HorizontalDivider(color = LineBorderColor.copy(alpha = 0.4f))
                 }
             }
@@ -850,7 +910,7 @@ private fun WatchlistRowItem(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(item.symbol, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor)
-            Text(item.market, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSubColor)
+            Text("BIST", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSubColor)
         }
 
         Sparkline(
@@ -879,6 +939,189 @@ private fun WatchlistRowItem(
                 .size(16.dp)
                 .clickable { isFav = !isFav }
         )
+    }
+}
+
+@Composable
+fun QuickActionsGrid(
+    onLedgerClick: () -> Unit,
+    onCalendarClick: () -> Unit,
+    onAnalysisClick: () -> Unit,
+    onModelSepetlerClick: () -> Unit,
+    onKapRadarClick: () -> Unit = {},
+    onInstitutionalClick: () -> Unit = {},
+    onReportingClick: () -> Unit = {},
+    onAiEngineClick: () -> Unit = {},
+    onPluginsClick: () -> Unit = {}
+) {
+    val actions = listOf(
+        QuickActionItem(
+            emoji = "📋",
+            title = "İşlem Defterim",
+            subtitle = "Alım / satım geçmişi",
+            gradientStart = PrimaryTeal,
+            gradientEnd = Color(0xFF007A58),
+            accentSoft = TealSoft,
+            onClick = onLedgerClick
+        ),
+        QuickActionItem(
+            emoji = "📅",
+            title = "Borsa Takvimi",
+            subtitle = "Temettü & Bilanço",
+            gradientStart = AquaNew,
+            gradientEnd = Color(0xFF008BA3),
+            accentSoft = AquaSoft,
+            onClick = onCalendarClick
+        ),
+        QuickActionItem(
+            emoji = "📊",
+            title = "Kurumsal Analiz",
+            subtitle = "Bloomberg Terminal",
+            gradientStart = Color(0xFF1E293B),
+            gradientEnd = Color(0xFF0F172A),
+            accentSoft = Color(0xFFE2E8F0),
+            onClick = onInstitutionalClick
+        ),
+        QuickActionItem(
+            emoji = "📑",
+            title = "Rapor Merkezi",
+            subtitle = "PDF & Excel Döküm",
+            gradientStart = Color(0xFF7C6CF0),
+            gradientEnd = Color(0xFF5C4AD8),
+            accentSoft = Color(0xFFECE9FE),
+            onClick = onReportingClick
+        ),
+        QuickActionItem(
+            emoji = "🤖",
+            title = "AI Yönetimi",
+            subtitle = "Cloud & Local Hibrit",
+            gradientStart = Color(0xFFE8A93B),
+            gradientEnd = Color(0xFFC8891E),
+            accentSoft = Color(0xFFFBF1DD),
+            onClick = onAiEngineClick
+        ),
+        QuickActionItem(
+            emoji = "🧩",
+            title = "Eklenti Marketi",
+            subtitle = "API & Plugin Yönetimi",
+            gradientStart = Color(0xFF10B981),
+            gradientEnd = Color(0xFF007A58),
+            accentSoft = AquaSoft,
+            onClick = onPluginsClick
+        )
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        for (i in 0 until actions.size step 2) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PremiumQuickActionCard(item = actions[i], modifier = Modifier.weight(1f))
+                if (i + 1 < actions.size) {
+                    PremiumQuickActionCard(item = actions[i+1], modifier = Modifier.weight(1f))
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+data class QuickActionItem(
+    val emoji: String,
+    val title: String,
+    val subtitle: String,
+    val gradientStart: Color,
+    val gradientEnd: Color,
+    val accentSoft: Color,
+    val onClick: () -> Unit
+)
+
+@Composable
+fun PremiumQuickActionCard(
+    item: QuickActionItem,
+    modifier: Modifier = Modifier
+) {
+    var isCardPressed by remember { mutableStateOf(false) }
+    val cardScale by animateFloatAsState(
+        targetValue = if (isCardPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "scale"
+    )
+
+    Card(
+        modifier = modifier
+            .height(82.dp)
+            .graphicsLayer(
+                scaleX = cardScale,
+                scaleY = cardScale
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                item.onClick()
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(item.gradientStart.copy(alpha = 0.05f), Color.Transparent)
+                        )
+                    )
+            )
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(item.accentSoft),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(item.emoji, fontSize = 20.sp)
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        item.title,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = TextDarkColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        item.subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSubColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -952,6 +1195,273 @@ private fun NewsRowItem(item: NewsItem) {
                 Text("•", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSubColor)
                 Text(item.readTime, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSubColor)
             }
+        }
+    }
+}
+
+// ── 3.5) AI COPILOT HERO CARD & SMART INSIGHTS COMPONENT ──
+@Composable
+private fun AiCopilotHeroCard(
+    onInsightClick: (SmartInsightItem) -> Unit
+) {
+    val sampleInsights = remember {
+        listOf(
+            SmartInsightItem(
+                title = "Teknoloji Sektör Yoğunlaşması",
+                summary = "Portföyün teknoloji hisselerine %42 fazla ağırlık vermiş.",
+                category = "Portföy",
+                icon = "⚡",
+                impactScore = "Yüksek",
+                fullExplanation = "Portföyünüzün toplam varlık dağılımında Teknoloji ve Yazılım sektör hisseleri %42 paya sahiptir. Bu oran genel piyasa ortalamasının üzerindedir.",
+                aiCommentary = "Sektörel konsantrasyon teknoloji rallilerinde getiri artışı sağlasa da olası bir düzeltmede portföy volatilitesini yükseltebilir.",
+                riskAnalysis = "Orta-Yüksek risk seviyesi. Sektör dağılım dengesizliği +%3.2 ek dalgalanma risk puanı eklemektedir.",
+                scenarioBullish = "Teknoloji rallisinin devamında portföy %14 ek getiri üretebilir.",
+                scenarioBearish = "Kar satışlarında portföy ortalama %6.8 geri çekilme yaşayabilir.",
+                recommendedAction = "Portföyü %15 oranında Savunma ve Temettü hisseleri ile dengeleyin."
+            ),
+            SmartInsightItem(
+                title = "Risk Seviyesi Yükseliş Trendinde",
+                summary = "Son 7 günde portföy risk seviyen %68'e yükseldi.",
+                category = "Risk",
+                icon = "🛡️",
+                impactScore = "Orta",
+                fullExplanation = "Piyasa volatilitesi ve portföy içi betaların artması sonucu son 7 günlük risk skorunuz %58'den %68'e tırmanmıştır.",
+                aiCommentary = "Yükselen volatilite kısa vadede stop-loss seviyelerinin yakından takip edilmesini gerektirir.",
+                riskAnalysis = "Volatilitesi yüksek hisselerin ağırlığı %30 seviyesine yaklaşmıştır.",
+                scenarioBullish = "Momentum korunursa kısa vadeli %8 prim potansiyeli mevcuttur.",
+                scenarioBearish = "Olası kar satışlarında varlık koruma marjı daralabilir.",
+                recommendedAction = "Nakit oranınızı %12 seviyesine yükselterek varlık koruma kalkanı oluşturun."
+            ),
+            SmartInsightItem(
+                title = "THYAO Haber Katalizörü",
+                summary = "THYAO yolcu büyüme verilerinden olumlu etkilenebilir.",
+                category = "Haber",
+                icon = "🚀",
+                impactScore = "Güçlü",
+                fullExplanation = "Havayolu yolcu sayıları ve dış hat büyüme rakamları analist beklentilerini %4.2 aşmıştır.",
+                aiCommentary = "Yolcu doluluk oranları ve jet yakıtı marjları bilançoyu destekleyecek seviyededir.",
+                riskAnalysis = "Düşük-Orta risk. Haber ve KAP entropy sinyalleri %88 güven aralığındadır.",
+                scenarioBullish = "Hisse ₺320 direncini kırarak rekor tazeleyebilir.",
+                scenarioBearish = "Jeopolitik gelişmelerde ₺295 desteği test edilebilir.",
+                recommendedAction = "Mevcut pozisyonu koruyun, kademeli alım bölgesi ₺298 - ₺302."
+            ),
+            SmartInsightItem(
+                title = "Temettü Sezonu Yaklaşıyor",
+                summary = "Portföyünüzdeki 3 şirket bu çeyrek temettü dağıtacak.",
+                category = "Temettü",
+                icon = "💰",
+                impactScore = "Fırsat",
+                fullExplanation = "Portföyünüzde yer alan Ereğli, Tüpraş ve Aselsan nakit temettü tarihlerine yaklaşmaktadır.",
+                aiCommentary = "Nakit akışı oluşturmak ve temettü verimini bileşik getiriye dönüştürmek için ideal zamanlama.",
+                riskAnalysis = "Çok düşük risk. Temettü ödemeleri doğrudan nakit bakiyenize eklenecektir.",
+                scenarioBullish = "Temettü verimi portföye %4.5 nakit girişi sağlayacaktır.",
+                scenarioBearish = "Temettü sonrası hisse başı düzeltmeler kısa sürede kapanma eğilimindedir.",
+                recommendedAction = "Temettü ödemelerini otomatik olarak model sepetlerde yeniden yatırıma dönüştürün."
+            )
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurface),
+        border = BorderStroke(1.dp, LineBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(PurpleSoft),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🤖", fontSize = 18.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            "AI COPILOT & SMART INSIGHTS",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 1.2.sp, fontFamily = Manrope),
+                            color = TextDarkColor
+                        )
+                        Text(
+                            "Proaktif Yatırım Asistanı",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
+                            color = PurplePrimary
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = GreenPositive.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        "● Canlı",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 9.sp),
+                        color = GreenPositive,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Section 1: Günün Özeti Grid Cards
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = PurpleSoft.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, PurplePrimary.copy(alpha = 0.2f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🌅", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Günün Özeti & Piyasa Nabzı", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = PurplePrimary)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "BİST 100 bugün %1,35 yükseldi. Savunma ve teknoloji öncülüğünde rekor tazeleniyor. Portföyünüz bugün endeksi %0.8 yenerek daha iyi performans gösterdi.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 15.sp),
+                        color = TextDarkColor.copy(alpha = 0.85f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text("💡 Öne Çıkan Akıllı İçgörüler", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextSubColor)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Scrollable Smart Insight Cards Row
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(vertical = 4.dp)
+            ) {
+                items(sampleInsights, key = { it.title }) { item ->
+                    Card(
+                        modifier = Modifier
+                            .width(220.dp)
+                            .clickable { onInsightClick(item) },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = ScreenBg),
+                        border = BorderStroke(1.dp, LineBorderColor)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(item.icon, fontSize = 16.sp)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = PurpleSoft
+                                ) {
+                                    Text(
+                                        item.category,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.ExtraBold),
+                                        color = PurplePrimary,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(item.title, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDarkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(item.summary, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, lineHeight = 13.sp), color = TextSubColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── 3.6) INSIGHT DETAIL MODAL BOTTOM SHEET ──
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InsightDetailBottomSheet(
+    insight: SmartInsightItem,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = CardSurface,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(insight.icon, fontSize = 28.sp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(insight.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = TextDarkColor)
+                    Surface(shape = RoundedCornerShape(8.dp), color = PurpleSoft) {
+                        Text(insight.category, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold), color = PurplePrimary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Açıklama
+            Text("📘 Detaylı Açıklama", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = PurplePrimary)
+            Text(insight.fullExplanation, style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp), color = TextDarkColor)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // AI Yorumu
+            Text("🤖 AI Uzman Yorumu", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = PurplePrimary)
+            Text(insight.aiCommentary, style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp), color = TextDarkColor)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Risk Analizi
+            Text("🛡️ Risk Analizi & Etki", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = PurplePrimary)
+            Text(insight.riskAnalysis, style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp), color = TextDarkColor)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Olası Senaryolar
+            Surface(shape = RoundedCornerShape(14.dp), color = ScreenBg, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("🔮 Olası Senaryolar", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = TextDarkColor)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("• Boğa Senaryosu: ${insight.scenarioBullish}", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = GreenPositive)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("• Ayı Senaryosu: ${insight.scenarioBearish}", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSubColor)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Önerilen Aksiyon Button
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text("🎯 Önerilen Aksiyon: ${insight.recommendedAction}", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

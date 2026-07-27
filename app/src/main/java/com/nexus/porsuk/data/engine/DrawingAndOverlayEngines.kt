@@ -20,12 +20,12 @@ class DrawingToolsEngine @Inject constructor() {
     ): ChartDrawingObject {
         return ChartDrawingObject(
             id = "draw_${System.currentTimeMillis()}",
-            toolType = toolType,
+            type = toolType,
             startTimestamp = startTimestamp,
             startPrice = startPrice,
             endTimestamp = endTimestamp,
             endPrice = endPrice,
-            textNote = note
+            text = note
         )
     }
 }

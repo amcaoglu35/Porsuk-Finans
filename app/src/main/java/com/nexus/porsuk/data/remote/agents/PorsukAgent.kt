@@ -3,6 +3,8 @@ package com.nexus.porsuk.data.remote.agents
 import com.nexus.porsuk.data.local.entity.BasketItem
 import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
 import com.nexus.porsuk.data.local.entity.Company
+import com.nexus.porsuk.domain.model.AiAgentType
+import com.nexus.porsuk.domain.model.ConsensusDecision
 
 /**
  * Request DTO passed to Multi-Agent AI System.
@@ -18,10 +20,25 @@ data class AgentRequest(
 )
 
 /**
+ * Structured result from a specialized AI Agent.
+ */
+data class AgentAnalysisResult(
+    val agentType: AiAgentType,
+    val score: Int,
+    val confidence: Int,
+    val commentary: String,
+    val strengths: List<String>,
+    val weaknesses: List<String>,
+    val decision: ConsensusDecision
+)
+
+/**
  * Base interface for all specialized Porsuk AI Agents.
  * Each agent computes its own localized diagnosis string independently in Kotlin.
  */
 interface PorsukAgent {
     val agentName: String
+    val agentType: AiAgentType
     suspend fun runAnalysis(request: AgentRequest): String
+    suspend fun runStructuredAnalysis(request: AgentRequest): AgentAnalysisResult
 }

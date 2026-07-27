@@ -9,7 +9,10 @@ data class AutomationUiState(
     val notifications: List<NotificationCenterItem> = emptyList(),
     val rules: List<AutomationRuleModel> = emptyList(),
     val workflows: List<AutomationWorkflow> = emptyList(),
+    val history: List<AutomationHistoryModel> = emptyList(),
+    val suggestions: List<AiAutomationSuggestionModel> = emptyList(),
     val selectedCategory: AlertCategory = AlertCategory.PRICE,
+    val selectedTab: Int = 0,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )

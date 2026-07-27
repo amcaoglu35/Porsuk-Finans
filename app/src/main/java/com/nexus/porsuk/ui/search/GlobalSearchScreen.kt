@@ -1,0 +1,229 @@
+package com.nexus.porsuk.ui.search
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.ui.theme.*
+
+private val LightBackground = Color(0xFFFAFAFA)
+private val CardWhite = Color(0xFFFFFFFF)
+private val PrimaryPurple = Color(0xFF6C4CF1)
+private val PurpleSoftBg = Color(0xFFF3F0FF)
+private val TextDark = Color(0xFF0F172A)
+private val TextSecondary = Color(0xFF64748B)
+private val BorderColor = Color(0xFFF1F5F9)
+private val SuccessGreen = Color(0xFF00C48C)
+private val ErrorRed = Color(0xFFF44336)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GlobalSearchScreen(
+    onBack: () -> Unit,
+    onStockClick: (String, String) -> Unit
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(0) }
+
+    val categories = remember {
+        listOf("Tümü", "Hisseler", "Fonlar", "ETF", "Kripto", "Döviz", "Emtia", "Şirketler", "Haberler", "AI Raporları", "Oracle Tahminleri")
+    }
+
+    val allSearchItems = remember {
+        listOf(
+            SearchResultItem("THYAO", "Türk Hava Yolları", "Hisseler", "₺305,25", "^ %2,87", "BIST", true),
+            SearchResultItem("ASELS", "Aselsan Elektronik", "Hisseler", "₺56,70", "^ %4,25", "BIST", true),
+            SearchResultItem("NVDA", "NVIDIA Corporation", "Hisseler", "$128,20", "^ %3,45", "NASDAQ", true),
+            SearchResultItem("AAPL", "Apple Inc.", "Hisseler", "$224,30", "^ %1,12", "NASDAQ", true),
+            SearchResultItem("TTE", "İş Portföy Teknoloji Fonu", "Fonlar", "%48,2 Yıllık", "^ %1,85", "TEFAS", true),
+            SearchResultItem("SPY", "SPDR S&P 500 ETF", "ETF", "$542,10", "^ %0,88", "NYSE", true),
+            SearchResultItem("BTC", "Bitcoin", "Kripto", "$67.450,00", "^ %2,10", "BINANCE", true),
+            SearchResultItem("ETH", "Ethereum", "Kripto", "$3.480,20", "^ %1,85", "BINANCE", true),
+            SearchResultItem("USD/TRY", "Amerikan Doları", "Döviz", "₺32,65", "^ %0,42", "FOREX", true),
+            SearchResultItem("ALTIN", "Gram Altın", "Emtia", "₺2.395,45", "^ %0,31", "PIYASA", true),
+            SearchResultItem("BIST 100 Rekor Kırdı", "Piyasa analistleri 10.850 hedefini açıkladı.", "Haberler", "Bugün", "AI Analiz", "HABER", true),
+            SearchResultItem("Oracle Boğa Sinyali", "BIST Teknoloji %88 alım güveni üretti.", "Oracle Tahminleri", "%88 Güven", "AI Sinyal", "ORACLE", true)
+        )
+    }
+
+    val filteredItems = remember(query, selectedCategoryIndex) {
+        allSearchItems.filter { item ->
+            val matchesQuery = query.isBlank() || item.symbol.contains(query, ignoreCase = true) || item.title.contains(query, ignoreCase = true)
+            val categoryFilter = categories.getOrNull(selectedCategoryIndex) ?: "Tümü"
+            val matchesCategory = categoryFilter == "Tümü" || item.category == categoryFilter
+            matchesQuery && matchesCategory
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            Column(modifier = Modifier.background(LightBackground)) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Global Arama Engine",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope),
+                            color = TextDark
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri", tint = TextDark)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = LightBackground)
+                )
+
+                // Search Input Field
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    placeholder = { Text("Hisse, Fon, Kripto, Döviz veya Haber ara...", style = MaterialTheme.typography.bodyMedium, color = TextSecondary) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = PrimaryPurple) },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Temizle", tint = TextSecondary)
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = CardWhite,
+                        unfocusedContainerColor = CardWhite,
+                        focusedBorderColor = PrimaryPurple,
+                        unfocusedBorderColor = BorderColor
+                    ),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Filter Categories Scrollable Row
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories.size) { idx ->
+                        val isSelected = selectedCategoryIndex == idx
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) PurpleSoftBg else CardWhite,
+                            border = BorderStroke(1.dp, if (isSelected) PrimaryPurple else BorderColor),
+                            modifier = Modifier.clickable { selectedCategoryIndex = idx }
+                        ) {
+                            Text(
+                                categories[idx],
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 11.sp
+                                ),
+                                color = if (isSelected) PrimaryPurple else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        },
+        containerColor = LightBackground
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(filteredItems, key = { "${it.category}_${it.symbol}" }) { item ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(2.dp, RoundedCornerShape(18.dp))
+                        .clickable { onStockClick(item.symbol, item.market) },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardWhite),
+                    border = BorderStroke(1.dp, BorderColor)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = PurpleSoftBg,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(item.symbol.take(2), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = PrimaryPurple)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1.2f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(item.symbol, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(shape = RoundedCornerShape(6.dp), color = LightBackground) {
+                                    Text(item.category, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = FontWeight.Bold), color = TextSecondary, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                                }
+                            }
+                            Text(item.title, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+
+                        Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
+                            Text(item.valueStr, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = TextDark)
+                            Text(item.changeStr, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (item.isPos) SuccessGreen else ErrorRed)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class SearchResultItem(
+    val symbol: String,
+    val title: String,
+    val category: String,
+    val valueStr: String,
+    val changeStr: String,
+    val market: String,
+    val isPos: Boolean
+)
+
+@Preview(showBackground = true)
+@Composable
+private fun GlobalSearchScreenPreview() {
+    GlobalSearchScreen(onBack = {}, onStockClick = { _, _ -> })
+}

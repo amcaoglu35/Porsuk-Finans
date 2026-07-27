@@ -1,10 +1,12 @@
 package com.nexus.porsuk.data.remote.agents
 
+import com.nexus.porsuk.domain.model.AiAgentType
 import java.util.Locale
 import kotlin.math.sqrt
 
-class RiskAgent : PorsukAgent {
+class RiskAgent : BaseAgent() {
     override val agentName: String = "Risk Agent"
+    override val agentType: AiAgentType = AiAgentType.RISK
 
     override suspend fun runAnalysis(request: AgentRequest): String {
         val prices = request.historicalPrices

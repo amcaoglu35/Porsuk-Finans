@@ -42,7 +42,7 @@ fun ModelSepetlerScreen(
     val context = LocalContext.current
     var copiedPortfolio by remember { mutableStateOf<String?>(null) }
 
-    val modelBaskets = listOf(
+    val modelBaskets: List<ModelPortfolio> = listOf(
         ModelPortfolio(
             name = "👑 Warren Buffett Efsane Değer Sepeti",
             market = "BIST",
@@ -178,7 +178,7 @@ fun ModelSepetlerScreen(
             }
 
             // Model Basket Cards
-            items(modelBaskets) { portfolio ->
+            items(modelBaskets) { portfolio: ModelPortfolio ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),

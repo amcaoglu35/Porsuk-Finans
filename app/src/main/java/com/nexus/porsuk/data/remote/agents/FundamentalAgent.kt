@@ -4,12 +4,15 @@ import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
 import com.nexus.porsuk.data.local.entity.Company
 import java.util.Locale
 
+import com.nexus.porsuk.domain.model.AiAgentType
+
 /**
  * Fundamental Analysis Agent for Porsuk Finans.
  * Evaluates company balance sheet, valuation (F/K), 52-week high/low, dividend yield, and sector positioning.
  */
-class FundamentalAgent : PorsukAgent {
+class FundamentalAgent : BaseAgent() {
     override val agentName: String = "Fundamental Agent"
+    override val agentType: AiAgentType = AiAgentType.FUNDAMENTAL
 
     override suspend fun runAnalysis(request: AgentRequest): String {
         val symbol = request.symbol

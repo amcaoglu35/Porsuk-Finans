@@ -14,6 +14,10 @@ data class CalendarUiState(
     val filteredEvents: List<EconomicEvent> = emptyList(),
     val earningsEvents: List<EarningsEvent> = emptyList(),
     val dividendEvents: List<DividendEvent> = emptyList(),
+    val ipoEvents: List<IpoIntelligence> = emptyList(), // Linking with existing IPO model
+    val dailyAiSummary: String? = null,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val isAiLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val selectedTab: Int = 0
 )

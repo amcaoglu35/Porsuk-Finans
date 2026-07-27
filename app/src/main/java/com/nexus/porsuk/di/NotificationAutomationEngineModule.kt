@@ -39,4 +39,24 @@ object NotificationAutomationRepositoriesModule {
     @Provides
     @Singleton
     fun provideWorkflowRepository(impl: WorkflowRepositoryImpl): WorkflowRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideAutomationEngine(
+        automationRepository: AutomationRepository,
+        notificationRepository: NotificationRepository,
+        financeRepository: com.nexus.porsuk.data.repository.FinanceRepository,
+        orakulRepository: FinancialAnalysisRepository,
+        technicalRepository: TechnicalAnalysisRepository,
+        riskRepository: OrakulRiskRepository
+    ): com.nexus.porsuk.data.engine.AutomationEngine {
+        return com.nexus.porsuk.data.engine.AutomationEngine(
+            automationRepository,
+            notificationRepository,
+            financeRepository,
+            orakulRepository,
+            technicalRepository,
+            riskRepository
+        )
+    }
 }

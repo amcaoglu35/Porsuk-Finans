@@ -39,6 +39,31 @@ data class AutomationWorkflow(
 )
 
 /**
+ * Otomasyon Çalışma Geçmişi Modeli
+ */
+data class AutomationHistoryModel(
+    val id: Long = 0,
+    val ruleId: String,
+    val executionTime: Long,
+    val durationMs: Long,
+    val status: String,
+    val resultSummary: String,
+    val suggestions: String? = null
+)
+
+/**
+ * AI Otomasyon Önerisi Modeli
+ */
+data class AiAutomationSuggestionModel(
+    val suggestionId: String,
+    val title: String,
+    val description: String,
+    val type: String,
+    val isApplied: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+/**
  * Geleceğe Hazır AI Notification Prioritization & Digest Stub Modeli
  */
 data class AiNotificationDigestStub(

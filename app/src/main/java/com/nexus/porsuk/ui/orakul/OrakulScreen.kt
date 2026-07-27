@@ -8,6 +8,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,16 +18,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -38,22 +41,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.common.Sparkline
 import com.nexus.porsuk.ui.theme.*
 
-// Design System Tokens (Light Theme Aesthetic with Purple #6C4CF1 Accent)
-private val PurpleAccent = Color(0xFF6C4CF1)
+// ── DESIGN SYSTEM COLOR PALETTE ──
+private val LightBackground = Color(0xFFFAFAFA)
+private val CardWhite = Color(0xFFFFFFFF)
+private val PrimaryPurple = Color(0xFF6C4CF1)
 private val PurpleSoftBg = Color(0xFFF3F0FF)
-private val LightSurfaceBg = Color(0xFFF8F9FD)
-private val CardBg = Color(0xFFFFFFFF)
-private val TextDark = Color(0xFF1E293B)
+private val SuccessGreen = Color(0xFF00C48C)
+private val WarningOrange = Color(0xFFFF9800)
+private val ErrorRed = Color(0xFFF44336)
+private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
-private val BorderColor = Color(0xFFE2E8F0)
-private val BullishGreen = Color(0xFF10B981)
-private val BearishRed = Color(0xFFEF4444)
-private val RiskOrange = Color(0xFFF59E0B)
+private val BorderColor = Color(0xFFF1F5F9)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,25 +73,40 @@ fun OrakulScreen(
     var selectedAssetTab by remember { mutableIntStateOf(0) }
     var isRationaleExpanded by remember { mutableStateOf(false) }
 
+    // BottomSheet state for Sector AI Explanation
+    var activeSectorExplanation by remember { mutableStateOf<SectorItem?>(null) }
+
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
-    // Glowing Crystal Ball Animation
-    val infiniteTransition = rememberInfiniteTransition()
-    val crystalGlowScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.08f,
+    // Glowing Glass Orb & Light Rotation Animations
+    val infiniteTransition = rememberInfiniteTransition(label = "oracle_orb_loop")
+    
+    val orbBreathingScale by infiniteTransition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.06f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
+            animation = tween(2200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
-        )
+        ),
+        label = "orb_scale"
+    )
+
+    val orbLightRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "orb_rotation"
     )
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = LightSurfaceBg,
+        containerColor = LightBackground,
         topBar = {
             OracleTopBar(
                 onShareClick = { Toast.makeText(context, "Oracle tahmini kopyalandı", Toast.LENGTH_SHORT).show() },
@@ -99,23 +118,34 @@ fun OrakulScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp) // 24dp Standard Card Spacing
         ) {
-            // 1. Hero Kart (Cosmic Deep Purple Container)
+            // 1. Hero Cosmic Glass Orb Kartı
             item(key = "oracle_hero_card") {
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = fadeIn(tween(400)) + slideInVertically(initialOffsetY = { 30 })
+                    enter = fadeIn(tween(400)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     OracleHeroCard(
-                        crystalGlowScale = crystalGlowScale,
+                        orbScale = orbBreathingScale,
+                        orbRotation = orbLightRotation,
                         onShareClick = { Toast.makeText(context, "Oracle tahmini paylaşıldı", Toast.LENGTH_SHORT).show() }
                     )
                 }
             }
 
-            // 2. Zaman Filtreleri (Timeframe Pills Row)
+            // 2. Tahmin Metni Kartı (Madde Madde Yapı)
+            item(key = "structured_forecast_summary") {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
+                ) {
+                    StructuredForecastCard()
+                }
+            }
+
+            // 3. Zaman Filtreleri (Material 3 Filter Chips)
             item(key = "timeframe_filters") {
                 OracleTimeframeFilterRow(
                     selectedIndex = selectedTimeframeIndex,
@@ -123,55 +153,56 @@ fun OrakulScreen(
                 )
             }
 
-            // 3. Piyasa Yön Tahmini (Direction Probability 3 Cards + Expected Range Grid)
+            // 4. Piyasa Yön Tahmini (Yükseliş, Yatay, Düşüş + Beklenen Hareket Aralığı Grafiği)
             item(key = "direction_probability_grid") {
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
+                    enter = fadeIn(tween(650)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     MarketDirectionProbabilitySection()
                 }
             }
 
-            // 4. Oracle Puanları (Oracle Score Gauges 6 Items)
+            // 5. Oracle Skorları (6 Standart Skor Halkası ve Kısa Açıklamaları)
             item(key = "oracle_score_gauges") {
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = fadeIn(tween(600)) + slideInVertically(initialOffsetY = { 50 })
+                    enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     OracleScoreGaugesSection()
                 }
             }
 
-            // 5. Ana Senaryolar (Main Scenarios Card List)
+            // 6. Ana Senaryolar (Hafif Renkli Kartlar + AI Güven Rozeti)
             item(key = "main_scenarios_section") {
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = fadeIn(tween(700)) + slideInVertically(initialOffsetY = { 60 })
+                    enter = fadeIn(tween(920)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     MainScenariosSection()
                 }
             }
 
-            // 6 & 7. Sektör Tahminleri & Günün Öne Çıkan Varlıkları (Side-by-Side 2 Cards Grid)
+            // 7. Sektör Tahminleri & Günün Öne Çıkan Varlıkları
             item(key = "sector_forecast_and_top_assets") {
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 70 })
+                    enter = fadeIn(tween(1040)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     SectorsAndTopAssetsSection(
                         selectedAssetTab = selectedAssetTab,
                         onAssetTabSelected = { selectedAssetTab = it },
-                        onStockClick = onStockClick
+                        onStockClick = onStockClick,
+                        onSectorInsightClick = { sector -> activeSectorExplanation = sector }
                     )
                 }
             }
 
-            // 8. Strateji Önerisi (Oracle Strategy Card)
+            // 8. Strateji Önerisi (AI Skoru Circle Progress + Risk/Getiri/Süre)
             item(key = "oracle_strategy_recommendation") {
                 AnimatedVisibility(
                     visible = isVisible,
-                    enter = fadeIn(tween(900)) + slideInVertically(initialOffsetY = { 80 })
+                    enter = fadeIn(tween(1160)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     OracleStrategyRecommendationCard(
                         onDetailClick = { onChatNavigate("Oracle detaylı strateji önerisini açıkla") }
@@ -179,7 +210,7 @@ fun OrakulScreen(
                 }
             }
 
-            // 9. AI Neden Bu Kararı Verdi? (Expandable Decision Rationale Card)
+            // 9. AI Neden Bu Kararı Verdi? (Expansion Accordion)
             item(key = "ai_decision_rationale") {
                 AiDecisionRationaleAccordionCard(
                     isExpanded = isRationaleExpanded,
@@ -187,24 +218,33 @@ fun OrakulScreen(
                 )
             }
 
-            // 10. Güven Skoru (Confidence Matrix Card)
+            // 10. Oracle Güven Endeksi (İstatistik Kutucukları Grid)
             item(key = "confidence_matrix_section") {
                 OracleConfidenceMatrixSection()
             }
 
-            // 11. AI Eylemleri (4 Action Buttons)
+            // 11. Hızlı İşlemler (Eylem Butonları)
             item(key = "ai_action_buttons") {
                 OracleActionButtonsSection(
-                    onRecalculate = { viewModel.runOracleAnalysis(forceRefresh = true) },
+                    onRecalculate = { viewModel.analyze() },
                     onComparePortfolio = { onChatNavigate("Oracle tahminlerini mevcut portföyümle karşılaştır") },
-                    onSendToChat = { onChatNavigate("Oracle tahminlerini detaylandır") }
+                    onSendToChat = { onChatNavigate("Oracle tahminlerini detaylandır") },
+                    onKaziNavigate = onKaziNavigate
                 )
             }
         }
     }
+
+    // Modal Bottom Sheet for Sector AI Insight Explanation
+    if (activeSectorExplanation != null) {
+        SectorExplanationBottomSheet(
+            sector = activeSectorExplanation!!,
+            onDismiss = { activeSectorExplanation = null }
+        )
+    }
 }
 
-// ── ÜST BAR (Top Bar) ──
+// ── TOP BAR HEADER ──
 @Composable
 private fun OracleTopBar(
     onShareClick: () -> Unit,
@@ -213,199 +253,214 @@ private fun OracleTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LightSurfaceBg)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .background(LightBackground)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("🦩", fontSize = 22.sp)
-            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                shape = CircleShape,
+                color = PurpleSoftBg,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("🔮", fontSize = 20.sp)
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
             Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "PORSUK ORACLE",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            fontSize = 19.sp,
+                            letterSpacing = 1.sp,
+                            fontFamily = Manrope
+                        ),
+                        color = TextDark
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PrimaryPurple
+                    ) {
+                        Text(
+                            "AI 2.0",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.5.sp),
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 Text(
-                    "PORSUK",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
-                    color = TextDark
-                )
-                Text(
-                    "F İ N A N S",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 2.5.sp),
-                    color = PurpleAccent
+                    "Yapay Zeka Piyasa Kehaneti & Makro Analiz Engine",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, color = TextSecondary, fontFamily = Manrope)
                 )
             }
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "Oracle",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
-                color = TextDark
-            )
-            Text(
-                "AI Tahmin & Öngörü Merkezi",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                color = TextSecondary,
-                fontFamily = Manrope
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            IconButton(onClick = onShareClick) {
-                Icon(Icons.Outlined.Share, contentDescription = "Paylaş", tint = TextDark)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            IconButton(
+                onClick = onShareClick,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(CardWhite)
+            ) {
+                Icon(Icons.Outlined.Share, contentDescription = "Paylaş", tint = TextDark, modifier = Modifier.size(18.dp))
             }
-            IconButton(onClick = onNotificationClick) {
-                Icon(Icons.Outlined.Notifications, contentDescription = "Bildirimler", tint = PurpleAccent)
+            IconButton(
+                onClick = onNotificationClick,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(PurpleSoftBg)
+            ) {
+                Icon(Icons.Outlined.Notifications, contentDescription = "Bildirimler", tint = PrimaryPurple, modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
-// ── 1. HERO KART (Oracle Hero Card) ──
+// ── 1. HERO KART (Glass Orb, Glowing Animation & Cosmic Gradient) ──
 @Composable
 private fun OracleHeroCard(
-    crystalGlowScale: Float,
+    orbScale: Float,
+    orbRotation: Float,
     onShareClick: () -> Unit
 ) {
+    var animated by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        animated = true
+    }
+
+    val confidenceSweep by animateFloatAsState(
+        targetValue = if (animated) (87f / 100f) * 360f else 0f,
+        animationSpec = tween(1400, easing = FastOutSlowInEasing),
+        label = "hero_confidence_sweep"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .shadow(8.dp, RoundedCornerShape(26.dp)),
+            .shadow(8.dp, RoundedCornerShape(26.dp), ambientColor = PrimaryPurple.copy(alpha = 0.35f)),
         shape = RoundedCornerShape(26.dp)
     ) {
         Box(
             modifier = Modifier.background(
                 Brush.linearGradient(
-                    colors = listOf(Color(0xFF0F0529), Color(0xFF1E0A4C), Color(0xFF3B1578))
+                    colors = listOf(Color(0xFF190640), Color(0xFF32126B), Color(0xFF5B21B6))
                 )
             )
         ) {
+            // Star Particle Canvas Overlay
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val stars = listOf(
+                    Offset(size.width * 0.1f, size.height * 0.2f),
+                    Offset(size.width * 0.8f, size.height * 0.15f),
+                    Offset(size.width * 0.65f, size.height * 0.75f),
+                    Offset(size.width * 0.3f, size.height * 0.85f),
+                    Offset(size.width * 0.9f, size.height * 0.6f)
+                )
+                stars.forEach { pos ->
+                    drawCircle(color = Color.White.copy(alpha = 0.35f), radius = 2.dp.toPx(), center = pos)
+                }
+            }
+
             Column(modifier = Modifier.padding(20.dp)) {
-                // Status Badge & Sürüm Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0x22FFFFFF)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    // Glass Orb Display
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .scale(orbScale)
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0xFFE9D5FF).copy(alpha = 0.9f),
+                                            Color(0xFFC084FC).copy(alpha = 0.6f),
+                                            Color(0xFF6C4CF1).copy(alpha = 0.25f)
+                                        )
+                                    )
+                                )
+                                .border(1.5.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
+                            // Light Rotation Aura
                             Box(
                                 modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(BullishGreen)
+                                    .fillMaxSize()
+                                    .rotate(orbRotation)
+                                    .background(
+                                        Brush.sweepGradient(
+                                            colors = listOf(Color.Transparent, Color.White.copy(0.4f), Color.Transparent)
+                                        )
+                                    )
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Oracle Aktif", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold), color = Color.White)
+                            Text("🔮", fontSize = 28.sp)
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column {
+                            Text(
+                                "Oracle Piyasa Kehaneti",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope),
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                "AI Tahmin Engine • Güncel",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Left 3D Glowing Crystal Ball Graphic
+                    // 2. GÜVEN GÖSTERGESİ (%87 Arc Meter)
                     Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .scale(crystalGlowScale)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(Color(0xFFC084FC), Color(0xFF6C4CF1), Color.Transparent)
-                                )
-                            ),
+                        modifier = Modifier.size(52.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("🔮", fontSize = 56.sp)
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    // Middle Column: Title & Description
-                    Column(modifier = Modifier.weight(1.3f)) {
-                        Text("Bugünkü Oracle Tahmini", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color.White.copy(alpha = 0.7f))
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            "Piyasalarda pozitif momentum devam ediyor.",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope),
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Teknik göstergeler, haber akışı ve makro veriler birleştiğinde; 3 gün içinde yukarı yönlü hareket beklentisi güçleniyor.",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, lineHeight = 14.sp),
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    // Right Side: Gauge Column Card
-                    Column(
-                        modifier = Modifier.weight(0.9f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Arc Gauge (87% Güven Oranı)
-                        Box(
-                            modifier = Modifier.size(80.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val strokeWidth = 8.dp.toPx()
-                                drawArc(
-                                    color = Color(0x33FFFFFF),
-                                    startAngle = 0f,
-                                    sweepAngle = 360f,
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth)
-                                )
-                                drawArc(
-                                    color = Color(0xFFC084FC),
-                                    startAngle = -90f,
-                                    sweepAngle = 313f, // 87%
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("87%", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = Color.White)
-                                Text("Yüksek Güven", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, fontWeight = FontWeight.Bold), color = BullishGreen)
-                            }
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val strokeWidth = 4.dp.toPx()
+                            drawArc(
+                                color = Color.White.copy(alpha = 0.2f),
+                                startAngle = 0f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                style = Stroke(width = strokeWidth)
+                            )
+                            drawArc(
+                                color = Color(0xFFC084FC),
+                                startAngle = -90f,
+                                sweepAngle = confidenceSweep,
+                                useCenter = false,
+                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-                        HeroSmallBadge(label = "Tahmin Ufku", value = "3 Gün")
-                        Spacer(modifier = Modifier.height(4.dp))
-                        HeroSmallBadge(label = "Oracle Sürümü", value = "v4.2.1")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Bottom Share Button
-                Surface(
-                    modifier = Modifier
-                        .clickable(onClick = onShareClick)
-                        .clip(RoundedCornerShape(12.dp)),
-                    color = Color(0x33FFFFFF)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Outlined.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Tahmini Paylaş", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = Color.White)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "87%",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 13.sp),
+                                color = Color(0xFFC084FC)
+                            )
+                            Text(
+                                "Güven",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, fontWeight = FontWeight.Bold),
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                        }
                     }
                 }
             }
@@ -413,566 +468,616 @@ private fun OracleHeroCard(
     }
 }
 
+// ── 3. TAHMİN METNİ (Structured Bullet Points Card) ──
 @Composable
-private fun HeroSmallBadge(label: String, value: String) {
-    Surface(shape = RoundedCornerShape(8.dp), color = Color(0x22FFFFFF)) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.5.sp), color = Color.White.copy(alpha = 0.7f))
-            Text(value, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.5.sp, fontFamily = IBMPlexMono), color = Color.White)
-        }
-    }
-}
-
-// ── 2. ZAMAN FİLTRELERİ (Timeframe Pills Row) ──
-@Composable
-private fun OracleTimeframeFilterRow(
-    selectedIndex: Int,
-    onIndexSelected: (Int) -> Unit
-) {
-    val filters = remember { listOf("1 Gün", "3 Gün", "1 Hafta", "2 Hafta", "1 Ay", "3 Ay", "6 Ay", "1 Yıl") }
-
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(filters.size) { idx ->
-            val isSelected = selectedIndex == idx
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = if (isSelected) PurpleAccent else CardBg,
-                border = BorderStroke(1.dp, if (isSelected) PurpleAccent else BorderColor),
-                modifier = Modifier
-                    .shadow(if (isSelected) 3.dp else 0.dp, RoundedCornerShape(14.dp))
-                    .clickable { onIndexSelected(idx) }
-            ) {
-                Text(
-                    filters[idx],
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 11.sp
-                    ),
-                    color = if (isSelected) Color.White else TextSecondary,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                )
-            }
-        }
-    }
-}
-
-// ── 3. PİYASA YÖN TAHMİNİ (Market Direction Probability 3 Cards + Expected Range Grid) ──
-@Composable
-private fun MarketDirectionProbabilitySection() {
-    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-        Text("Piyasa Yön Tahmini ⓘ", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Left Column: 3 Probability Cards
-            Column(
-                modifier = Modifier.weight(1.2f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ProbabilityRowCard("Yukarı Yön İhtimali", "^ %62", "Artıyor", BullishGreen)
-                ProbabilityRowCard("Yatay Seyir İhtimali", "~ %23", "Azalıyor", RiskOrange)
-                ProbabilityRowCard("Aşağı Yön İhtimali", "v %15", "Azalıyor", BearishRed)
-            }
-
-            // Right Column: Expected Range & Sparkline Card
-            Card(
-                modifier = Modifier
-                    .weight(1.0f)
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Beklenen Hareket Aralığı", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSecondary)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("BIST 100", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("10.450 – 11.250", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 13.sp), color = TextDark)
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    val rangeValues = remember { listOf(10450f, 10600f, 10800f, 11000f, 11250f) }
-                    Sparkline(
-                        values = rangeValues,
-                        color = PurpleAccent,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        filled = true
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("10.450", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, fontFamily = IBMPlexMono), color = BearishRed)
-                        Text("11.250", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, fontFamily = IBMPlexMono), color = BullishGreen)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProbabilityRowCard(title: String, pct: String, status: String, color: Color) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, BorderColor)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(title, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSecondary)
-                Text(pct, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 13.sp), color = TextDark)
-            }
-            Text(status, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.5.sp), color = color)
-        }
-    }
-}
-
-// ── 4. ORACLE PUANLARI (Oracle Score Gauges 6 Items) ──
-@Composable
-private fun OracleScoreGaugesSection() {
-    val scores = remember {
-        listOf(
-            ScoreGaugeItem("Teknik", 85, "Güçlü", BullishGreen),
-            ScoreGaugeItem("Temel", 78, "İyi", BullishGreen),
-            ScoreGaugeItem("Haber Akışı", 82, "Güçlü", BullishGreen),
-            ScoreGaugeItem("Makro", 74, "İyi", BullishGreen),
-            ScoreGaugeItem("Sentiment", 81, "Güçlü", BullishGreen),
-            ScoreGaugeItem("Genel Skor", 87, "87", PurpleAccent)
-        )
-    }
-
+private fun StructuredForecastCard() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         border = BorderStroke(1.dp, BorderColor)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Text("Oracle Tahmin Skorları ⓘ", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
-            Spacer(modifier = Modifier.height(14.dp))
-
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                items(scores, key = { it.title }) { item ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(65.dp)
-                    ) {
-                        Text(item.title, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold), color = TextDark, maxLines = 1)
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Box(
-                            modifier = Modifier.size(54.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val strokeWidth = 5.dp.toPx()
-                                drawArc(
-                                    color = PurpleSoftBg,
-                                    startAngle = 0f,
-                                    sweepAngle = 360f,
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth)
-                                )
-                                drawArc(
-                                    color = item.color,
-                                    startAngle = -90f,
-                                    sweepAngle = (item.score / 100f) * 360f,
-                                    useCenter = false,
-                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                )
-                            }
-                            Text(item.score.toString(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 14.sp), color = TextDark)
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(item.status, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.5.sp), color = item.color)
-                    }
-                }
-            }
-        }
-    }
-}
-
-private data class ScoreGaugeItem(
-    val title: String,
-    val score: Int,
-    val status: String,
-    val color: Color
-)
-
-// ── 5. ANA SENARYOLAR (Main Scenarios Card List) ──
-@Composable
-private fun MainScenariosSection() {
-    val scenarios = remember {
-        listOf(
-            ScenarioItem("Pozitif Senaryo", "Olumlu veri akışı ve güçlü teknik görünüm.", "%62", "11.150 – 11.800", "+%6,3", BullishGreen, "↗️"),
-            ScenarioItem("Nötr Senaryo", "Karışık sinyaller, yatay seyir beklentisi.", "%23", "10.450 – 11.150", "%0 - %3", RiskOrange, "➖"),
-            ScenarioItem("Negatif Senaryo", "Olumsuz gelişmeler ve satış baskısı.", "%15", "9.850 – 10.450", "-%5,7", BearishRed, "↘️")
-        )
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, BorderColor)
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Text("Ana Senaryolar ⓘ", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            scenarios.forEach { item ->
-                ScenarioRowItem(item = item)
-                HorizontalDivider(color = BorderColor.copy(alpha = 0.4f))
-            }
-        }
-    }
-}
-
-private data class ScenarioItem(
-    val title: String,
-    val description: String,
-    val probability: String,
-    val targetRange: String,
-    val potentialReturn: String,
-    val color: Color,
-    val iconEmoji: String
-)
-
-@Composable
-private fun ScenarioRowItem(item: ScenarioItem) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = item.color.copy(alpha = 0.12f),
-            modifier = Modifier.size(36.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(item.iconEmoji, fontSize = 16.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        Column(modifier = Modifier.weight(1.3f)) {
-            Text(item.title, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
-            Text(item.description, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-
-        Column(modifier = Modifier.weight(0.7f), horizontalAlignment = Alignment.End) {
-            Text("İhtimal", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = TextSecondary)
-            Text(item.probability, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = TextDark)
-        }
-
-        Column(modifier = Modifier.weight(1.0f), horizontalAlignment = Alignment.End) {
-            Text("Hedef Aralık", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = TextSecondary)
-            Text(item.targetRange, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = TextDark)
-        }
-
-        Column(modifier = Modifier.weight(0.9f), horizontalAlignment = Alignment.End) {
-            Text("Potansiyel Getiri", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = TextSecondary)
-            Text(item.potentialReturn, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = item.color)
-        }
-    }
-}
-
-// ── 6 & 7. SEKTÖR TAHMİNLERİ & GÜNÜN ÖNE ÇIKAN VARLIKLARI (Side-by-Side 2 Cards Grid) ──
-@Composable
-private fun SectorsAndTopAssetsSection(
-    selectedAssetTab: Int,
-    onAssetTabSelected: (Int) -> Unit,
-    onStockClick: (String, String) -> Unit
-) {
-    val sectorForecasts = remember {
-        listOf(
-            SectorForecastItem("Bankacılık", "^ Pozitif", BullishGreen, 0.85f),
-            SectorForecastItem("Savunma", "^ Pozitif", BullishGreen, 0.80f),
-            SectorForecastItem("Teknoloji", "~ Nötr", RiskOrange, 0.55f),
-            SectorForecastItem("Enerji", "~ Nötr", RiskOrange, 0.50f),
-            SectorForecastItem("Ulaştırma", "v Negatif", BearishRed, 0.30f)
-        )
-    }
-
-    val topAssets = remember {
-        listOf(
-            TopAssetItem("ASELS", "Güçlü Alım Sinyali", "₺56,70", "^ %4,25", true),
-            TopAssetItem("THYAO", "Alım Sinyali", "₺305,25", "^ %2,87", true),
-            TopAssetItem("KCHOL", "Nötr", "₺182,40", "^ %0,31", true),
-            TopAssetItem("AKBNK", "Dikkat", "₺52,15", "v %-0,42", false),
-            TopAssetItem("XAU/USD", "Alım Sinyali", "2.395,45", "^ %0,62", true)
-        )
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Left Card: Sektör Tahminleri
-        Card(
-            modifier = Modifier
-                .weight(1f)
-                .shadow(4.dp, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBg),
-            border = BorderStroke(1.dp, BorderColor)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Sektör Tahminleri ⓘ", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = TextDark)
-                    Text("Tümünü Gör", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp), color = PurpleAccent)
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                sectorForecasts.forEach { item ->
-                    SectorForecastRow(item = item)
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-            }
-        }
-
-        // Right Card: Günün Öne Çıkan Varlıkları
-        Card(
-            modifier = Modifier
-                .weight(1f)
-                .shadow(4.dp, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBg),
-            border = BorderStroke(1.dp, BorderColor)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text("Günün Öne Çıkan Varlıkları ⓘ", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = TextDark)
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Asset Sub-tabs
-                val assetTabs = listOf("Hisseler", "Döviz", "Emtia", "Kripto")
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    assetTabs.forEachIndexed { idx, label ->
-                        val isSelected = selectedAssetTab == idx
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) PurpleSoftBg else LightSurfaceBg,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onAssetTabSelected(idx) }
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
-                                Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium), color = if (isSelected) PurpleAccent else TextSecondary)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                topAssets.forEach { item ->
-                    TopAssetRow(item = item, onClick = { onStockClick(item.code, "BIST") })
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-}
-
-private data class SectorForecastItem(val name: String, val status: String, val color: Color, val progress: Float)
-
-@Composable
-private fun SectorForecastRow(item: SectorForecastItem) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(item.name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold), color = TextDark)
-            Text(item.status, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold), color = item.color)
-        }
-        Spacer(modifier = Modifier.height(2.dp))
-        LinearProgressIndicator(
-            progress = { item.progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(CircleShape),
-            color = item.color,
-            trackColor = LightSurfaceBg
-        )
-    }
-}
-
-private data class TopAssetItem(
-    val code: String,
-    val signal: String,
-    val price: String,
-    val changePct: String,
-    val isPositive: Boolean
-)
-
-@Composable
-private fun TopAssetRow(item: TopAssetItem, onClick: () -> Unit) {
-    val color = if (item.isPositive) BullishGreen else BearishRed
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(item.code, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp), color = TextDark)
-            Text(item.signal, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp), color = color)
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = TextDark)
-            Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 9.sp), color = color)
-        }
-    }
-}
-
-// ── 8. STRATEJİ ÖNERİSİ (Oracle Strategy Card) ──
-@Composable
-private fun OracleStrategyRecommendationCard(onDetailClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, BorderColor)
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("👑", fontSize = 20.sp)
+        Column(modifier = Modifier.padding(20.dp)) { // 20dp Inner Padding
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("📋", fontSize = 18.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Oracle Strateji Önerisi",
+                    "Oracle Tahmin Özeti",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
                     color = TextDark
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ForecastItemRow("📈", "Genel Tahmin", "Piyasalarda pozitif momentum devam ediyor. BIST 100 endeksinde yukarı yönlü hareket %65 ihtimalle sürecek.", PrimaryPurple)
+                ForecastItemRow("⚠", "Risk", "Küresel faiz kararları ve enflasyon verileri kısa vadeli oynaklık yaratabilir.", WarningOrange)
+                ForecastItemRow("🎯", "Beklenen Hareket", "10.450 - 10.850 puan aralığı hedef bant olarak izleniyor.", SuccessGreen)
+                ForecastItemRow("⏳", "Süre", "Tahmin edilen hareketin 3 - 7 gün içerisinde gerçekleşmesi öngörülüyor.", Color(0xFF3B82F6))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForecastItemRow(icon: String, title: String, description: String, accentColor: Color) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = accentColor.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(icon, fontSize = 15.sp)
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(title, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = accentColor)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 15.sp), color = TextDark)
+            }
+        }
+    }
+}
+
+// ── 4. ZAMAN FİLTRELERİ (Material 3 Filter Chips with Smooth Animation) ──
+@Composable
+private fun OracleTimeframeFilterRow(
+    selectedIndex: Int,
+    onIndexSelected: (Int) -> Unit
+) {
+    val filters = remember { listOf("24 Saat", "3 Gün", "7 Gün", "1 Ay") }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        filters.forEachIndexed { idx, label ->
+            val isSelected = selectedIndex == idx
+            
+            val chipBg by animateColorAsState(
+                targetValue = if (isSelected) PrimaryPurple else CardWhite,
+                animationSpec = tween(250),
+                label = "chip_bg_$idx"
+            )
+            val textColor by animateColorAsState(
+                targetValue = if (isSelected) Color.White else TextSecondary,
+                animationSpec = tween(250),
+                label = "chip_text_$idx"
+            )
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = chipBg,
+                border = BorderStroke(1.dp, if (isSelected) PrimaryPurple else BorderColor),
+                shadowElevation = if (isSelected) 3.dp else 0.dp,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onIndexSelected(idx) }
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.padding(vertical = 10.dp)
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                            fontSize = 11.5.sp,
+                            fontFamily = Manrope
+                        ),
+                        color = textColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── 5. PİYASA YÖN TAHMİNİ (Yükseliş, Yatay, Düşüş + Expected Corridor Line Chart) ──
+@Composable
+private fun MarketDirectionProbabilitySection() {
+    val sparkValues = remember { listOf(40f, 42f, 45f, 44f, 48f, 52f, 50f, 56f, 60f) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        border = BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("Piyasa Yön Tahmini", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3 Direction Cards Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                DirectionTile("📈", "Yükseliş", "%65", SuccessGreen, modifier = Modifier.weight(1f))
+                DirectionTile("➡", "Yatay", "%25", WarningOrange, modifier = Modifier.weight(1f))
+                DirectionTile("📉", "Düşüş", "%10", ErrorRed, modifier = Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = BorderColor)
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Target Corridor Line Chart Support
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Beklenen Hareket Aralığı", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = TextSecondary)
+                    Text("10.450 - 10.850 Puan", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = TextDark)
+                }
+
+                Sparkline(
+                    values = sparkValues,
+                    color = SuccessGreen,
+                    modifier = Modifier.width(100.dp).height(32.dp),
+                    filled = true
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DirectionTile(icon: String, title: String, pct: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(icon, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(title, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = TextSecondary, fontFamily = Manrope)
+            Text(pct, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 18.sp), color = color)
+        }
+    }
+}
+
+// ── 6. ORACLE SKORLARI (6 Uniform Gauges with Short Descriptions) ──
+@Composable
+private fun OracleScoreGaugesSection() {
+    val scores = remember {
+        listOf(
+            OracleGaugeItem("Teknik", 78, "Trend güçlü", PrimaryPurple),
+            OracleGaugeItem("Temel", 82, "Bilanço olumlu", SuccessGreen),
+            OracleGaugeItem("Makro", 65, "Makro nötr", Color(0xFF3B82F6)),
+            OracleGaugeItem("Sentiment", 70, "Alıcılar baskın", Color(0xFFEC4899)),
+            OracleGaugeItem("Risk", 45, "Orta seviye", WarningOrange),
+            OracleGaugeItem("Portföy", 85, "Uyum yüksek", PrimaryPurple)
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        border = BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("Oracle Alt Skorları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 2 Rows of 3 Uniform Score Gauges
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                scores.take(3).forEach { item ->
+                    UniformScoreGaugeTile(item = item, modifier = Modifier.weight(1f))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                scores.drop(3).forEach { item ->
+                    UniformScoreGaugeTile(item = item, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+private data class OracleGaugeItem(val label: String, val score: Int, val shortDesc: String, val color: Color)
+
+@Composable
+private fun UniformScoreGaugeTile(item: OracleGaugeItem, modifier: Modifier = Modifier) {
+    var animated by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animated = true }
+
+    val sweepAngle by animateFloatAsState(
+        targetValue = if (animated) (item.score / 100f) * 360f else 0f,
+        animationSpec = tween(1000, easing = FastOutSlowInEasing),
+        label = "gauge_${item.label}"
+    )
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(item.label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp), color = TextSecondary, fontFamily = Manrope)
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier.size(42.dp), // Uniform Size
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 4.dp.toPx()
+                drawArc(
+                    color = item.color.copy(alpha = 0.18f),
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = Stroke(width = strokeWidth)
+                )
+                drawArc(
+                    color = item.color,
+                    startAngle = -90f,
+                    sweepAngle = sweepAngle,
+                    useCenter = false,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                )
+            }
+            Text("${item.score}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, fontFamily = IBMPlexMono), color = TextDark)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(item.shortDesc, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold), color = item.color, textAlign = TextAlign.Center)
+    }
+}
+
+// ── 7. ANA SENARYOLAR (Tinted Low-Opacity Cards + AI Güven Badges) ──
+@Composable
+private fun MainScenariosSection() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        border = BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("Ana Piyasa Senaryoları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ScenarioRowCard("🟢 Pozitif Senaryo", "BIST 100 endeksi 10.850 direncini kırarak rekor tazeler.", "%65 Güven", SuccessGreen)
+                ScenarioRowCard("🟡 Nötr Senaryo", "Endeks 10.200 - 10.500 dar bandında yatay konsolide olur.", "%25 Güven", WarningOrange)
+                ScenarioRowCard("🔴 Negatif Senaryo", "Kar satışlarıyla 9.950 destek seviyesine geri çekilme.", "%10 Güven", ErrorRed)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScenarioRowCard(title: String, desc: String, confidenceBadge: String, themeColor: Color) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = themeColor.copy(alpha = 0.08f), // Low Opacity Specification
+        border = BorderStroke(1.dp, themeColor.copy(alpha = 0.25f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeColor)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(desc, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 15.sp), color = TextDark)
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // AI Güven Rozeti
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = themeColor.copy(alpha = 0.18f)
+            ) {
+                Text(
+                    confidenceBadge,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 10.sp, fontFamily = IBMPlexMono),
+                    color = themeColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+// ── 8 & 9. SEKTÖR TAHMİNLERİ (with BottomSheet) & GÜNÜN ÖNE ÇIKAN VARLIKLARI ──
+@Composable
+private fun SectorsAndTopAssetsSection(
+    selectedAssetTab: Int,
+    onAssetTabSelected: (Int) -> Unit,
+    onStockClick: (String, String) -> Unit,
+    onSectorInsightClick: (SectorItem) -> Unit
+) {
+    val sectors = remember {
+        listOf(
+            SectorItem("Teknoloji", "^ %2,85", true, "Yarı iletken ve AI yazılım ihracatı kaynaklı yüksek büyüme ivmesi."),
+            SectorItem("Savunma", "^ %2,15", true, "Uluslararası yeni sözleşme imzaları ve güçlü sipariş stoğu."),
+            SectorItem("Bankacılık", "^ %1,42", true, "Sıkılaşma adımları ile net faiz marjında beklenen iyileşme."),
+            SectorItem("Ulaştırma", "v %-0,45", false, "Jet yakıtı maliyet artışı ve sezonluk talep dengelenmesi.")
+        )
+    }
+
+    val featuredAssets = remember {
+        listOf(
+            FeaturedAssetItem("ASELS", "Aselsan", "₺56,70", "^ %4,25", "Güçlü Alım", SuccessGreen, "%88 Güven", listOf(40f, 42f, 45f, 50f)),
+            FeaturedAssetItem("THYAO", "THY", "₺305,25", "^ %2,87", "Alım Sinyali", SuccessGreen, "%85 Güven", listOf(290f, 295f, 305f)),
+            FeaturedAssetItem("KCHOL", "Koç Holding", "₺182,40", "^ %0,31", "Nötr", WarningOrange, "%72 Güven", listOf(180f, 181f, 182.4f))
+        )
+    }
+
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // Sector Forecasts Card (with AI Yorumu BottomSheet trigger)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
+            border = BorderStroke(1.dp, BorderColor)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("Sektör Tahminleri", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                sectors.forEach { sector ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(sector.name, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
+                            Text(sector.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = if (sector.isPos) SuccessGreen else ErrorRed)
+                        }
+
+                        // AI Yorumu Icon Button (Triggers BottomSheet)
+                        IconButton(
+                            onClick = { onSectorInsightClick(sector) },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(PurpleSoftBg)
+                        ) {
+                            Icon(Icons.Outlined.Lightbulb, contentDescription = "AI Yorumu", tint = PrimaryPurple, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
+                }
+            }
+        }
+
+        // Günün Öne Çıkan Varlıkları Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
+            border = BorderStroke(1.dp, BorderColor)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("Günün Öne Çıkan Varlıkları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+                Spacer(modifier = Modifier.height(14.dp))
+
+                featuredAssets.forEach { asset ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onStockClick(asset.symbol, "BIST") }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Stock Logo Badge (36dp)
+                        Surface(
+                            shape = CircleShape,
+                            color = PurpleSoftBg,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(asset.symbol.take(2), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = PrimaryPurple)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column(modifier = Modifier.weight(1.1f)) {
+                            Text(asset.symbol, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
+                            Text(asset.confidenceRatio, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold), color = PrimaryPurple)
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1.0f)) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = asset.signalColor.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    asset.signal,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                                    color = asset.signalColor,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+
+                        Sparkline(
+                            values = asset.sparkValues,
+                            color = SuccessGreen,
+                            modifier = Modifier.width(60.dp).height(24.dp),
+                            filled = true
+                        )
+                    }
+                    HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
+                }
+            }
+        }
+    }
+}
+
+data class SectorItem(val name: String, val changePct: String, val isPos: Boolean, val aiExplanation: String)
+private data class FeaturedAssetItem(
+    val symbol: String, val name: String, val price: String, val changePct: String,
+    val signal: String, val signalColor: Color, val confidenceRatio: String, val sparkValues: List<Float>
+)
+
+// ── 10. STRATEJİ ÖNERİSİ (AI Score Circle Arc + Risk/Return/Term Metrics) ──
+@Composable
+private fun OracleStrategyRecommendationCard(onDetailClick: () -> Unit) {
+    var animated by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animated = true }
+
+    val scoreSweep by animateFloatAsState(
+        targetValue = if (animated) (84f / 100f) * 360f else 0f,
+        animationSpec = tween(1200, easing = FastOutSlowInEasing),
+        label = "strategy_score_sweep"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        border = BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🎯", fontSize = 18.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("AI Strateji Önerisi", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // AI Score Circle Arc & Strategy Details Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Kısa vadede kademeli alım stratejisi uygun. Bankacılık ve savunma sektörlerinde fırsatlar öne çıkıyor. Stop-loss seviyelerine dikkat ederek pozisyon yönetimi yapın.",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 16.sp),
-                    color = TextDark,
-                    modifier = Modifier.weight(1.2f)
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Cybernetic AI Ring Graphic
                 Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .weight(0.8f),
+                    modifier = Modifier.size(70.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val strokeWidth = 4.dp.toPx()
+                        val strokeWidth = 6.dp.toPx()
                         drawArc(
-                            color = PurpleSoftBg,
+                            color = PrimaryPurple.copy(alpha = 0.18f),
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
                             style = Stroke(width = strokeWidth)
                         )
                         drawArc(
-                            color = PurpleAccent,
+                            color = PrimaryPurple,
                             startAngle = -90f,
-                            sweepAngle = 270f,
+                            sweepAngle = scoreSweep,
                             useCenter = false,
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
                     }
-                    Text("AI", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = PurpleAccent)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("84", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 18.sp), color = TextDark)
+                        Text("AI Skor", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSecondary)
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            Button(
-                onClick = onDetailClick,
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PurpleSoftBg),
-                border = BorderStroke(1.dp, Color(0xFFD8CEFF)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Detaylı Stratejiyi Gör >", fontSize = 11.sp, color = PurpleAccent, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    StrategyMetricRow("Risk Profili", "Dengeli (Orta Risk)", WarningOrange)
+                    StrategyMetricRow("Getiri Potansiyeli", "%12,5 - %18,0", SuccessGreen)
+                    StrategyMetricRow("Yatırım Süresi", "1 - 3 Hafta", PrimaryPurple)
+                }
             }
         }
     }
 }
 
-// ── 9. AI NEDEN BU KARARI VERDİ? (Expandable Decision Rationale Card) ──
+@Composable
+private fun StrategyMetricRow(label: String, valStr: String, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = TextSecondary)
+        Text(valStr, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp, fontFamily = IBMPlexMono), color = color)
+    }
+}
+
+// ── 11. AI NEDEN BU KARARI VERDİ? (Expandable Accordion Card) ──
 @Composable
 private fun AiDecisionRationaleAccordionCard(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit
 ) {
+    val weightedFactors = remember {
+        listOf(
+            WeightedFactor("Teknik Analiz", 85, PrimaryPurple),
+            WeightedFactor("Temel Analiz", 78, SuccessGreen),
+            WeightedFactor("Makro Veriler", 65, Color(0xFF3B82F6)),
+            WeightedFactor("Haber Analizi", 82, WarningOrange),
+            WeightedFactor("Sentiment", 74, Color(0xFFEC4899)),
+            WeightedFactor("Geçmiş Başarı", 91, PrimaryPurple)
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         border = BorderStroke(1.dp, BorderColor)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -983,135 +1088,165 @@ private fun AiDecisionRationaleAccordionCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("💡", fontSize = 18.sp)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI Neden Bu Kararı Verdi?", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+                    Text(
+                        "AI Neden Bu Kararı Verdi?",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
+                        color = TextDark
+                    )
                 }
+
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = TextSecondary
+                    contentDescription = "Aç/Kapat",
+                    tint = PrimaryPurple
                 )
             }
 
             AnimatedVisibility(visible = isExpanded) {
-                Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
-                    RationaleItemRow("Teknik Göstergeler", "RSI (62) Pozitif bölgede, MACD yukarı kesişim sağladı.")
-                    RationaleItemRow("Temel Veriler", "BIST-100 genelinde F/K 7.2x ile tarihsel ortalamanın altında.")
-                    RationaleItemRow("Makro Ekonomi", "Merkez Bankası faiz kararı beklentilere paralel.")
-                    RationaleItemRow("Haber Akışı", "Savunma sanayii yeni ihracat sözleşmeleri olumlu etkiledi.")
+                Column(modifier = Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    weightedFactors.forEach { factor ->
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(factor.label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold), color = TextDark)
+                                Text("%${factor.pct}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = factor.color)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { factor.pct / 100f },
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                color = factor.color,
+                                trackColor = factor.color.copy(alpha = 0.15f)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun RationaleItemRow(title: String, desc: String) {
-    Column {
-        Text("• $title", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PurpleAccent)
-        Text(desc, style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, lineHeight = 14.sp), color = TextDark)
-    }
-}
+private data class WeightedFactor(val label: String, val pct: Int, val color: Color)
 
-// ── 10. GÜVEN SKORU (Confidence Matrix Card) ──
+// ── 12. ORACLE GÜVEN ENDEKSİ (5 Stat Tiles Matrix) ──
 @Composable
 private fun OracleConfidenceMatrixSection() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
+            .shadow(4.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(0.03f)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         border = BorderStroke(1.dp, BorderColor)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📊", fontSize = 18.sp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Oracle Güven Endeksi", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
-            }
-
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("Oracle Güven Endeksi", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
             Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ConfidenceMatrixItem("AI Confidence", "%87", BullishGreen)
-                ConfidenceMatrixItem("Son 30 Gün", "%84", BullishGreen)
-                ConfidenceMatrixItem("Son 90 Gün", "%81", BullishGreen)
-                ConfidenceMatrixItem("Toplam Analiz", "4.120", TextDark)
-                ConfidenceMatrixItem("Doğru Tahmin", "3.460", PurpleAccent)
+                ConfidenceStatTile("Son 30 Gün", "%84", SuccessGreen, modifier = Modifier.weight(1f))
+                ConfidenceStatTile("Son 90 Gün", "%88", PrimaryPurple, modifier = Modifier.weight(1f))
+                ConfidenceStatTile("Toplam Analiz", "1.240", Color(0xFF3B82F6), modifier = Modifier.weight(1f))
+                ConfidenceStatTile("Doğru Tahmin", "1.091", SuccessGreen, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun ConfidenceMatrixItem(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSecondary)
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(value, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 11.5.sp), color = color)
+private fun ConfidenceStatTile(title: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = LightBackground,
+        border = BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(title, style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = TextSecondary, maxLines = 1)
+            Text(value, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 11.5.sp, fontFamily = IBMPlexMono), color = color)
+        }
     }
 }
 
-// ── 11. AI EYLEMLERİ (4 Action Buttons Grid) ──
+// ── 13. HIZLI İŞLEMLER (Enlarged Buttons with Material Symbols & Scale Ripple Feedback) ──
 @Composable
 private fun OracleActionButtonsSection(
     onRecalculate: () -> Unit,
     onComparePortfolio: () -> Unit,
-    onSendToChat: () -> Unit
+    onSendToChat: () -> Unit,
+    onKaziNavigate: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Text("⚡ Hızlı İşlemler", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+        Spacer(modifier = Modifier.height(12.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            OracleActionButtonCard(title = "Oracle Yeniden Hesapla", iconEmoji = "🔄", onClick = onRecalculate, modifier = Modifier.weight(1f))
-            OracleActionButtonCard(title = "PDF Oluştur", iconEmoji = "📄", onClick = { }, modifier = Modifier.weight(1f))
-            OracleActionButtonCard(title = "Portföyümle Karşılaştır", iconEmoji = "⚖️", onClick = onComparePortfolio, modifier = Modifier.weight(1f))
-            OracleActionButtonCard(title = "AI Sohbetine Gönder", iconEmoji = "💬", onClick = onSendToChat, modifier = Modifier.weight(1f))
+            OracleActionTile("Yeniden Hesapla", "🔄", onClick = onRecalculate, modifier = Modifier.weight(1f))
+            OracleActionTile("Portföyle Kıyasla", "⚖️", onClick = onComparePortfolio, modifier = Modifier.weight(1f))
+            OracleActionTile("Derin Kazı", "⛏️", onClick = onKaziNavigate, modifier = Modifier.weight(1f))
+            OracleActionTile("AI Lab'e Sor", "🤖", onClick = onSendToChat, modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun OracleActionButtonCard(
+private fun OracleActionTile(
     title: String,
     iconEmoji: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "oracle_action_scale"
+    )
+
     Card(
         modifier = modifier
-            .shadow(3.dp, RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
+            .scale(scale)
+            .shadow(3.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(0.02f))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(bounded = true),
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         border = BorderStroke(1.dp, BorderColor)
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 14.dp, horizontal = 4.dp),
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Surface(
                 shape = CircleShape,
                 color = PurpleSoftBg,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(iconEmoji, fontSize = 16.sp)
+                    Text(iconEmoji, fontSize = 18.sp)
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 title,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.5.sp, fontFamily = Manrope),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, fontFamily = Manrope),
                 color = TextDark,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
@@ -1119,4 +1254,76 @@ private fun OracleActionButtonCard(
             )
         }
     }
+}
+
+// ── MODAL BOTTOM SHEET FOR SECTOR AI INSIGHT ──
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SectorExplanationBottomSheet(
+    sector: SectorItem,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = CardWhite,
+        scrimColor = Color.Black.copy(alpha = 0.4f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("💡", fontSize = 24.sp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        "${sector.name} Sektörü AI Yorumu",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope),
+                        color = TextDark
+                    )
+                    Text(
+                        "Oracle Makro Engine Analizi",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = PrimaryPurple
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = PurpleSoftBg,
+                border = BorderStroke(1.dp, PrimaryPurple.copy(alpha = 0.3f))
+            ) {
+                Text(
+                    text = sector.aiExplanation,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 19.sp, fontFamily = Manrope),
+                    color = TextDark,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                modifier = Modifier.fillMaxWidth().height(44.dp)
+            ) {
+                Text("Anladım", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+// ── PREVIEW SUPPORT ──
+@Preview(showBackground = true)
+@Composable
+private fun OracleTopBarPreview() {
+    OracleTopBar(onShareClick = {}, onNotificationClick = {})
 }

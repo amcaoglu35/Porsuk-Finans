@@ -24,6 +24,13 @@ interface AlertRepository {
 interface AutomationRepository {
     fun getAutomationRules(): Flow<List<AutomationRuleModel>>
     suspend fun saveRule(rule: AutomationRuleModel)
+    suspend fun deleteRule(ruleId: String)
+    
+    fun getExecutionHistory(): Flow<List<AutomationHistoryModel>>
+    suspend fun saveHistory(history: AutomationHistoryModel)
+    
+    fun getAiSuggestions(): Flow<List<AiAutomationSuggestionModel>>
+    suspend fun markSuggestionApplied(suggestionId: String)
 }
 
 /**

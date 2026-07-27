@@ -47,7 +47,10 @@ data class EconomicEventEntity(
     val eventTime: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "symbol")
-    val symbol: String? = null
+    val symbol: String? = null,
+
+    @ColumnInfo(name = "ai_impact_json")
+    val aiImpactJson: String? = null
 )
 
 /**
@@ -84,7 +87,10 @@ data class EarningsCalendarEntity(
     val revenueForecast: Double = 0.0,
 
     @ColumnInfo(name = "revenue_actual")
-    val revenueActual: Double? = null
+    val revenueActual: Double? = null,
+
+    @ColumnInfo(name = "ai_impact_json")
+    val aiImpactJson: String? = null
 )
 
 /**
@@ -118,5 +124,8 @@ data class DividendCalendarProEntity(
     val amount: Double,
 
     @ColumnInfo(name = "currency")
-    val currency: String = "TRY"
+    val currency: String = "TRY",
+
+    @ColumnInfo(name = "ai_impact_json")
+    val aiImpactJson: String? = null
 )

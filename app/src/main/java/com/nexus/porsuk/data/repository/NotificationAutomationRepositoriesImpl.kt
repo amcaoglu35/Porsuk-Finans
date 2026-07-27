@@ -1,8 +1,7 @@
 package com.nexus.porsuk.data.repository
 
 import com.nexus.porsuk.data.local.dao.NotificationAutomationDao
-import com.nexus.porsuk.data.local.entity.AutomationRuleEntity
-import com.nexus.porsuk.data.local.entity.NotificationCenterEntity
+import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.domain.model.*
 import com.nexus.porsuk.domain.repository.*
 import kotlinx.coroutines.flow.Flow
@@ -79,28 +78,16 @@ class AutomationRepositoryImpl @Inject constructor(
 
     override fun getAutomationRules(): Flow<List<AutomationRuleModel>> {
         return dao.getAllRules().map { list ->
-            if (list.isEmpty()) {
-                listOf(
-                    AutomationRuleModel(
-                        title = "RSI Aşırı Satım Alarmlı Alım",
-                        category = AlertCategory.PERCENT_CHANGE,
-                        ifConditionText = "RSI (14) < 30 VE Fiyat > 250",
-                        actionText = "Bildirim Gönder & Takip Listesine Ekle",
-                        priority = NotificationPriority.HIGH
-                    )
+            list.map { entity ->
+                AutomationRuleModel(
+                    ruleId = entity.ruleId,
+                    title = entity.title,
+                    category = AlertCategory.valueOf(entity.categoryName),
+                    ifConditionText = entity.ifCondition,
+                    actionText = entity.actionText,
+                    priority = NotificationPriority.valueOf(entity.priorityName),
+                    isEnabled = entity.isEnabled
                 )
-            } else {
-                list.map { entity ->
-                    AutomationRuleModel(
-                        ruleId = entity.ruleId,
-                        title = entity.title,
-                        category = AlertCategory.valueOf(entity.categoryName),
-                        ifConditionText = entity.ifCondition,
-                        actionText = entity.actionText,
-                        priority = NotificationPriority.valueOf(entity.priorityName),
-                        isEnabled = entity.isEnabled
-                    )
-                }
             }
         }
     }
@@ -116,6 +103,57 @@ class AutomationRepositoryImpl @Inject constructor(
             isEnabled = rule.isEnabled
         )
         dao.insertRule(entity)
+    }
+
+    override suspend fun deleteRule(ruleId: String) {
+        dao.deleteRule(ruleId)
+    }
+
+    override fun getExecutionHistory(): Flow<List<AutomationHistoryModel>> {
+        return dao.getExecutionHistory().map { list ->
+            list.map { entity ->
+                AutomationHistoryModel(
+                    id = entity.id,
+                    ruleId = entity.ruleId,
+                    executionTime = entity.executionTime,
+                    durationMs = entity.durationMs,
+                    status = entity.status,
+                    resultSummary = entity.resultSummary,
+                    suggestions = entity.suggestions
+                )
+            }
+        }
+    }
+
+    override suspend fun saveHistory(history: AutomationHistoryModel) {
+        val entity = AutomationHistoryEntity(
+            ruleId = history.ruleId,
+            executionTime = history.executionTime,
+            durationMs = history.durationMs,
+            status = history.status,
+            resultSummary = history.resultSummary,
+            suggestions = history.suggestions
+        )
+        dao.insertHistory(entity)
+    }
+
+    override fun getAiSuggestions(): Flow<List<AiAutomationSuggestionModel>> {
+        return dao.getAiSuggestions().map { list ->
+            list.map { entity ->
+                AiAutomationSuggestionModel(
+                    suggestionId = entity.suggestionId,
+                    title = entity.title,
+                    description = entity.description,
+                    type = entity.type,
+                    isApplied = entity.isApplied,
+                    createdAt = entity.createdAt
+                )
+            }
+        }
+    }
+
+    override suspend fun markSuggestionApplied(suggestionId: String) {
+        dao.markSuggestionAsApplied(suggestionId)
     }
 }
 

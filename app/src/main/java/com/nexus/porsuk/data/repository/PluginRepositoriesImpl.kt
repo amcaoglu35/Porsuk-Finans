@@ -1,16 +1,18 @@
 package com.nexus.porsuk.data.repository
 
+import com.nexus.porsuk.data.local.dao.PluginDao
+import com.nexus.porsuk.data.local.entity.PluginConfigEntity
+import com.nexus.porsuk.data.local.entity.PluginHealthEntity
 import com.nexus.porsuk.domain.model.*
 import com.nexus.porsuk.domain.repository.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PluginRepositoryImpl @Inject constructor() : PluginRepository {
+class PluginRepositoryImpl @Inject constructor(
+    private val dao: PluginDao
+) : PluginRepository {
 
     private val defaultInstalled = listOf(
         PluginItem(
@@ -109,6 +111,59 @@ class PluginRepositoryImpl @Inject constructor() : PluginRepository {
             }
         }
         return true
+    }
+
+    override fun getPluginHealth(pluginId: String): Flow<ApiHealthMetrics?> {
+        return dao.getHealthFlow(pluginId).map { entity ->
+            entity?.let {
+                ApiHealthMetrics(
+                    pluginId = it.pluginId,
+                    latencyMs = it.latencyMs,
+                    successRate = it.successRate,
+                    lastError = it.lastError,
+                    totalRequests = it.totalRequests,
+                    failedRequests = it.failedRequests,
+                    lastChecked = it.lastChecked
+                )
+            }
+        }
+    }
+
+    override suspend fun updatePluginHealth(metrics: ApiHealthMetrics) {
+        dao.updateHealth(
+            PluginHealthEntity(
+                pluginId = metrics.pluginId,
+                latencyMs = metrics.latencyMs,
+                successRate = metrics.successRate,
+                lastError = metrics.lastError,
+                totalRequests = metrics.totalRequests,
+                failedRequests = metrics.failedRequests,
+                lastChecked = metrics.lastChecked
+            )
+        )
+    }
+
+    override suspend fun getApiConfig(pluginId: String): ApiConfig? {
+        return dao.getConfig(pluginId)?.let {
+            ApiConfig(
+                pluginId = it.pluginId,
+                apiKey = it.apiKey,
+                baseUrl = it.baseUrl,
+                isEncrypted = true,
+                backupPluginId = it.backupPluginId
+            )
+        }
+    }
+
+    override suspend fun saveApiConfig(config: ApiConfig) {
+        dao.saveConfig(
+            PluginConfigEntity(
+                pluginId = config.pluginId,
+                apiKey = config.apiKey,
+                baseUrl = config.baseUrl,
+                backupPluginId = config.backupPluginId
+            )
+        )
     }
 }
 

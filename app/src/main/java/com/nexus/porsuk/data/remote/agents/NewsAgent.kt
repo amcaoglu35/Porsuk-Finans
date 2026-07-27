@@ -1,9 +1,11 @@
 package com.nexus.porsuk.data.remote.agents
 
 import com.nexus.porsuk.data.remote.SourceReliabilityEngine
+import com.nexus.porsuk.domain.model.AiAgentType
 
-class NewsAgent : PorsukAgent {
+class NewsAgent : BaseAgent() {
     override val agentName: String = "News Agent"
+    override val agentType: AiAgentType = AiAgentType.NEWS
 
     override suspend fun runAnalysis(request: AgentRequest): String {
         if (request.newsTitles.isEmpty()) {

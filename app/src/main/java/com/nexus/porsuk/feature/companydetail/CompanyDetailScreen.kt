@@ -1,114 +1,153 @@
 package com.nexus.porsuk.feature.companydetail
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.feature.companydetail.components.*
 
-/**
- * Porsuk Company Detail Module — Şirket Detay Ekranı (CompanyDetailScreen)
- *
- * Şirketin künyesini, canlı fiyatını, finansallarını, temettü geçmişini, bilançolarını,
- * haberlerini, istatistiklerini ve geleceğe hazır Orakul AI alanlarını premium tasarımla sunar.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CompanyDetailScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: CompanyDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val mainGreen = Color(0xFF14B88A)
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = uiState.symbol,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Geri"
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
+        bottomBar = {
+            CompanyBottomActionBar(
+                onWatchlistClick = { viewModel.toggleFavorite() },
+                onAlarmClick = { /* Alarm */ },
+                onTradeClick = { /* Trade */ }
             )
-        }
+        },
+        containerColor = Color(0xFFF8F9FA) // Very light gray background
     ) { paddingValues ->
         if (uiState.isLoading) {
             CompanyDetailShimmer(modifier = Modifier.padding(paddingValues))
         } else {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
             ) {
-                // 1. Şirket Üst Künye Kartı
-                CompanyHeaderCard(
-                    symbol = uiState.symbol,
-                    company = uiState.company,
-                    isFavorite = uiState.isFavorite,
-                    onFavoriteToggle = { viewModel.toggleFavorite() },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                // 1. Header Area
+                item {
+                    CompanyDetailHeader(
+                        company = uiState.company,
+                        isFavorite = uiState.isFavorite,
+                        onBack = onNavigateBack,
+                        onFavoriteToggle = { viewModel.toggleFavorite() },
+                        onAlarmClick = { },
+                        onShareClick = { }
+                    )
+                }
 
-                // 2. Canlı / Son Fiyat Kartı
-                CompanyPriceCard(
-                    quote = uiState.quote,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                // 2. Price and AI Score
+                item {
+                    CompanyPriceAndAiScore(
+                        quote = uiState.quote,
+                        aiScore = uiState.aiHistory?.masterScore ?: 85.0,
+                        aiRecommendation = uiState.aiHistory?.recommendation ?: "BUY"
+                    )
+                }
 
-                // 3. 7 Sekmeli Material 3 Tab Bar
-                CompanyTabRow(
-                    selectedTab = uiState.selectedTab,
-                    onTabSelected = { viewModel.selectTab(it) },
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                // 3. Main Fluid Chart
+                item {
+                    CompanyMainChart(modifier = Modifier.fillMaxWidth())
+                }
 
-                // 4. Sekme İçeriği (7 Detay Görünümü)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    AnimatedContent(
-                        targetState = uiState.selectedTab,
-                        label = "TabContentAnimation"
-                    ) { tab ->
-                        when (tab) {
-                            CompanyDetailTab.OVERVIEW -> TabOverviewContent(company = uiState.company)
-                            CompanyDetailTab.FINANCIALS -> TabFinancialsContent()
-                            CompanyDetailTab.DIVIDENDS -> TabDividendsContent(dividends = uiState.dividends)
-                            CompanyDetailTab.EARNINGS -> TabEarningsContent(earnings = uiState.earnings)
-                            CompanyDetailTab.NEWS -> TabNewsContent(newsList = uiState.news)
-                            CompanyDetailTab.STATS -> TabStatsContent()
-                            CompanyDetailTab.AI_ORAKUL -> TabAiOrakulContent()
+                // 4. AI Summary & Agents
+                item {
+                    CompanyAiSummaryAndAgents(
+                        summary = uiState.aiSummary,
+                        risks = uiState.aiRisks,
+                        opportunities = uiState.aiOpportunities,
+                        agents = uiState.aiAgents
+                    )
+                }
+
+                // 5. Quick Metrics
+                item {
+                    CompanyQuickMetrics(metrics = uiState.quickMetrics)
+                }
+
+                // 6. Sticky Tabs
+                stickyHeader {
+                    CompanyTabRow(
+                        selectedTab = uiState.selectedTab,
+                        onTabSelected = { viewModel.selectTab(it) },
+                        modifier = Modifier
+                            .background(Color(0xFFF8F9FA))
+                            .padding(vertical = 4.dp)
+                    )
+                }
+
+                // 7. Tab Content
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        AnimatedContent(
+                            targetState = uiState.selectedTab,
+                            label = "TabContentAnimation",
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                            }
+                        ) { tab ->
+                            when (tab) {
+                                CompanyDetailTab.OVERVIEW -> TabOverviewContent(
+                                    company = uiState.company,
+                                    summary = uiState.aiSummary
+                                )
+                                CompanyDetailTab.FINANCIALS -> TabFinancialsContent(
+                                    summary = uiState.financialSummary,
+                                    quarterlyData = uiState.quarterlyPerformance,
+                                    marginData = uiState.marginAnalysis,
+                                    healthData = uiState.financialHealth
+                                )
+                                CompanyDetailTab.ANALYSIS -> TabAnalysisContent(
+                                    valuationModules = uiState.valuationModules,
+                                    qualityModules = uiState.qualityModules,
+                                    riskModules = uiState.riskModules,
+                                    scenarios = uiState.aiScenarios,
+                                    targetPrice = uiState.aiTargetPrice,
+                                    potential = uiState.aiPotentialReturn,
+                                    confidence = uiState.aiConfidenceScore
+                                )
+                                CompanyDetailTab.NEWS -> TabNewsContent(
+                                    newsList = uiState.news
+                                )
+                                CompanyDetailTab.CORPORATE -> TabCorporateContent(
+                                    board = uiState.boardMembers,
+                                    ownership = uiState.ownershipStructure,
+                                    timeline = uiState.corporateTimeline
+                                )
+                            }
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
+                
+                item {
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
             }
         }
     }

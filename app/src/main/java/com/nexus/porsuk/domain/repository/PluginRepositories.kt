@@ -12,6 +12,12 @@ interface PluginRepository {
     suspend fun installPlugin(manifest: PluginManifest): Boolean
     suspend fun uninstallPlugin(pluginId: String): Boolean
     suspend fun setPluginState(pluginId: String, state: PluginState): Boolean
+    
+    // API Sağlık ve Yapılandırma
+    fun getPluginHealth(pluginId: String): Flow<ApiHealthMetrics?>
+    suspend fun updatePluginHealth(metrics: ApiHealthMetrics)
+    suspend fun getApiConfig(pluginId: String): ApiConfig?
+    suspend fun saveApiConfig(config: ApiConfig)
 }
 
 /**

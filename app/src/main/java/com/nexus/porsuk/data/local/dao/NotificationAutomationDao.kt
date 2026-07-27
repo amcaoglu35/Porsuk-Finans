@@ -1,8 +1,7 @@
 package com.nexus.porsuk.data.local.dao
 
 import androidx.room.*
-import com.nexus.porsuk.data.local.entity.AutomationRuleEntity
-import com.nexus.porsuk.data.local.entity.NotificationCenterEntity
+import com.nexus.porsuk.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -27,4 +26,31 @@ interface NotificationAutomationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRule(rule: AutomationRuleEntity)
+
+    @Query("DELETE FROM engine_automation_rules WHERE rule_id = :ruleId")
+    suspend fun deleteRule(ruleId: String)
+
+    // Çalışma Geçmişi Sorguları
+    @Query("SELECT * FROM engine_automation_history ORDER BY execution_time DESC")
+    fun getExecutionHistory(): Flow<List<AutomationHistoryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHistory(history: AutomationHistoryEntity)
+
+    // AI Önerileri Sorguları
+    @Query("SELECT * FROM engine_ai_automation_suggestions WHERE isApplied = 0 ORDER BY createdAt DESC")
+    fun getAiSuggestions(): Flow<List<AiAutomationSuggestionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAiSuggestion(suggestion: AiAutomationSuggestionEntity)
+
+    @Query("UPDATE engine_ai_automation_suggestions SET isApplied = 1 WHERE suggestionId = :suggestionId")
+    suspend fun markSuggestionAsApplied(suggestionId: String)
+
+    // Ajan Performans Sorguları
+    @Query("SELECT * FROM engine_agent_performance")
+    fun getAllAgentPerformance(): Flow<List<AgentPerformanceEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun updateAgentPerformance(performance: AgentPerformanceEntity)
 }

@@ -1,14 +1,17 @@
 package com.nexus.porsuk.feature.companydetail.components
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nexus.porsuk.feature.companydetail.CompanyDetailTab
 
 /**
- * Porsuk Company Detail Module — 7 Sekmeli Material 3 ScrollableTabRow
+ * Porsuk Company Detail Module — 5 Sekmeli Material 3 ScrollableTabRow (Redesigned)
  */
 @Composable
 fun CompanyTabRow(
@@ -16,12 +19,22 @@ fun CompanyTabRow(
     onTabSelected: (CompanyDetailTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val mainGreen = Color(0xFF14B88A)
+
     ScrollableTabRow(
         selectedTabIndex = selectedTab.ordinal,
         edgePadding = 16.dp,
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.primary,
+        containerColor = Color.Transparent,
+        contentColor = mainGreen,
         divider = {},
+        indicator = { tabPositions ->
+            if (selectedTab.ordinal < tabPositions.size) {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
+                    color = mainGreen
+                )
+            }
+        },
         modifier = modifier
     ) {
         CompanyDetailTab.entries.forEach { tab ->
@@ -33,7 +46,8 @@ fun CompanyTabRow(
                     Text(
                         text = tab.title,
                         style = if (isSelected) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) mainGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }

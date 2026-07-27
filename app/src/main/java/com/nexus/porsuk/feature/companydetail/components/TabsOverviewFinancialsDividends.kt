@@ -1,15 +1,26 @@
 package com.nexus.porsuk.feature.companydetail.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.data.local.entity.CompanyEntity
-import com.nexus.porsuk.data.local.entity.DividendEntity
-import com.nexus.porsuk.data.local.entity.EarningsEntity
+import com.nexus.porsuk.feature.companydetail.*
 
 /**
  * 1. Sekme — Genel Bilgiler (TabOverviewContent)
@@ -17,37 +28,39 @@ import com.nexus.porsuk.data.local.entity.EarningsEntity
 @Composable
 fun TabOverviewContent(
     company: CompanyEntity?,
+    summary: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Şirket Hakkında",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "${company?.companyName ?: "Şirket"}, ${company?.sector ?: "Finans"} alanında faaliyet gösteren ve ${company?.exchange ?: "BIST"} borsasında işlem gören öncü kuruluşlardan biridir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Column(modifier = modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Şirket Profili",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 22.sp
+                )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-            InfoRow("ISIN Kodu", company?.isin ?: "TRATHYAO91M5")
-            InfoRow("Merkez Ülke", company?.country ?: "Türkiye")
-            InfoRow("Sektör", company?.sector ?: "Ulaşım / Havacılık")
-            InfoRow("İş Kolu / Industry", company?.industry ?: "Hava Yolu Taşımacılığı")
-            InfoRow("Çalışan Sayısı", "38,500+")
-            InfoRow("CEO / Genel Müdür", "Ahmet Bolat (Temsili)")
-            InfoRow("Web Sitesi", company?.website ?: "https://www.thy.com")
+                InfoRow("ISIN", company?.isin ?: "TRATHYAO91M5")
+                InfoRow("Ülke", company?.country ?: "Türkiye")
+                InfoRow("Sektör", company?.sector ?: "Ulaşım")
+                InfoRow("Endüstri", company?.industry ?: "Havacılık")
+                InfoRow("Kuruluş", "1933")
+                InfoRow("Web", company?.website ?: "thy.com")
+            }
         }
     }
 }
@@ -57,128 +70,171 @@ fun TabOverviewContent(
  */
 @Composable
 fun TabFinancialsContent(
+    summary: FinancialSummaryData,
+    quarterlyData: List<QuarterlyBarData>,
+    marginData: List<MarginLineData>,
+    healthData: FinancialHealthData,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Özet Finansal Tablo (Son Çeyrek)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            InfoRow("Toplam Gelir (Hasılat)", "504.2 Milyar TL")
-            InfoRow("Net Kar", "163.8 Milyar TL")
-            InfoRow("FAVÖK (EBITDA)", "122.4 Milyar TL")
-            InfoRow("Toplam Borç", "210.5 Milyar TL")
-            InfoRow("Özsermaye", "295.1 Milyar TL")
-            InfoRow("Nakit ve Nakit Benzerleri", "84.2 Milyar TL")
-            InfoRow("Net Kar Marjı", "%32.4")
-            InfoRow("Özsermaye Karlılığı (ROE)", "%55.2")
-        }
-    }
-}
-
-/**
- * 3. Sekme — Temettü (TabDividendsContent)
- */
-@Composable
-fun TabDividendsContent(
-    dividends: List<DividendEntity>,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Temettü Geçmişi & Verim",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            InfoRow("Ortalama Temettü Verimi", "%4.2")
-            InfoRow("Son Dağıtım Tarihi", "15 Mayıs 2025")
-            InfoRow("Hisse Başı Net Ödeme", "6.50 TRY")
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-            Text(
-                text = "Geçmiş Ödemeler",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            if (dividends.isEmpty()) {
+    val mainGreen = Color(0xFF14B88A)
+    
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Özet Kartı
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "2025: 6.50 TRY / Hisse (%4.2 Verim)\n2024: 5.20 TRY / Hisse (%3.8 Verim)\n2023: 4.10 TRY / Hisse (%4.0 Verim)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Finansal Özet",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
-            } else {
-                dividends.forEach { d ->
-                    InfoRow("Ödeme Tarihi: ${d.paymentDate}", "${d.amount} ${d.currency}")
-                }
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                InfoRow("Hasılat", summary.revenue)
+                InfoRow("Brüt Kar", summary.grossProfit)
+                InfoRow("FAVÖK", summary.ebitda)
+                InfoRow("Net Kar", summary.netIncome)
+                InfoRow("EPS", summary.eps)
+                InfoRow("Özsermaye", summary.equity)
+                InfoRow("Toplam Borç", summary.totalDebt)
+                InfoRow("Net Borç", summary.netDebt)
+            }
+        }
+        
+        // Çeyreklik Performans
+        FinancialSectionCard(title = "Çeyreklik Performans") {
+            QuarterlyPerformanceChart(data = quarterlyData)
+        }
+        
+        // Marj Analizi
+        FinancialSectionCard(title = "Marj Analizi") {
+            MarginAnalysisChart(data = marginData)
+        }
+        
+        // Sağlık Kartları
+        FinancialSectionCard(title = "Finansal Sağlık") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                HealthProgressBar("Likidite", healthData.liquidity)
+                HealthProgressBar("Borçluluk", healthData.leverage)
+                HealthProgressBar("Cari Oran", healthData.currentRatio / 2.0) // Normalized
             }
         }
     }
 }
 
-/**
- * 4. Sekme — Kazançlar / Bilanço (TabEarningsContent)
- */
 @Composable
-fun TabEarningsContent(
-    earnings: List<EarningsEntity>,
-    modifier: Modifier = Modifier
-) {
+fun FinancialSectionCard(title: String, content: @Composable () -> Unit) {
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Çeyreklik Bilanço ve Beklentiler",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+fun HealthProgressBar(label: String, progress: Double) {
+    val mainGreen = Color(0xFF14B88A)
+    Column {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = label, style = MaterialTheme.typography.labelSmall)
+            Text(text = String.format("%.2f", progress), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = progress.toFloat(),
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+            color = if (progress > 0.7) mainGreen else if (progress > 0.4) Color(0xFFFFB800) else Color.Red,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    }
+}
+
+@Composable
+fun QuarterlyPerformanceChart(data: List<QuarterlyBarData>) {
+    val mainGreen = Color(0xFF14B88A)
+    val ebitdaColor = Color(0xFF34D399)
+    val netIncomeColor = Color(0xFF6EE7B7)
+    
+    Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
+        val width = size.width
+        val height = size.height
+        val barWidth = 20.dp.toPx()
+        val spacing = width / data.size
+        
+        val maxVal = data.maxOfOrNull { it.revenue } ?: 1.0
+        
+        data.forEachIndexed { index, item ->
+            val x = index * spacing + spacing / 2
+            
+            // Revenue Bar
+            val rHeight = (item.revenue / maxVal) * height
+            drawRect(
+                color = mainGreen.copy(alpha = 0.8f),
+                topLeft = androidx.compose.ui.geometry.Offset(x - barWidth / 2, (height - rHeight).toFloat()),
+                size = androidx.compose.ui.geometry.Size(barWidth, rHeight.toFloat())
             )
-
-            InfoRow("Son EPS (Hisse Başı Kar)", "32.40 TRY")
-            InfoRow("Piyasa Beklentisi (Estimate)", "30.10 TRY")
-            InfoRow("Sürpriz Oranı (Surprise)", "+%7.6 (Beklenti Üstü)")
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-            Text(
-                text = "Geçmiş Çeyrek Sonuçları",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Text(
-                text = "2025 Q1: EPS 32.40 (Beklenen: 30.10) - BAŞARILI\n2024 Q4: EPS 28.50 (Beklenen: 29.00) - PARALEL\n2024 Q3: EPS 41.20 (Beklenen: 38.50) - BAŞARILI",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            
+            // EBITDA Bar
+            val eHeight = (item.ebitda / maxVal) * height
+            drawRect(
+                color = ebitdaColor,
+                topLeft = androidx.compose.ui.geometry.Offset(x - barWidth / 4, (height - eHeight).toFloat()),
+                size = androidx.compose.ui.geometry.Size(barWidth / 2, eHeight.toFloat())
             )
         }
+    }
+    
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+        data.forEach { Text(text = it.quarter, style = MaterialTheme.typography.labelSmall) }
+    }
+}
+
+@Composable
+fun MarginAnalysisChart(data: List<MarginLineData>) {
+    val mainGreen = Color(0xFF14B88A)
+    
+    Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
+        val width = size.width
+        val height = size.height
+        val spacing = width / (data.size - 1)
+        
+        val path = Path()
+        data.forEachIndexed { index, item ->
+            val x = index * spacing
+            val y = height - (item.netMargin / 50.0 * height).toFloat() // Normalized to 50% max
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        
+        drawPath(
+            path = path,
+            color = mainGreen,
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        )
+    }
+    
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+        LegendItem("Net Marj", mainGreen)
+        LegendItem("Brüt Marj", mainGreen.copy(alpha = 0.5f))
+    }
+}
+
+@Composable
+fun LegendItem(label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -187,7 +243,7 @@ internal fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(

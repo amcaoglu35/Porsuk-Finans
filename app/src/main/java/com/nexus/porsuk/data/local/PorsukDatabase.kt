@@ -22,7 +22,10 @@ import com.nexus.porsuk.data.local.db.IpoCorporateConverters
         CloudSyncQueueEntity::class,
         UserDeviceEntity::class,
         AutomationRuleEntity::class,
+        AutomationHistoryEntity::class,
+        AiAutomationSuggestionEntity::class,
         NotificationCenterEntity::class,
+        AgentPerformanceEntity::class,
         BrokerAccountEntity::class,
         SubscriptionEntity::class,
         AiWorkspaceEntity::class,
@@ -64,6 +67,10 @@ import com.nexus.porsuk.data.local.db.IpoCorporateConverters
         IpoIntelligenceEntity::class,
         CorporateActionEntity::class,
         DividendHistoryProEntity::class,
+        PluginConfigEntity::class,
+        PluginHealthEntity::class,
+        LocalAiModelEntity::class,
+        AiAnalysisCacheEntity::class,
         // Legacy/Existing Entities
         Company::class,
         Basket::class,
@@ -91,7 +98,7 @@ import com.nexus.porsuk.data.local.db.IpoCorporateConverters
         MarketQuoteEntity::class,
         SyncLogEntity::class
     ],
-    version = 41,
+    version = 45,
     exportSchema = false
 )
 @TypeConverters(FundConverters::class, IpoCorporateConverters::class)
@@ -130,6 +137,8 @@ abstract class PorsukDatabase : RoomDatabase() {
     abstract fun syncLogDao(): SyncLogDao
     abstract fun fundIntelligenceDao(): FundIntelligenceDao
     abstract fun ipoCorporateDao(): IpoCorporateDao
+    abstract fun pluginDao(): PluginDao
+    abstract fun aiEngineDao(): AiEngineDao
 
     companion object {
         @Volatile

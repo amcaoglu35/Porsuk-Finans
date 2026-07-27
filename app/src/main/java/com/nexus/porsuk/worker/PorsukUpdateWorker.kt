@@ -37,6 +37,7 @@ class PorsukUpdateWorker(
             val repository = FinanceRepository(
                 assetDao,
                 GoogleFinanceScraper(),
+                null, // No EventBus for background sync to avoid UI loops
                 FinnhubService(ApiKeys.FINNHUB),
                 YahooFinanceService(ApiKeys.YAHOO),
                 settingsManager

@@ -44,4 +44,13 @@ interface CalendarDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDividendEvents(events: List<DividendCalendarProEntity>)
+
+    @Query("UPDATE engine_economic_events SET ai_impact_json = :json WHERE event_id = :eventId")
+    suspend fun updateEconomicAiImpact(eventId: String, json: String)
+
+    @Query("UPDATE engine_earnings_calendar SET ai_impact_json = :json WHERE earnings_id = :earningsId")
+    suspend fun updateEarningsAiImpact(earningsId: String, json: String)
+
+    @Query("UPDATE engine_dividend_calendar_pro SET ai_impact_json = :json WHERE dividend_id = :dividendId")
+    suspend fun updateDividendAiImpact(dividendId: String, json: String)
 }

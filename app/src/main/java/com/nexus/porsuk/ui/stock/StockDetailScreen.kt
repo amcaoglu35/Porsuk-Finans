@@ -60,7 +60,8 @@ fun CompanyDetailScreen(
     symbol: String,
     market: String,
     viewModel: FinanceViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToChart: (String) -> Unit = {}
 ) {
     val cachedInfo by viewModel.getCachedInfo(symbol).collectAsState(initial = null)
     val news by viewModel.getNews(symbol).collectAsState(initial = emptyList())
@@ -344,6 +345,21 @@ fun CompanyDetailScreen(
                             pricePoints = chartData,
                             isGlassStyle = false
                         )
+                        
+                        // Advanced Chart Studio CTA
+                        Button(
+                            onClick = { onNavigateToChart(symbol) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal.copy(alpha = 0.1f), contentColor = PrimaryTeal),
+                            border = BorderStroke(1.dp, PrimaryTeal.copy(alpha = 0.2f))
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.TrendingUp, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Advanced Chart Studio'da Aç", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
             }
