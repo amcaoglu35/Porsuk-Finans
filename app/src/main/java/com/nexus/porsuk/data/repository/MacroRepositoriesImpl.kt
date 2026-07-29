@@ -1,11 +1,12 @@
 package com.nexus.porsuk.data.repository
 
+import com.nexus.porsuk.core.common.NetworkResult
+import com.nexus.porsuk.data.local.dao.AssetDao
+import com.nexus.porsuk.data.local.entity.MacroDataEntity
+import com.nexus.porsuk.data.remote.datasource.FredRemoteDataSource
 import com.nexus.porsuk.domain.model.*
 import com.nexus.porsuk.domain.repository.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,129 +20,88 @@ class MacroRepositoryImpl @Inject constructor() : MacroRepository {
 }
 
 @Singleton
-class MacroIndicatorRepositoryImpl @Inject constructor() : MacroIndicatorRepository {
+class MacroIndicatorRepositoryImpl @Inject constructor(
+    private val fredDataSource: FredRemoteDataSource,
+    private val assetDao: AssetDao
+) : MacroIndicatorRepository {
 
-    private val defaultIndicators = listOf(
-        EconomicIndicator(
-            indicatorId = "ind_cpi_tr",
-            name = "Türkiye Tüketici Fiyat Endeksi (CPI Yıllık)",
-            countryCode = "TR",
-            category = MacroIndicatorCategory.INFLATION,
-            provider = MacroProviderType.TCMB_TURKEY,
-            currentValue = 71.60,
-            previousValue = 75.45,
-            forecastValue = 70.20
-        ),
-        EconomicIndicator(
-            indicatorId = "ind_cpi_us",
-            name = "ABD Tüketici Fiyat Endeksi (CPI Yıllık)",
-            countryCode = "US",
-            category = MacroIndicatorCategory.INFLATION,
-            provider = MacroProviderType.FRED_US,
-            currentValue = 3.00,
-            previousValue = 3.30,
-            forecastValue = 3.10
-        ),
-        EconomicIndicator(
-            indicatorId = "ind_pmi_us",
-            name = "ABD İmalat PMI Endeksi (ISM Manufacturing)",
-            countryCode = "US",
-            category = MacroIndicatorCategory.PMI,
-            provider = MacroProviderType.FRED_US,
-            currentValue = 48.5,
-            previousValue = 48.7,
-            forecastValue = 49.0
-        ),
-        EconomicIndicator(
-            indicatorId = "ind_gdp_eu",
-            name = "Euro Bölgesi GSYH Büyümesi (GDP Q/Q)",
-            countryCode = "EU",
-            category = MacroIndicatorCategory.GROWTH,
-            provider = MacroProviderType.ECB_EUROPE,
-            currentValue = 0.3,
-            previousValue = 0.1,
-            forecastValue = 0.2
-        )
+    private val seriesIds = mapOf(
+        "FEDFUNDS" to ("Fed Politika Faizi" to MacroIndicatorCategory.INTEREST_RATE),
+        "CPIAUCSL" to ("ABD Tüketici Enflasyonu (CPI)" to MacroIndicatorCategory.INFLATION),
+        "PPIACO" to ("ABD Üretici Enflasyonu (PPI)" to MacroIndicatorCategory.INFLATION),
+        "GDP" to ("ABD GSYH Büyümesi" to MacroIndicatorCategory.GROWTH),
+        "UNRATE" to ("ABD İşsizlik Oranı" to MacroIndicatorCategory.EMPLOYMENT),
+        "DGS10" to ("ABD 10 Yıllık Tahvil Faizi" to MacroIndicatorCategory.BONDS),
+        "DGS02" to ("ABD 2 Yıllık Tahvil Faizi" to MacroIndicatorCategory.BONDS),
+        "VIXCLS" to ("VIX Korku Endeksi" to MacroIndicatorCategory.VOLATILITY_FX),
+        "DTWEXBGS" to ("Dolar Endeksi (DXY)" to MacroIndicatorCategory.VOLATILITY_FX),
+        "M2SL" to ("ABD M2 Para Arzı" to MacroIndicatorCategory.GROWTH),
+        "UMCSENT" to ("Tüketici Güven Endeksi" to MacroIndicatorCategory.GROWTH)
     )
 
-    private val indicatorsState = MutableStateFlow(defaultIndicators)
-
-    override fun getEconomicIndicators(): Flow<List<EconomicIndicator>> = indicatorsState.asStateFlow()
+    override fun getEconomicIndicators(): Flow<List<EconomicIndicator>> = flow {
+        val indicators = seriesIds.map { (id, info) ->
+            val history = assetDao.getMacroData(id).first()
+            val latest = history.lastOrNull()
+            val previous = if (history.size > 1) history[history.size - 2] else null
+            
+            EconomicIndicator(
+                indicatorId = id,
+                name = info.first,
+                countryCode = "US",
+                category = info.second,
+                provider = MacroProviderType.FRED_US,
+                currentValue = latest?.value ?: 0.0,
+                previousValue = previous?.value ?: 0.0,
+                unit = if (id.contains("RATE") || id.contains("DGS") || id.contains("FUNDS")) "%" else ""
+            )
+        }
+        emit(indicators)
+    }
 
     override fun getIndicatorsByCategory(category: MacroIndicatorCategory): Flow<List<EconomicIndicator>> {
-        return indicatorsState.map { list -> list.filter { it.category == category } }
+        return getEconomicIndicators().map { list -> list.filter { it.category == category } }
+    }
+
+    override suspend fun refreshIndicators(): Result<Unit> {
+        seriesIds.keys.forEach { seriesId ->
+            val result = fredDataSource.getObservations(seriesId)
+            if (result is NetworkResult.Success) {
+                val entities = result.data.observations?.map { obs ->
+                    MacroDataEntity(
+                        seriesId = seriesId,
+                        date = obs.date,
+                        value = obs.value.toDoubleOrNull() ?: 0.0
+                    )
+                } ?: emptyList()
+                assetDao.insertMacroData(entities)
+            }
+        }
+        return Result.success(Unit)
+    }
+
+    override fun getIndicatorHistory(indicatorId: String): Flow<List<Double>> {
+        return assetDao.getMacroData(indicatorId).map { list -> list.map { it.value } }
     }
 }
 
 @Singleton
 class CentralBankRepositoryImpl @Inject constructor() : CentralBankRepository {
-
-    private val defaultPolicies = listOf(
-        CentralBankPolicy(
-            bankType = CentralBankType.TCMB,
-            policyRatePct = 50.0,
-            statementSummary = "Parasal sıkılaşma kararlılıkla sürdürülecektir."
-        ),
-        CentralBankPolicy(
-            bankType = CentralBankType.FED,
-            policyRatePct = 5.25,
-            statementSummary = "Faiz indirimi kararı öncesi enflasyonun %2 hedefine ilerlediğinden emin olunacaktır."
-        ),
-        CentralBankPolicy(
-            bankType = CentralBankType.ECB,
-            policyRatePct = 4.25,
-            statementSummary = "Faiz patikası gelen ekonomik verilere göre toplantı bazlı belirlenecektir."
-        )
-    )
-
-    private val policiesState = MutableStateFlow(defaultPolicies)
-
-    override fun getCentralBankPolicies(): Flow<List<CentralBankPolicy>> = policiesState.asStateFlow()
-
-    override suspend fun getPolicyDetails(bank: CentralBankType): CentralBankPolicy? {
-        return policiesState.value.find { it.bankType == bank }
-    }
+    override fun getCentralBankPolicies(): Flow<List<CentralBankPolicy>> = flowOf(emptyList())
+    override suspend fun getPolicyDetails(bank: CentralBankType): CentralBankPolicy? = null
 }
 
 @Singleton
 class BondRepositoryImpl @Inject constructor() : BondRepository {
-
-    private val defaultBonds = listOf(
-        BondYieldItem(bondSymbol = "US10Y", countryName = "ABD 10Y Tahvil", maturityYears = 10, yieldPct = 4.28, changePct = -0.42),
-        BondYieldItem(bondSymbol = "US02Y", countryName = "ABD 2Y Tahvil", maturityYears = 2, yieldPct = 4.45, changePct = -0.68),
-        BondYieldItem(bondSymbol = "TR10Y", countryName = "Türkiye 10Y Tahvil", maturityYears = 10, yieldPct = 28.50, changePct = -1.15),
-        BondYieldItem(bondSymbol = "DE10Y", countryName = "Almanya 10Y Bund", maturityYears = 10, yieldPct = 2.45, changePct = +0.12)
-    )
-
-    private val bondsState = MutableStateFlow(defaultBonds)
-
-    override fun getGovernmentBondYields(): Flow<List<BondYieldItem>> = bondsState.asStateFlow()
+    override fun getGovernmentBondYields(): Flow<List<BondYieldItem>> = flowOf(emptyList())
 }
 
 @Singleton
 class FXRepositoryImpl @Inject constructor() : FXRepository {
-    private val defaultFx = mapOf(
-        "USD/TRY" to 32.85,
-        "EUR/TRY" to 35.60,
-        "EUR/USD" to 1.084,
-        "GBP/USD" to 1.292,
-        "DXY" to 104.35
-    )
-
-    override fun getMajorFxCrosses(): Flow<Map<String, Double>> = MutableStateFlow(defaultFx).asStateFlow()
+    override fun getMajorFxCrosses(): Flow<Map<String, Double>> = flowOf(emptyMap())
 }
 
 @Singleton
 class MacroCommodityRepositoryImpl @Inject constructor() : MacroCommodityRepository {
-
-    private val defaultCommodities = listOf(
-        CommodityItem(commoditySymbol = "XAU-USD", name = "Ons Altın", category = "Değerli Metal", priceUSD = 2415.50, changePct = 1.15),
-        CommodityItem(commoditySymbol = "BRENT", name = "Brent Petrol", category = "Enerji", priceUSD = 84.20, changePct = -0.85),
-        CommodityItem(commoditySymbol = "WTI", name = "WTI Ham Petrol", category = "Enerji", priceUSD = 80.40, changePct = -0.92),
-        CommodityItem(commoditySymbol = "COPPER", name = "Bakır (Copper)", category = "Sanayi Metali", priceUSD = 4.35, changePct = 0.45)
-    )
-
-    private val commoditiesState = MutableStateFlow(defaultCommodities)
-
-    override fun getCommodityPrices(): Flow<List<CommodityItem>> = commoditiesState.asStateFlow()
+    override fun getCommodityPrices(): Flow<List<CommodityItem>> = flowOf(emptyList())
 }

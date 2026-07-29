@@ -2,80 +2,66 @@ package com.nexus.porsuk.feature.macro
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nexus.porsuk.domain.model.*
-import com.nexus.porsuk.domain.repository.*
+import com.nexus.porsuk.domain.model.MacroDashboardTab
+import com.nexus.porsuk.domain.model.MacroIndicatorCategory
+import com.nexus.porsuk.domain.repository.MacroIndicatorRepository
+import com.nexus.porsuk.domain.repository.MacroRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * Porsuk Macro Intelligence Platform — ViewModel
- *
- * Küresel makroekonomik göstergeleri, merkez bankası politikalarını, tahvil getirilerini ve AI duruşunu yönetir.
- */
 @HiltViewModel
 class MacroIntelligenceViewModel @Inject constructor(
-    private val macroRepository: MacroRepository,
-    private val indicatorRepository: MacroIndicatorRepository,
-    private val centralBankRepository: CentralBankRepository,
-    private val bondRepository: BondRepository,
-    private val fxRepository: FXRepository,
-    private val commodityRepository: MacroCommodityRepository
+    macroRepository: MacroRepository,
+    private val indicatorRepository: MacroIndicatorRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MacroIntelligenceUiState())
-    val uiState: StateFlow<MacroIntelligenceUiState> = _uiState.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    private val _activeTab = MutableStateFlow(MacroDashboardTab.INFLATION)
+
+    val uiState: StateFlow<MacroIntelligenceUiState> = combine(
+        indicatorRepository.getEconomicIndicators(),
+        macroRepository.getMacroAiOutlook(),
+        _activeTab,
+        _isLoading
+    ) { indicators, outlook, tab, loading ->
+        MacroIntelligenceUiState(
+            indicators = indicators.filter { it.category == categoryFromTab(tab) },
+            aiOutlook = outlook,
+            activeTab = tab,
+            isLoading = loading
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MacroIntelligenceUiState(activeTab = MacroDashboardTab.INFLATION))
 
     init {
-        loadMacroData()
+        refreshMacro()
     }
 
     fun selectTab(tab: MacroDashboardTab) {
-        _uiState.update { it.copy(activeTab = tab) }
+        _activeTab.value = tab
     }
 
-    fun selectProvider(provider: MacroProviderType) {
-        _uiState.update { it.copy(selectedProvider = provider) }
-    }
-
-    private fun loadMacroData() {
+    fun refreshMacro() {
         viewModelScope.launch {
-            launch {
-                macroRepository.getMacroAiOutlook().collect { outlook ->
-                    _uiState.update { it.copy(aiOutlook = outlook, isLoading = false) }
-                }
-            }
+            _isLoading.value = true
+            indicatorRepository.refreshIndicators()
+            _isLoading.value = false
+        }
+    }
 
-            launch {
-                indicatorRepository.getEconomicIndicators().collect { list ->
-                    _uiState.update { it.copy(indicators = list) }
-                }
-            }
+    fun getIndicatorData(seriesId: String): Flow<List<Double>> {
+        return indicatorRepository.getIndicatorHistory(seriesId)
+    }
 
-            launch {
-                centralBankRepository.getCentralBankPolicies().collect { policies ->
-                    _uiState.update { it.copy(centralBankPolicies = policies) }
-                }
-            }
-
-            launch {
-                bondRepository.getGovernmentBondYields().collect { bonds ->
-                    _uiState.update { it.copy(bondYields = bonds) }
-                }
-            }
-
-            launch {
-                fxRepository.getMajorFxCrosses().collect { fx ->
-                    _uiState.update { it.copy(fxCrosses = fx) }
-                }
-            }
-
-            launch {
-                commodityRepository.getCommodityPrices().collect { items ->
-                    _uiState.update { it.copy(commodities = items) }
-                }
-            }
+    private fun categoryFromTab(tab: MacroDashboardTab): MacroIndicatorCategory {
+        return when (tab) {
+            MacroDashboardTab.INFLATION -> MacroIndicatorCategory.INFLATION
+            MacroDashboardTab.GROWTH -> MacroIndicatorCategory.GROWTH
+            MacroDashboardTab.INTEREST_RATES -> MacroIndicatorCategory.INTEREST_RATE
+            MacroDashboardTab.BONDS -> MacroIndicatorCategory.BONDS
+            MacroDashboardTab.FX_COMMODITIES -> MacroIndicatorCategory.VOLATILITY_FX
+            else -> MacroIndicatorCategory.INFLATION
         }
     }
 }

@@ -10,7 +10,9 @@ data class AiLabUiState(
     val chatMessages: List<AiChatMessage> = emptyList(),
     val promptTemplates: List<AiPromptTemplate> = emptyList(),
     val currentReport: AiWorkspaceReport? = null,
-    val naturalLanguageQuery: NaturalLanguageScanQuery = NaturalLanguageScanQuery(),
+    val toolReports: Map<String, String> = emptyMap(), // Tool Name -> Markdown Report
+    val toolLoadingStates: Map<String, Boolean> = emptyMap(),
+    val toolErrorStates: Map<String, String?> = emptyMap(),
     val inputText: String = "",
     val isLoading: Boolean = true,
     val errorMessage: String? = null

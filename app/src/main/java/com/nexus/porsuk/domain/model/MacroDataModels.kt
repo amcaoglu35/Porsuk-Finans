@@ -32,10 +32,11 @@ enum class CentralBankType(val displayName: String, val countryCode: String, val
 enum class MacroIndicatorCategory(val displayName: String) {
     INFLATION("Enflasyon (CPI / PPI)"),
     GROWTH("Büyüme & GSYH (GDP)"),
-    PMI("Satın Alma Yöneticileri Endeksi (PMI)"),
-    EMPLOYMENT("İstihdam & İşsizlik (NFP)"),
-    INTEREST_RATE("Politika Faizi & Likidite"),
-    PRODUCTION("Sanayi Üretimi & Kapasite");
+    PMI("PMI Endeksleri"),
+    EMPLOYMENT("İstihdam & İşsizlik"),
+    INTEREST_RATE("Faiz Oranları"),
+    BONDS("Tahvil Piyasası"),
+    VOLATILITY_FX("Volatilite & Döviz");
 }
 
 /**

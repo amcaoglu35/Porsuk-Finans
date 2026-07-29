@@ -27,397 +27,112 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
 import com.nexus.porsuk.data.local.entity.NewsItemEntity
-import com.nexus.porsuk.data.remote.MockNewsItem
 import com.nexus.porsuk.data.remote.RichCompanyDetails
 import com.nexus.porsuk.ui.common.NumberFormatter
 import com.nexus.porsuk.ui.theme.*
 import java.text.DecimalFormat
+
+data class MockNewsItem(
+    val title: String,
+    val source: String,
+    val timeAgo: String
+)
 
 // ============================================================================
 // 1. ADIM: DETAY EKRANI DÖVİZ KURU FORMATLAMA
 // ============================================================================
 @Composable
 fun FormattedCurrencyEquivalents(
-    livePrice: Double,
+    price: Double,
     market: String,
-    numberFormat: String = "TR",
-    usdTryRate: Double = 34.25,
-    eurTryRate: Double = 37.12,
-    modifier: Modifier = Modifier
+    exchangeRates: Map<String, Double>
 ) {
-    val (formattedFirst, formattedSecond) = when (market.uppercase()) {
+    val usdTry = exchangeRates["USDTRY"] ?: exchangeRates["USD"] ?: 34.15
+    val eurTry = exchangeRates["EURTRY"] ?: exchangeRates["EUR"] ?: 36.42
+    
+    val priceInUsd: Double
+    val priceInEur: Double
+    val priceInTry: Double
+    
+    when (market.uppercase()) {
         "NASDAQ", "NYSE" -> {
-            val priceInTry = livePrice * usdTryRate
-            val priceInEur = priceInTry / eurTryRate
-            CurrencyFormatter.formatTRY(priceInTry, numberFormat) to CurrencyFormatter.formatWithSymbol(priceInEur, "€", numberFormat)
+            priceInUsd = price
+            priceInTry = price * usdTry
+            priceInEur = priceInTry / eurTry
         }
-        "FRA", "EURONEXT", "ETR", "EPA", "AMS", "BME" -> {
-            // Avrupa borsaları — EUR cinsinden
-            val priceInTry = livePrice * eurTryRate
-            val priceInUsd = priceInTry / usdTryRate
-            CurrencyFormatter.formatTRY(priceInTry, numberFormat) to CurrencyFormatter.formatWithSymbol(priceInUsd, "$", numberFormat)
-        }
-        "LSE" -> {
-            // Londra Borsası — GBP cinsinden, EUR/GBP ≈ 0.86 ile tahmin
-            val gbpTryRate = eurTryRate * 1.165
-            val priceInTry = livePrice * gbpTryRate
-            val priceInEur = priceInTry / eurTryRate
-            CurrencyFormatter.formatTRY(priceInTry, numberFormat) to CurrencyFormatter.formatWithSymbol(priceInEur, "€", numberFormat)
-        }
-        "SWX" -> {
-            // İsviçre Borsası — CHF cinsinden, EUR/CHF ≈ 0.94 ile tahmin
-            val chfTryRate = eurTryRate * 1.06
-            val priceInTry = livePrice * chfTryRate
-            val priceInUsd = priceInTry / usdTryRate
-            CurrencyFormatter.formatTRY(priceInTry, numberFormat) to CurrencyFormatter.formatWithSymbol(priceInUsd, "$", numberFormat)
+        "BIST", "IST" -> {
+            priceInTry = price
+            priceInUsd = price / usdTry
+            priceInEur = price / eurTry
         }
         else -> {
-            // BIST ve diğerleri — TRY cinsinden
-            val priceInUsd = livePrice / usdTryRate
-            val priceInEur = livePrice / eurTryRate
-            CurrencyFormatter.formatWithSymbol(priceInUsd, "$", numberFormat) to CurrencyFormatter.formatWithSymbol(priceInEur, "€", numberFormat)
+            priceInEur = price
+            priceInTry = price * eurTry
+            priceInUsd = priceInTry / usdTry
         }
     }
 
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(TealSoft.copy(alpha = 0.5f))
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "$formattedFirst  •  $formattedSecond",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = JetBrainsMono,
-            color = SubText
+        CurrencyItem("₺", String.format(java.util.Locale.US, "%,.2f", priceInTry))
+        VerticalDivider(modifier = Modifier.height(24.dp).width(1.dp), color = LineBorder)
+        CurrencyItem("$", String.format(java.util.Locale.US, "%,.2f", priceInUsd))
+        VerticalDivider(modifier = Modifier.height(24.dp).width(1.dp), color = LineBorder)
+        CurrencyItem("€", String.format(java.util.Locale.US, "%,.2f", priceInEur))
+    }
+}
+
+@Composable
+private fun CurrencyItem(symbol: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(symbol, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryTeal)
+        Text(value, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = InkText, fontFamily = IBMPlexMono)
+    }
+}
+
+// ============================================================================
+// 2. ADIM: ANALİZ KARTLARI (LİKİDİTE, VOLATİLİTE, TREND)
+// ============================================================================
+@Composable
+fun MetricAnalysisGrid(
+    peRatio: Double?,
+    dividendYield: Double?,
+    marketCap: String?
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AnalysisMetricCard(
+            title = "Değerleme",
+            value = if (peRatio != null) "F/K: $peRatio" else "N/A",
+            status = if (peRatio != null && peRatio < 15) "İskontolu" else "Normal",
+            color = if (peRatio != null && peRatio < 15) EmeraldNew else Violet,
+            modifier = Modifier.weight(1f)
+        )
+        AnalysisMetricCard(
+            title = "Temettü",
+            value = if (dividendYield != null) "%$dividendYield" else "%0.0",
+            status = if (dividendYield != null && dividendYield > 5) "Yüksek Verim" else "Büyüme",
+            color = if (dividendYield != null && dividendYield > 5) PrimaryTeal else Gold,
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
-// ============================================================================
-// 2. ADIM: ÖZEL CANLI CANVAS GRAFİĞİ (PREMIUM V2)
-// ============================================================================
 @Composable
-fun PremiumLiveCanvasChart(
-    pricePoints: List<Float>,
-    modifier: Modifier = Modifier,
-    isGlassStyle: Boolean = false
-) {
-    val lineAlpha = 0.8f
-    val isPositive = if (pricePoints.size >= 2) pricePoints.last() >= pricePoints.first() else true
-    val chartColor = if (isPositive) PrimaryTeal else NegatifRed
-
-    val containerBg = if (isGlassStyle) Color.White.copy(alpha = 0.10f) else CardNew
-    val containerBorder = if (isGlassStyle) Color.White.copy(alpha = 0.16f) else LineBorder
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(240.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(containerBg)
-            .border(1.dp, containerBorder, RoundedCornerShape(16.dp))
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (pricePoints.isEmpty()) {
-            CircularProgressIndicator(color = PrimaryTeal, strokeWidth = 2.dp)
-        } else if (pricePoints.size < 2) {
-            Text("Veri bekleniyor...", color = SubText, fontSize = 12.sp)
-        } else {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-                
-                val rawMax = pricePoints.maxOrNull() ?: 1f
-                val rawMin = pricePoints.minOrNull() ?: 0f
-                val buffer = (rawMax - rawMin) * 0.15f
-                val maxVal = rawMax + buffer
-                val minVal = rawMin - buffer
-                val valueRange = if (maxVal - minVal == 0f) 1f else maxVal - minVal
-
-                val stepX = width / (pricePoints.size - 1)
-                
-                // 1. Horizontal Grid Lines
-                val gridLines = 3
-                val lineCol = if (isGlassStyle) Color.White.copy(alpha = 0.12f) else LineBorder.copy(alpha = 0.4f)
-                for (i in 0 until gridLines) {
-                    val y = (height / (gridLines - 1)) * i
-                    drawLine(
-                        color = lineCol,
-                        start = androidx.compose.ui.geometry.Offset(0f, y),
-                        end = androidx.compose.ui.geometry.Offset(width, y),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                }
-
-                val strokePath = Path().apply {
-                    val startY = height - ((pricePoints[0] - minVal) / valueRange) * height
-                    moveTo(0f, startY)
-                    
-                    for (i in 1 until pricePoints.size) {
-                        val currentX = i * stepX
-                        val currentY = height - ((pricePoints[i] - minVal) / valueRange) * height
-                        
-                        val prevX = (i - 1) * stepX
-                        val prevY = height - ((pricePoints[i - 1] - minVal) / valueRange) * height
-                        
-                        cubicTo(
-                            prevX + stepX / 2f, prevY,
-                            prevX + stepX / 2f, currentY,
-                            currentX, currentY
-                        )
-                    }
-                }
-
-                // Area Gradient
-                val fillPath = Path().apply {
-                    addPath(strokePath)
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
-                }
-
-                val areaBrush = if (isGlassStyle) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF7CFFC4).copy(alpha = 0.35f),
-                            Color.Transparent
-                        )
-                    )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            chartColor.copy(alpha = 0.25f),
-                            chartColor.copy(alpha = 0.03f),
-                            Color.Transparent
-                        )
-                    )
-                }
-
-                drawPath(
-                    path = fillPath,
-                    brush = areaBrush
-                )
-
-                // Stroke Brush & Glow
-                val strokeBrush = if (isGlassStyle) {
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF7CFFC4),
-                            Color(0xFF22B8D9),
-                            Color(0xFF5CE0F5)
-                        )
-                    )
-                } else {
-                    androidx.compose.ui.graphics.SolidColor(chartColor)
-                }
-
-                // Glow effect
-                if (isGlassStyle) {
-                    drawPath(
-                        path = strokePath,
-                        brush = strokeBrush,
-                        alpha = 0.15f,
-                        style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
-                    )
-                    drawPath(
-                        path = strokePath,
-                        brush = strokeBrush,
-                        alpha = 0.30f,
-                        style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-                    )
-                } else {
-                    drawPath(
-                        path = strokePath,
-                        color = chartColor.copy(alpha = 0.15f),
-                        style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
-                    )
-                }
-
-                // Main Line
-                drawPath(
-                    path = strokePath,
-                    brush = strokeBrush,
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
-                )
-
-                // Indicators
-                if (isGlassStyle) {
-                    val maxValInPoints = pricePoints.maxOrNull() ?: 0f
-                    val maxIndex = pricePoints.indexOf(maxValInPoints)
-                    if (maxIndex != -1) {
-                        val maxPointX = maxIndex * stepX
-                        val maxPointY = height - ((maxValInPoints - minVal) / valueRange) * height
-                        drawCircle(
-                            color = Color(0xFF7CFFC4),
-                            radius = 4.dp.toPx(),
-                            center = androidx.compose.ui.geometry.Offset(maxPointX, maxPointY)
-                        )
-                    }
-
-                    val lastX = width
-                    val lastY = height - ((pricePoints.last() - minVal) / valueRange) * height
-                    
-                    drawCircle(
-                        color = Color(0xFF22B8D9).copy(alpha = 0.4f),
-                        radius = 10.dp.toPx(),
-                        center = androidx.compose.ui.geometry.Offset(lastX, lastY)
-                    )
-                    drawCircle(
-                        color = Color(0xFF22B8D9),
-                        radius = 5.dp.toPx(),
-                        center = androidx.compose.ui.geometry.Offset(lastX, lastY)
-                    )
-                    drawCircle(
-                        color = Color.White,
-                        radius = 2.dp.toPx(),
-                        center = androidx.compose.ui.geometry.Offset(lastX, lastY)
-                    )
-                } else {
-                    val lastX = width
-                    val lastY = height - ((pricePoints.last() - minVal) / valueRange) * height
-                    
-                    drawCircle(
-                        color = chartColor.copy(alpha = 0.2f),
-                        radius = 12.dp.toPx(),
-                        center = androidx.compose.ui.geometry.Offset(lastX, lastY)
-                    )
-                    drawCircle(
-                        color = chartColor,
-                        radius = 5.dp.toPx(),
-                        center = androidx.compose.ui.geometry.Offset(lastX, lastY)
-                    )
-                    drawCircle(
-                        color = Color.White,
-                        radius = 2.dp.toPx(),
-                        center = androidx.compose.ui.geometry.Offset(lastX, lastY)
-                    )
-                }
-
-                // Max/Min Text Labels
-                val labelColor = if (isGlassStyle) android.graphics.Color.parseColor("#99FFFFFF") else android.graphics.Color.parseColor("#64748B")
-                val textPaint = android.graphics.Paint().apply {
-                    color = labelColor
-                    textSize = 28f
-                    typeface = android.graphics.Typeface.create("monospace", android.graphics.Typeface.BOLD)
-                    isAntiAlias = true
-                }
-                
-                val maxFormatted = String.format(java.util.Locale.US, "%.2f", rawMax)
-                val minFormatted = String.format(java.util.Locale.US, "%.2f", rawMin)
-                
-                drawContext.canvas.nativeCanvas.drawText("YÜKSEK: $maxFormatted", 20f, 35f, textPaint)
-                drawContext.canvas.nativeCanvas.drawText("DÜŞÜK: $minFormatted", 20f, height - 15f, textPaint)
-            }
-        }
-    }
-}
-
-// ============================================================================
-// 3. ADIM: DOPDOLU 2X2 İSTATİSTİK GRID'İ
-// ============================================================================
-@Composable
-fun FormattedDetailStatsGrid(
-    details: RichCompanyDetails,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatItemCard(label = "F/K Oranı", value = details.peRatio, modifier = Modifier.weight(1f))
-            StatItemCard(label = "Piyasa Değeri", value = details.marketCap, modifier = Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatItemCard(label = "52H En Yüksek", value = details.week52High, modifier = Modifier.weight(1f))
-            StatItemCard(label = "52H En Düşük", value = details.week52Low, modifier = Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatItemCard(label = "Ödenmiş Sermaye (Lot)", value = details.volume, modifier = Modifier.weight(1f))
-            StatItemCard(label = "Temettü Verimi", value = details.dividendYield, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-fun FormattedDetailStatsGrid(
-    info: CachedCompanyInfo?,
-    fallback: RichCompanyDetails,
-    numberFormat: String = "TR",
-    modifier: Modifier = Modifier
-) {
-    val df = DecimalFormat("#.##")
-    
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatItemCard(
-                label = "F/K Oranı", 
-                value = info?.peRatio?.let { NumberFormatter.format(it, numberFormat) } ?: fallback.peRatio, 
-                modifier = Modifier.weight(1f)
-            )
-            StatItemCard(
-                label = "Piyasa Değeri", 
-                value = info?.marketCap ?: fallback.marketCap, 
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatItemCard(
-                label = "52H En Yüksek", 
-                value = info?.week52High?.let { NumberFormatter.format(it, numberFormat) } ?: fallback.week52High, 
-                modifier = Modifier.weight(1f)
-            )
-            StatItemCard(
-                label = "52H En Düşük", 
-                value = info?.week52Low?.let { NumberFormatter.format(it, numberFormat) } ?: fallback.week52Low,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatItemCard(
-                label = "Ödenmiş Sermaye (Lot)", 
-                value = info?.volume ?: fallback.volume, 
-                modifier = Modifier.weight(1f)
-            )
-            StatItemCard(
-                label = "Temettü Verimi", 
-                value = info?.dividendYield?.let { "%${NumberFormatter.format(it, numberFormat)}" } ?: fallback.dividendYield, 
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-fun StatItemCard(
-    label: String,
+fun AnalysisMetricCard(
+    title: String,
     value: String,
+    status: String,
+    color: Color,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -426,25 +141,84 @@ fun StatItemCard(
         colors = CardDefaults.cardColors(containerColor = CardNew),
         border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = label.uppercase(),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = SubText,
-                letterSpacing = 1.sp
-            )
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(title, fontSize = 10.sp, color = SubText, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = InkText
-            )
+            Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = InkText)
+            Spacer(modifier = Modifier.height(6.dp))
+            Surface(
+                color = color.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    text = status,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// 3. ADIM: GELİŞMİŞ TREND VE HACİM GÖSTERGESİ (CUSTOM CANVAS)
+// ============================================================================
+@Composable
+fun TrendMomentumIndicator(
+    changePercent: Double,
+    volume: String?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Trend & Momentum", fontSize = 11.sp, color = SubText, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (changePercent >= 0) "Yükseliş Trendi" else "Düşüş Trendi",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = InkText
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(if (changePercent >= 0) PositiveGreen else NegatifRed)
+                    )
+                }
+                Text("Hacim: ${volume ?: "N/A"}", fontSize = 10.sp, color = SubText)
+            }
+            
+            // Mini Trend Canvas
+            Canvas(modifier = Modifier.size(width = 80.dp, height = 40.dp)) {
+                val path = Path()
+                path.moveTo(0f, size.height * 0.8f)
+                if (changePercent >= 0) {
+                    path.quadraticTo(size.width * 0.4f, size.height * 0.7f, size.width * 0.6f, size.height * 0.3f)
+                    path.lineTo(size.width, 0f)
+                } else {
+                    path.quadraticTo(size.width * 0.4f, size.height * 0.3f, size.width * 0.6f, size.height * 0.7f)
+                    path.lineTo(size.width, size.height)
+                }
+                
+                drawPath(
+                    path = path,
+                    color = if (changePercent >= 0) PositiveGreen else NegatifRed,
+                    style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                )
+            }
         }
     }
 }
@@ -479,7 +253,7 @@ fun PremiumNewsSection(
 @Composable
 fun PremiumNewsSection(
     news: List<NewsItemEntity>,
-    fallback: List<MockNewsItem>,
+    fallback: List<NewsItemEntity>,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -495,306 +269,179 @@ fun PremiumNewsSection(
             modifier = Modifier.padding(bottom = 4.dp)
         )
       
-        if (news.isNotEmpty()) {
-            news.forEach { item ->
-                NewsItemCard(item.title, item.source, "Canlı", item.sentiment)
-            }
-        } else {
-            fallback.forEach { item ->
-                NewsItemCard(item.title, item.source, item.timeAgo)
-            }
+        val itemsToDisplay = if (news.isNotEmpty()) news else fallback
+        itemsToDisplay.forEach { item ->
+            NewsItemCard(item.title, item.source, "Canlı", item.sentiment)
         }
     }
 }
 
 @Composable
-fun NewsItemCard(title: String, source: String, time: String, sentiment: String? = null) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { /* Habere git */ },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardNew),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = InkText,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = source,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = PrimaryTeal
-                    )
-                    if (!sentiment.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        val (dotColor, sentimentLabel) = when (sentiment) {
-                            "POSITIVE" -> PrimaryTeal to "Olumlu"
-                            "NEGATIVE" -> NegatifRed to "Olumsuz"
-                            else -> SubText to "Nötr"
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(dotColor)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = sentimentLabel,
-                            fontSize = 10.sp,
-                            color = dotColor,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                Text(
-                    text = time,
-                    fontSize = 11.sp,
-                    color = SubText
-                )
-            }
-        }
-    }
-}
-
-// ============================================================================
-// 6. ADIM: YAPAY ZEKA KARTI (PREMIUM V2)
-// ============================================================================
-@Composable
-fun AiSummaryCard(
-    aiText: String?,
-    isLoading: Boolean,
-    hasKey: Boolean,
-    onNavigateToSettings: () -> Unit,
-    onGenerate: () -> Unit,
-    modifier: Modifier = Modifier
+fun NewsItemCard(
+    title: String,
+    source: String,
+    time: String,
+    sentiment: String? = null
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (hasKey) PrimaryTeal.copy(alpha = 0.08f) else BackgroundNew),
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (hasKey) PrimaryTeal.copy(alpha = 0.2f) else LineBorder)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder.copy(alpha = 0.6f))
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(TealSoft),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✨", fontSize = 18.sp)
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(source, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = PrimaryTeal)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("•", fontSize = 9.sp, color = SubText)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(time, fontSize = 9.sp, color = SubText)
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Profesör'ün Yorumu",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = title,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = InkText
+                    color = InkText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
                 )
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            if (!hasKey) {
-                Text(
-                    "Yapay zeka analizlerini görebilmek için lütfen Ayarlar sayfasından bir Gemini API anahtarı ekleyin.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SubText
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onNavigateToSettings,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Ayarlar'a Git")
-                }
-            } else if (isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryTeal, modifier = Modifier.size(24.dp))
-                }
-            } else if (aiText != null) {
-                Text(
-                    aiText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = InkText,
-                    lineHeight = 22.sp
-                )
+            if (sentiment != null) {
+                SentimentDot(sentiment)
             } else {
-                Text(
-                    "Portföyün hakkında yapay zeka yorumu almak ister misin?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SubText
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onGenerate,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Yorum Al")
-                }
+                Icon(Icons.Default.ChevronRight, null, tint = LineBorder, modifier = Modifier.size(16.dp))
             }
         }
     }
 }
 
+@Composable
+fun SentimentDot(sentiment: String) {
+    val color = when (sentiment.uppercase()) {
+        "POSITIVE" -> EmeraldNew
+        "NEGATIVE" -> NegatifRed
+        else -> Gold
+    }
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(color)
+    )
+}
+
 // ============================================================================
-// 7. ADIM: "HAKKINDA" KARTININ METNİNİ BAĞLAYAN PREMIUM BILEŞEN
+// 5. ADIM: ANALİTİK ÖZET (ŞİRKET KARNESİ)
 // ============================================================================
+@Composable
+fun CompanyScorecard(
+    symbol: String,
+    peRatio: Double?,
+    yield: Double?
+) {
+    val score = calculateMockScore(peRatio, yield)
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = PrimaryTeal)
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("ORAKUL ANALİTİK SKOR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.8f))
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("$symbol Karnesi", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            }
+            
+            Box(contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { score / 100f },
+                    modifier = Modifier.size(56.dp),
+                    color = Color.White,
+                    strokeWidth = 6.dp,
+                    trackColor = Color.White.copy(alpha = 0.2f),
+                )
+                Text(score.toString(), fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun FormattedDetailStatsGrid(
+    info: CachedCompanyInfo?,
+    fallback: RichCompanyDetails?,
+    formatType: String = "TR"
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AnalysisMetricCard("F/K Oranı", info?.peRatio?.toString() ?: fallback?.peRatio ?: "-", "Değerleme", PrimaryTeal, Modifier.weight(1f))
+            AnalysisMetricCard("Temettü Verimi", "%${info?.dividendYield ?: fallback?.dividendYield ?: "-"}", "Verim", Gold, Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AnalysisMetricCard("Piyasa Değeri", info?.marketCap ?: fallback?.marketCap ?: "-", "Büyüklük", Violet, Modifier.weight(1f))
+            AnalysisMetricCard("Hacim", info?.volume ?: fallback?.volume ?: "-", "Likidite", AquaNew, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun PremiumLiveCanvasChart(
+    prices: List<Double> = emptyList(),
+    pricePoints: List<Float> = emptyList(),
+    color: Color = PrimaryTeal,
+    isGlassStyle: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val data = if (prices.isNotEmpty()) prices.map { it.toFloat() } else pricePoints
+    Canvas(modifier = modifier.fillMaxSize()) {
+        if (data.size < 2) return@Canvas
+        val max = data.maxOrNull() ?: 1f
+        val min = data.minOrNull() ?: 0f
+        val range = (max - min).coerceAtLeast(0.1f)
+        
+        val path = Path()
+        data.forEachIndexed { index, price ->
+            val x = (index.toFloat() / (data.size - 1)) * size.width
+            val y = (1f - ((price - min) / range).toFloat()) * size.height
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(path, color, style = Stroke(width = 2.dp.toPx()))
+    }
+}
+
 @Composable
 fun CompanyAboutCard(
     symbol: String,
-    info: CachedCompanyInfo?,
-    modifier: Modifier = Modifier
-) {
-    val fallback = com.nexus.porsuk.data.remote.RichOfflineDataEngine.getRichDetailsFor(symbol)
-    val aboutText = info?.about ?: fallback.about
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(CardNew)
-            .border(1.dp, LineBorder, RoundedCornerShape(16.dp))
-            .padding(18.dp)
-    ) {
-        Text(
-            text = "HAKKINDA",
-            color = SubText,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.5.sp
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = aboutText,
-            color = InkText,
-            fontSize = 13.5.sp,
-            lineHeight = 20.sp,
-            fontWeight = FontWeight.Normal
-        )
-    }
-}
-
-// ============================================================================
-// 8. ADIM: GELİŞMİŞ HABER DUYARLILIK ANALİZİ (ITEM 2)
-// ============================================================================
-@Composable
-fun NewsSentimentAnalysisCard(
-    sentimentText: String?,
-    isLoading: Boolean,
-    onAnalyze: () -> Unit,
-    modifier: Modifier = Modifier
+    info: CachedCompanyInfo?
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardNew),
         border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("📊", fontSize = 20.sp)
-                    Text(
-                        "HABER DUYARLILIK ANALİZİ",
-                        fontSize = 11.sp,
-                        fontFamily = JetBrainsMono,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryTeal,
-                        letterSpacing = 1.2.sp
-                    )
-                }
-                
-                if (!isLoading && sentimentText == null) {
-                    TextButton(onClick = onAnalyze) {
-                        Text("Analiz Et", color = PrimaryTeal, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                }
-            }
-
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryTeal, modifier = Modifier.size(24.dp))
-                }
-            } else if (sentimentText != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                val score = remember(sentimentText) {
-                    sentimentText.substringAfter("GENEL_SKOR:").substringBefore("\n").trim().toIntOrNull() ?: 5
-                }
-                val summary = remember(sentimentText) {
-                    sentimentText.substringAfter("ÖZET:").substringBefore("HABERLER:").trim()
-                }
-                
-                val scoreColor = when {
-                    score >= 7 -> PrimaryTeal
-                    score <= 4 -> NegatifRed
-                    else -> Color(0xFFFFA726)
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(
-                            progress = { score / 10f },
-                            modifier = Modifier.size(54.dp),
-                            color = scoreColor,
-                            trackColor = scoreColor.copy(alpha = 0.1f),
-                            strokeWidth = 5.dp,
-                            strokeCap = StrokeCap.Round
-                        )
-                        Text("$score", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = scoreColor, fontFamily = IBMPlexMono)
-                    }
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = InkText,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Text(
-                    "Profesör tarafından haber başlıkları analiz edildi.",
-                    fontSize = 10.sp,
-                    color = SubText,
-                    fontFamily = Manrope
-                )
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Son haberlerin hisse üzerindeki etkisini ve duyarlılık skorunu yapay zeka ile ölçün.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SubText
-                )
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Şirket Hakkında", fontWeight = FontWeight.Bold, color = InkText)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(info?.about ?: "Şirket bilgisi yükleniyor...", fontSize = 12.sp, color = SubText)
         }
     }
+}
+
+private fun calculateMockScore(pe: Double?, yield: Double?): Int {
+    var base = 70
+    if (pe != null && pe < 10) base += 15
+    if (yield != null && yield > 4) base += 10
+    return base.coerceAtMost(98)
 }

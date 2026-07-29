@@ -96,14 +96,21 @@ import com.nexus.porsuk.data.local.db.IpoCorporateConverters
         PorsukBrainMemory::class,
         AiInsightEntry::class,
         MarketQuoteEntity::class,
-        SyncLogEntity::class
+        SyncLogEntity::class,
+        IncomeStatementEntity::class,
+        BalanceSheetEntity::class,
+        CashFlowEntity::class,
+        CompanyRatioEntity::class,
+        MacroDataEntity::class,
+        ExchangeRateEntity::class
     ],
-    version = 45,
+    version = 47,
     exportSchema = false
 )
 @TypeConverters(FundConverters::class, IpoCorporateConverters::class)
 abstract class PorsukDatabase : RoomDatabase() {
 
+    abstract fun exchangeRateDao(): ExchangeRateDao
     abstract fun securityAuditDao(): SecurityAuditDao
     abstract fun cloudSyncDao(): CloudSyncDao
     abstract fun notificationAutomationDao(): NotificationAutomationDao

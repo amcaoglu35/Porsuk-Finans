@@ -1,6 +1,8 @@
 package com.nexus.porsuk.data.remote.datasource
 
 import com.nexus.porsuk.core.common.NetworkResult
+import com.nexus.porsuk.core.network.BaseRemoteDataSource
+import com.nexus.porsuk.core.network.ErrorHandler
 import com.nexus.porsuk.data.remote.api.FinnhubApi
 import com.nexus.porsuk.data.remote.dto.FinnhubCompanyProfileDto
 import com.nexus.porsuk.data.remote.dto.FinnhubMarketStatusDto
@@ -22,33 +24,19 @@ interface FinnhubMarketRemoteDataSource {
  */
 @Singleton
 class FinnhubMarketRemoteDataSourceImpl @Inject constructor(
-    private val finnhubApi: FinnhubApi
-) : FinnhubMarketRemoteDataSource {
+    private val finnhubApi: FinnhubApi,
+    errorHandler: ErrorHandler
+) : BaseRemoteDataSource(errorHandler), FinnhubMarketRemoteDataSource {
 
     override suspend fun getSymbolsForExchange(exchangeCode: String): NetworkResult<List<FinnhubSymbolDto>> {
-        return try {
-            val response = finnhubApi.getSymbols(exchange = exchangeCode)
-            NetworkResult.Success(response)
-        } catch (e: Throwable) {
-            NetworkResult.Exception(e)
-        }
+        return safeApiCall { finnhubApi.getSymbols(exchange = exchangeCode) }
     }
 
     override suspend fun getCompanyProfile(symbol: String): NetworkResult<FinnhubCompanyProfileDto> {
-        return try {
-            val profile = finnhubApi.getCompanyProfile(symbol = symbol)
-            NetworkResult.Success(profile)
-        } catch (e: Throwable) {
-            NetworkResult.Exception(e)
-        }
+        return safeApiCall { finnhubApi.getCompanyProfile(symbol = symbol) }
     }
 
     override suspend fun getMarketStatus(exchangeCode: String): NetworkResult<FinnhubMarketStatusDto> {
-        return try {
-            val status = finnhubApi.getMarketStatus(exchange = exchangeCode)
-            NetworkResult.Success(status)
-        } catch (e: Throwable) {
-            NetworkResult.Exception(e)
-        }
+        return safeApiCall { finnhubApi.getMarketStatus(exchange = exchangeCode) }
     }
 }

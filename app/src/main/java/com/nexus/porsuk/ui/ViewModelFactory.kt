@@ -14,6 +14,7 @@ import com.nexus.porsuk.ui.fund.CreateBasketViewModel
 import com.nexus.porsuk.ui.analysis.AnalysisViewModel
 import com.nexus.porsuk.ui.settings.SettingsViewModel
 import com.nexus.porsuk.ui.orakul.OrakulViewModel
+import com.nexus.porsuk.feature.calendar.CalendarViewModel
 
 import com.nexus.porsuk.data.remote.ApiKeys
 
@@ -109,9 +110,20 @@ class FinanceViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 com.nexus.porsuk.ui.orakul.KaziViewModel(getKaziRepository(context), context) as T
             }
-            modelClass.isAssignableFrom(com.nexus.porsuk.ui.calendar.CalendarViewModel::class.java) -> {
+            modelClass.isAssignableFrom(CalendarViewModel::class.java) -> {
                 @Suppress("UNCHECKED_CAST")
-                com.nexus.porsuk.ui.calendar.CalendarViewModel(repo, sm) as T
+                val db = PorsukDatabase.getDatabase(context.applicationContext)
+                val errorHandler = com.nexus.porsuk.core.network.ErrorHandler()
+                val okHttpClient = okhttp3.OkHttpClient.Builder().build()
+                val retrofit = retrofit2.Retrofit.Builder()
+                    .baseUrl("https://finnhub.io/api/v1/")
+                    .client(okHttpClient)
+                    .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+                    .build()
+                val finnhubApi = retrofit.create(com.nexus.porsuk.data.remote.api.FinnhubApi::class.java)
+                val ds = com.nexus.porsuk.data.remote.datasource.FinnhubRemoteDataSourceImpl(finnhubApi, errorHandler)
+                val calRepo = com.nexus.porsuk.data.repository.CalendarRepositoryImpl(db.calendarDao(), ds)
+                CalendarViewModel(calRepo, repo, sm) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

@@ -45,6 +45,7 @@ object DatabaseModule {
     @Provides fun provideIpoCorporateDao(db: PorsukDatabase): IpoCorporateDao = db.ipoCorporateDao()
     @Provides fun provideAiEngineDao(db: PorsukDatabase): AiEngineDao = db.aiEngineDao()
     @Provides fun providePluginDao(db: PorsukDatabase): PluginDao = db.pluginDao()
+    @Provides fun provideExchangeRateDao(db: PorsukDatabase): ExchangeRateDao = db.exchangeRateDao()
 
     @Provides
     @Singleton
@@ -61,7 +62,9 @@ object DatabaseModule {
     fun provideFinanceRepository(
         assetDao: AssetDao,
         settingsManager: SettingsManager,
-        eventBus: com.nexus.porsuk.core.common.PorsukEventBus
+        eventBus: com.nexus.porsuk.core.common.PorsukEventBus,
+        newsApi: com.nexus.porsuk.data.remote.api.NewsApi,
+        fredRemoteDataSource: com.nexus.porsuk.data.remote.datasource.FredRemoteDataSource
     ): FinanceRepository {
         return FinanceRepository(
             assetDao,
@@ -69,7 +72,9 @@ object DatabaseModule {
             eventBus,
             com.nexus.porsuk.data.remote.FinnhubService(com.nexus.porsuk.data.remote.ApiKeys.FINNHUB),
             com.nexus.porsuk.data.remote.YahooFinanceService(com.nexus.porsuk.data.remote.ApiKeys.YAHOO),
-            settingsManager
+            settingsManager,
+            newsApi,
+            fredRemoteDataSource
         )
     }
 }
@@ -120,4 +125,8 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideAppSettingsRepository(impl: AppSettingsRepositoryImpl): AppSettingsRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideBasketRepository(impl: com.nexus.porsuk.data.repository.BasketRepositoryImpl): com.nexus.porsuk.domain.repository.BasketRepository = impl
 }

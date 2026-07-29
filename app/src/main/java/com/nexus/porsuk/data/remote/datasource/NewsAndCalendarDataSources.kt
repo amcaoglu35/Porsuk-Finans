@@ -1,7 +1,11 @@
 package com.nexus.porsuk.data.remote.datasource
 
 import com.nexus.porsuk.core.common.NetworkResult
+import com.nexus.porsuk.core.network.BaseRemoteDataSource
+import com.nexus.porsuk.core.network.ErrorHandler
 import com.nexus.porsuk.data.local.entity.NewsEntity
+import com.nexus.porsuk.data.remote.api.NewsApi
+import com.nexus.porsuk.data.remote.api.NewsResponseDto
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -9,18 +13,22 @@ import javax.inject.Singleton
  * Porsuk Data Center — Haberler ve KAP Duyuruları Uzak Veri Kaynağı Arayüzü
  */
 interface NewsRemoteDataSource {
-    suspend fun fetchLatestNews(): NetworkResult<List<NewsEntity>>
-    suspend fun fetchNewsForSymbol(symbol: String): NetworkResult<List<NewsEntity>>
+    suspend fun fetchLatestNews(query: String): NetworkResult<NewsResponseDto>
+    suspend fun fetchTopHeadlines(category: String? = null): NetworkResult<NewsResponseDto>
 }
 
 @Singleton
-class NewsRemoteDataSourceImpl @Inject constructor() : NewsRemoteDataSource {
-    override suspend fun fetchLatestNews(): NetworkResult<List<NewsEntity>> {
-        return NetworkResult.Success(emptyList())
+class NewsRemoteDataSourceImpl @Inject constructor(
+    private val newsApi: NewsApi,
+    errorHandler: ErrorHandler
+) : BaseRemoteDataSource(errorHandler), NewsRemoteDataSource {
+    
+    override suspend fun fetchLatestNews(query: String): NetworkResult<NewsResponseDto> {
+        return safeApiCall { newsApi.getNews(query) }
     }
 
-    override suspend fun fetchNewsForSymbol(symbol: String): NetworkResult<List<NewsEntity>> {
-        return NetworkResult.Success(emptyList())
+    override suspend fun fetchTopHeadlines(category: String?): NetworkResult<NewsResponseDto> {
+        return safeApiCall { newsApi.getTopHeadlines(category = category) }
     }
 }
 

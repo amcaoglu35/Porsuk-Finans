@@ -87,6 +87,7 @@ fun CompanyDetailScreen(
     val technicalAnalysis by viewModel.technicalAnalysis.collectAsState()
     val isTechnicalLoading by viewModel.isTechnicalLoading.collectAsState()
 
+    var selectedMainTab by remember { mutableStateOf(0) }
     var selectedInterval by remember { mutableStateOf("G") }
     var showAlarmDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -257,332 +258,353 @@ fun CompanyDetailScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             
                             FormattedCurrencyEquivalents(
-                                livePrice = price,
+                                price = price,
                                 market = market,
-                                numberFormat = numberFormat,
-                                usdTryRate = exchangeRates["USD"] ?: RichOfflineDataEngine.BASE_USD_TRY,
-                                eurTryRate = exchangeRates["EUR"] ?: RichOfflineDataEngine.BASE_EUR_TRY
+                                exchangeRates = exchangeRates
                             )
                         }
                     }
                 }
             }
 
-            // 2. Zaman aralığı sekmeleri + fiyat grafiği
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardNew),
-                    border = BorderStroke(1.dp, LineBorder)
+            // 2. 6 Adet Sekme (Main Tabs Row)
+            item(key = "main_tabs_row") {
+                val mainTabs = listOf("Genel Bakış", "Finansallar", "Analiz", "Haberler", "Kurumsal", "AI Oracle")
+                ScrollableTabRow(
+                    selectedTabIndex = selectedMainTab,
+                    edgePadding = 0.dp,
+                    containerColor = Color.Transparent,
+                    divider = {},
+                    indicator = { tabPositions ->
+                        if (selectedMainTab < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.then(with(TabRowDefaults) { Modifier.tabIndicatorOffset(tabPositions[selectedMainTab]) }),
+                                color = PrimaryTeal,
+                                height = 3.dp
+                            )
+                        }
+                    }
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                IntervalSelector(
-                                    selected = selectedInterval,
-                                    onSelectedChange = { selectedInterval = it }
+                    mainTabs.forEachIndexed { index, tabTitle ->
+                        Tab(
+                            selected = selectedMainTab == index,
+                            onClick = { selectedMainTab = index },
+                            text = {
+                                Text(
+                                    text = tabTitle,
+                                    fontWeight = if (selectedMainTab == index) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 13.sp,
+                                    color = if (selectedMainTab == index) PrimaryTeal else SubText,
+                                    fontFamily = Manrope
                                 )
                             }
-                            if (isHistoryLoading) {
-                                Spacer(modifier = Modifier.width(16.dp))
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = PrimaryTeal
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        val chartData = remember(symbol, selectedInterval, price, change, historicalPrices) {
-                            if (historicalPrices.isNotEmpty()) {
-                                val floatPoints = historicalPrices.map { it.toFloat() }.toMutableList()
-                                if (floatPoints.isNotEmpty() && price > 0.0) {
-                                    floatPoints[floatPoints.size - 1] = price.toFloat()
-                                }
-                                floatPoints
-                            } else {
-                                val random = java.util.Random((symbol.hashCode() + selectedInterval.hashCode()).toLong())
-                                val points = 30
-                                val result = mutableListOf<Float>()
-                                
-                                val basePrice = price.toFloat()
-                                val changePct = change.toFloat()
-                                
-                                val (volatility, trendPct) = when (selectedInterval) {
-                                    "Dk" -> 0.001f to (changePct * 0.02f)
-                                    "S" -> 0.002f to (changePct * 0.08f)
-                                    "G" -> 0.004f to changePct
-                                    "A" -> 0.015f to (changePct * 2.5f)
-                                    "Y" -> 0.035f to (changePct * 6f)
-                                    else -> 0.004f to changePct
-                                }
-
-                                val startPrice = basePrice / (1f + trendPct / 100f)
-                                var current = startPrice
-                                result.add(current)
-                                
-                                val stepTrend = (basePrice - startPrice) / (points - 1)
-                                for (i in 1 until points) {
-                                    val expectedTrend = startPrice + stepTrend * i
-                                    val noise = (random.nextFloat() - 0.5f) * basePrice * volatility
-                                    val valAtPoint = (expectedTrend + noise).coerceAtLeast(0.01f)
-                                    result.add(valAtPoint)
-                                }
-                                
-                                if (result.isNotEmpty() && basePrice > 0f) {
-                                    result[result.size - 1] = basePrice
-                                }
-                                result
-                            }
-                        }
-                        PremiumLiveCanvasChart(
-                            pricePoints = chartData,
-                            isGlassStyle = false
                         )
-                        
-                        // Advanced Chart Studio CTA
+                    }
+                }
+            }
+            // 0. Genel Bakış Sekmesi
+            if (selectedMainTab == 0) {
+                item(key = "tab_overview_chart") {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().height(300.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardNew),
+                        border = BorderStroke(1.dp, LineBorder)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    IntervalSelector(
+                                        selected = selectedInterval,
+                                        onSelectedChange = { selectedInterval = it }
+                                    )
+                                }
+                                if (isHistoryLoading) {
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = PrimaryTeal
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            val chartData = remember(symbol, selectedInterval, price, change, historicalPrices) {
+                                if (historicalPrices.isNotEmpty()) {
+                                    val floatPoints = historicalPrices.map { it.toFloat() }.toMutableList()
+                                    if (floatPoints.isNotEmpty() && price > 0.0) {
+                                        floatPoints[floatPoints.size - 1] = price.toFloat()
+                                    }
+                                    floatPoints
+                                } else {
+                                    if (price > 0.0) listOf(price.toFloat(), price.toFloat()) else emptyList()
+                                }
+                            }
+                            PremiumLiveCanvasChart(
+                                pricePoints = chartData,
+                                isGlassStyle = false
+                            )
+                            
+                            Button(
+                                onClick = { onNavigateToChart(symbol) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal.copy(alpha = 0.1f), contentColor = PrimaryTeal),
+                                border = BorderStroke(1.dp, PrimaryTeal.copy(alpha = 0.2f))
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.TrendingUp, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Advanced Chart Studio'da Aç", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+
+                item(key = "tab_overview_technical") {
+                    TechnicalAnalysisSection(
+                        analysis = technicalAnalysis,
+                        isLoading = isTechnicalLoading
+                    )
+                }
+
+                item(key = "tab_overview_stats") {
+                    FormattedDetailStatsGrid(info = cachedInfo, fallback = offlineData, formatType = numberFormat)
+                }
+            }
+
+            // 1. Finansallar Sekmesi
+            if (selectedMainTab == 1) {
+                item(key = "tab_financials") {
+                    FinancialStatementsTabSection(symbol = symbol, viewModel = viewModel)
+                }
+            }
+
+            // 2. Analiz Sekmesi
+            if (selectedMainTab == 2) {
+                item(key = "tab_analysis_ai_cta") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Button(
-                            onClick = { onNavigateToChart(symbol) },
+                            onClick = { viewModel.getAiAnalysis(symbol) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 12.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal.copy(alpha = 0.1f), contentColor = PrimaryTeal),
-                            border = BorderStroke(1.dp, PrimaryTeal.copy(alpha = 0.2f))
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Brush.horizontalGradient(listOf(PrimaryTeal, AquaNew))),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.TrendingUp, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Advanced Chart Studio'da Aç", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        }
-                    }
-                }
-            }
-
-            // 3. Teknik Gösterge Radarı (AL/SAT sinyali + RSI + MACD + Bollinger)
-            item {
-                TechnicalAnalysisSection(
-                    analysis = technicalAnalysis,
-                    isLoading = isTechnicalLoading
-                )
-            }
-
-            // 4. Yapay Zeka Yorumu Al CTA
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Button(
-                        onClick = { viewModel.getAiAnalysis(symbol) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(PrimaryTeal, AquaNew))),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                    ) {
-                        if (isAiLoading) {
-                            CircularProgressIndicator(color = CardNew, modifier = Modifier.size(24.dp))
-                        } else {
-                            Text("✨ Yapay Zeka Yorumu Al", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, color = Color.White, fontFamily = Manrope))
-                        }
-                    }
-
-                    if (!aiAnalysis.isNullOrBlank()) {
-                        val parsedAnalysis = remember(aiAnalysis) {
-                            val text = aiAnalysis ?: ""
-                            if (text.contains("---")) {
-                                val header = text.substringBefore("---")
-                                val content = text.substringAfter("---").trim()
-                                val lines = header.lines()
-                                val oeagi = lines.find { it.contains("O-EAGI SKORU") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
-                                val graham = lines.find { it.contains("GÜVENLİK MARJI") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
-                                val newsScore = lines.find { it.contains("HABER ENTROPİSİ") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
-                                val momentum = lines.find { it.contains("MOMENTUM") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
-                                val sector = lines.find { it.contains("SEKTÖR ALFA") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
-                                
-                                OeagiAnalysisResult(
-                                    oeagiScore = oeagi,
-                                    grahamScore = graham,
-                                    newsScore = newsScore,
-                                    momentumScore = momentum,
-                                    sectorScore = sector,
-                                    commentary = content
-                                )
+                            if (isAiLoading) {
+                                CircularProgressIndicator(color = CardNew, modifier = Modifier.size(24.dp))
                             } else {
-                                OeagiAnalysisResult(commentary = text)
+                                Text("✨ Yapay Zeka Yorumu Al", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, color = Color.White, fontFamily = Manrope))
                             }
                         }
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = CardNew),
-                            border = BorderStroke(1.dp, LineBorder)
-                        ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(PrimaryTeal)
+                        if (!aiAnalysis.isNullOrBlank()) {
+                            val parsedAnalysis = remember(aiAnalysis) {
+                                val text = aiAnalysis ?: ""
+                                if (text.contains("---")) {
+                                    val header = text.substringBefore("---")
+                                    val content = text.substringAfter("---").trim()
+                                    val lines = header.lines()
+                                    val oeagi = lines.find { it.contains("O-EAGI SKORU") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                                    val graham = lines.find { it.contains("GÜVENLİK MARJI") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                                    val newsScore = lines.find { it.contains("HABER ENTROPİSİ") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                                    val momentum = lines.find { it.contains("MOMENTUM") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                                    val sector = lines.find { it.contains("SEKTÖR ALFA") }?.substringAfter(":")?.trim()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                                    
+                                    OeagiAnalysisResult(
+                                        oeagiScore = oeagi,
+                                        grahamScore = graham,
+                                        newsScore = newsScore,
+                                        momentumScore = momentum,
+                                        sectorScore = sector,
+                                        commentary = content
                                     )
-                                    Text(
-                                        "ORAKUL O-EAGI ANALİZ RAPORU",
-                                        fontSize = 11.sp,
-                                        fontFamily = JetBrainsMono,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PrimaryTeal,
-                                        letterSpacing = 1.5.sp
-                                    )
+                                } else {
+                                    OeagiAnalysisResult(commentary = text)
                                 }
-                                
-                                if (parsedAnalysis.oeagiScore > 0) {
-                                    Spacer(modifier = Modifier.height(20.dp))
-                                    
-                                    val scoreColor = when {
-                                        parsedAnalysis.oeagiScore >= 75 -> PrimaryTeal
-                                        parsedAnalysis.oeagiScore >= 45 -> Color(0xFFFFA726)
-                                        else -> NegatifRed
-                                    }
-                                    val scoreLabel = when {
-                                        parsedAnalysis.oeagiScore >= 75 -> "Güçlü AL (Simsar Tercihi)"
-                                        parsedAnalysis.oeagiScore >= 45 -> "BEKLE (Nötr Seviye)"
-                                        else -> "SAT (Riskli Bölge)"
-                                    }
-                                    
+                            }
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = CardNew),
+                                border = BorderStroke(1.dp, LineBorder)
+                            ) {
+                                Column(modifier = Modifier.padding(20.dp)) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(20.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier.size(90.dp)
-                                        ) {
-                                            CircularProgressIndicator(
-                                                progress = { parsedAnalysis.oeagiScore / 100f },
-                                                modifier = Modifier.fillMaxSize(),
-                                                color = scoreColor,
-                                                trackColor = scoreColor.copy(alpha = 0.1f),
-                                                strokeWidth = 7.dp,
-                                                strokeCap = StrokeCap.Round
-                                            )
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(
-                                                    text = "${parsedAnalysis.oeagiScore}",
-                                                    fontSize = 24.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    fontFamily = JetBrainsMono,
-                                                    color = scoreColor
-                                                )
-                                                Text(
-                                                    text = "O-EAGI",
-                                                    fontSize = 8.sp,
-                                                    fontFamily = JetBrainsMono,
-                                                    color = SubText,
-                                                    letterSpacing = 0.5.sp
-                                                )
-                                            }
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(PrimaryTeal)
+                                        )
+                                        Text(
+                                            "ORAKUL O-EAGI ANALİZ RAPORU",
+                                            fontSize = 11.sp,
+                                            fontFamily = JetBrainsMono,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryTeal,
+                                            letterSpacing = 1.5.sp
+                                        )
+                                    }
+                                    
+                                    if (parsedAnalysis.oeagiScore > 0) {
+                                        Spacer(modifier = Modifier.height(20.dp))
+                                        
+                                        val scoreColor = when {
+                                            parsedAnalysis.oeagiScore >= 75 -> PrimaryTeal
+                                            parsedAnalysis.oeagiScore >= 45 -> Color(0xFFFFA726)
+                                            else -> NegatifRed
+                                        }
+                                        val scoreLabel = when {
+                                            parsedAnalysis.oeagiScore >= 75 -> "Güçlü AL (Simsar Tercihi)"
+                                            parsedAnalysis.oeagiScore >= 45 -> "BEKLE (Nötr Seviye)"
+                                            else -> "SAT (Riskli Bölge)"
                                         }
                                         
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = scoreLabel,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = scoreColor
-                                            )
+                                            Box(
+                                                contentAlignment = Alignment.Center,
+                                                modifier = Modifier.size(90.dp)
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    progress = { parsedAnalysis.oeagiScore / 100f },
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    color = scoreColor,
+                                                    trackColor = scoreColor.copy(alpha = 0.1f),
+                                                    strokeWidth = 7.dp,
+                                                    strokeCap = StrokeCap.Round
+                                                )
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text(
+                                                        text = "${parsedAnalysis.oeagiScore}",
+                                                        fontSize = 24.sp,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        fontFamily = JetBrainsMono,
+                                                        color = scoreColor
+                                                    )
+                                                    Text(
+                                                        text = "O-EAGI",
+                                                        fontSize = 8.sp,
+                                                        fontFamily = JetBrainsMono,
+                                                        color = SubText,
+                                                        letterSpacing = 0.5.sp
+                                                    )
+                                                }
+                                            }
                                             
-                                            SubScoreRow("Güvenlik Marjı", parsedAnalysis.grahamScore, scoreColor)
-                                            SubScoreRow("Haber Entropisi", parsedAnalysis.newsScore, scoreColor)
-                                            SubScoreRow("Momentum İvmesi", parsedAnalysis.momentumScore, scoreColor)
-                                            SubScoreRow("Sektörel Alfa", parsedAnalysis.sectorScore, scoreColor)
+                                            Column(
+                                                modifier = Modifier.weight(1f),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = scoreLabel,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = scoreColor
+                                                )
+                                                
+                                                SubScoreRow("Güvenlik Marjı", parsedAnalysis.grahamScore, scoreColor)
+                                                SubScoreRow("Haber Entropisi", parsedAnalysis.newsScore, scoreColor)
+                                                SubScoreRow("Momentum İvmesi", parsedAnalysis.momentumScore, scoreColor)
+                                                SubScoreRow("Sektörel Alfa", parsedAnalysis.sectorScore, scoreColor)
+                                            }
                                         }
                                     }
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    HorizontalDivider(color = LineBorder)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    MarkdownText(
+                                        markdown = parsedAnalysis.commentary,
+                                        style = androidx.compose.ui.text.TextStyle(
+                                            color = InkText,
+                                            fontSize = 14.sp,
+                                            fontFamily = Manrope,
+                                            lineHeight = 22.sp
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
                                 }
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                HorizontalDivider(color = LineBorder)
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                MarkdownText(
-                                    markdown = parsedAnalysis.commentary,
-                                    style = androidx.compose.ui.text.TextStyle(
-                                        color = InkText,
-                                        fontSize = 14.sp,
-                                        fontFamily = Manrope,
-                                        lineHeight = 22.sp
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
                             }
                         }
                     }
                 }
+
+                item(key = "tab_analysis_graham") {
+                    GrahamFairValueCard(symbol = symbol, currentPrice = price)
+                }
+
+                item(key = "tab_analysis_dcf") {
+                    DcfSimulatorCard(symbol = symbol, currentPrice = price)
+                }
+
+                item(key = "tab_analysis_moat") {
+                    AiMoatAnalysisCard(symbol = symbol)
+                }
+
+                item(key = "tab_analysis_accordion") {
+                    DeepAnalysisAccordion(symbol = symbol)
+                }
             }
 
-            // 5. Orakul Adil Değer (Graham Hesabı)
-            item {
-                GrahamFairValueCard(symbol = symbol, currentPrice = price)
+            // 3. Haberler Sekmesi
+            if (selectedMainTab == 3) {
+                item(key = "tab_news_sentiment") {
+                    NewsSentimentCard(
+                        symbol = symbol,
+                        newsSentiment = newsSentiment,
+                        isLoading = isNewsSentimentLoading,
+                        onAnalyze = { viewModel.analyzeNewsSentiment(symbol) }
+                    )
+                }
+
+                item(key = "tab_news_list") {
+                    val fallbackNews = offlineData.news
+                    PremiumNewsSection(news = news, fallback = fallbackNews)
+                }
             }
 
-            // 5a. DCF İçsel Değer Simülatörü
-            item {
-                DcfSimulatorCard(symbol = symbol, currentPrice = price)
+            // 4. Kurumsal Sekmesi
+            if (selectedMainTab == 4) {
+                item(key = "tab_corporate_about") {
+                    CompanyAboutCard(symbol = symbol, info = cachedInfo)
+                }
+
+                item(key = "tab_corporate_actions") {
+                    CorporateActionsIntelligenceSection(symbol = symbol, viewModel = viewModel)
+                }
             }
 
-            // 5b. Buffett Ekonomik Hendek (Moat) Skoru
-            item {
-                AiMoatAnalysisCard(symbol = symbol)
-            }
-
-            // 5c. Derin Analiz Akordeon Modülleri (7 Adet Derin Analiz)
-            item {
-                DeepAnalysisAccordion(symbol = symbol)
-            }
-
-            // 5d. Corporate Actions & Dividends (NEW Intelligence Module)
-            item {
-                CorporateActionsIntelligenceSection(symbol = symbol, viewModel = viewModel)
-            }
-
-            // 6. Orakul Haber Duyarlılığı kartı + CTA
-            item {
-                NewsSentimentCard(
-                    symbol = symbol,
-                    newsSentiment = newsSentiment,
-                    isLoading = isNewsSentimentLoading,
-                    onAnalyze = { viewModel.analyzeNewsSentiment(symbol) }
-                )
-            }
-
-            // 7. İstatistik grid'i
-            item {
-                FormattedDetailStatsGrid(info = cachedInfo, fallback = offlineData, numberFormat = numberFormat)
-            }
-
-            // 8. Hakkında
-            item {
-                CompanyAboutCard(symbol = symbol, info = cachedInfo)
-            }
-
-            // 9. Son Haberler listesi
-            item {
-                PremiumNewsSection(news = news, fallback = offlineData.news)
+            // 5. AI Oracle Sekmesi
+            if (selectedMainTab == 5) {
+                item(key = "tab_ai_oracle") {
+                    AiOracleTabCard(
+                        symbol = symbol,
+                        price = price,
+                        market = market,
+                        viewModel = viewModel
+                    )
+                }
             }
         }
     }
@@ -2167,6 +2189,196 @@ fun AiMoatAnalysisCard(symbol: String) {
                         lineHeight = 15.sp
                     )
                 }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FİNANSAL TABLOLAR SEKME İÇERİĞİ (FMP API Real Data)
+// ─────────────────────────────────────────────────────────────────────────
+@Composable
+fun FinancialStatementsTabSection(
+    symbol: String,
+    viewModel: FinanceViewModel
+) {
+    val incomeStatements by viewModel.getIncomeStatements(symbol).collectAsState(initial = emptyList())
+    val balanceSheets by viewModel.getBalanceSheets(symbol).collectAsState(initial = emptyList())
+    val cashFlows by viewModel.getCashFlows(symbol).collectAsState(initial = emptyList())
+    val companyRatios by viewModel.getCompanyRatios(symbol).collectAsState(initial = emptyList())
+    val numberFormat by viewModel.numberFormat.collectAsState()
+
+    var selectedSubTab by remember { mutableStateOf(0) }
+    val subTabs = listOf("Gelir Tablosu", "Bilanço", "Nakit Akışı", "Rasyolar")
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = BorderStroke(1.dp, LineBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = "📊 FİNANSAL TABLOLAR & PERFORMANS",
+                fontSize = 12.sp,
+                fontFamily = JetBrainsMono,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryTeal,
+                letterSpacing = 1.sp
+            )
+
+            ScrollableTabRow(
+                selectedTabIndex = selectedSubTab,
+                edgePadding = 0.dp,
+                containerColor = BackgroundNew,
+                divider = {},
+                indicator = {},
+                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+            ) {
+                subTabs.forEachIndexed { idx, title ->
+                    Tab(
+                        selected = selectedSubTab == idx,
+                        onClick = { selectedSubTab = idx },
+                        text = {
+                            Text(
+                                title,
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedSubTab == idx) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedSubTab == idx) PrimaryTeal else SubText
+                            )
+                        }
+                    )
+                }
+            }
+
+            when (selectedSubTab) {
+                0 -> { // Gelir Tablosu
+                    val latestIncome = incomeStatements.firstOrNull()
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FinancialRow("Satış Gelirleri (Revenue)", latestIncome?.revenue ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Brüt Kâr (Gross Profit)", latestIncome?.grossProfit ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Faiz/Vergi Öncesi Kâr (EBITDA)", latestIncome?.ebitda ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Net Kâr (Net Income)", latestIncome?.netIncome ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Hisse Başıına Kâr (EPS)", latestIncome?.eps ?: 0.0, "", numberFormat)
+                    }
+                }
+                1 -> { // Bilanço
+                    val latestBalance = balanceSheets.firstOrNull()
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FinancialRow("Toplam Varlıklar (Assets)", latestBalance?.totalAssets ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Toplam Yükümlülükler (Liabilities)", latestBalance?.totalLiabilities ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Özkaynaklar (Equity)", latestBalance?.totalEquity ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Net Borç (Net Debt)", latestBalance?.netDebt ?: 0.0, "₺/$", numberFormat)
+                    }
+                }
+                2 -> { // Nakit Akışı
+                    val latestFlow = cashFlows.firstOrNull()
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FinancialRow("İşletme Nakit Akışı", latestFlow?.operatingCashFlow ?: 0.0, "₺/$", numberFormat)
+                        FinancialRow("Serbest Nakit Akışı (FCF)", latestFlow?.freeCashFlow ?: 0.0, "₺/$", numberFormat)
+                    }
+                }
+                3 -> { // Rasyolar
+                    val latestRatio = companyRatios.firstOrNull()
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FinancialRow("Fiyat / Kazanç (F/K - P/E)", latestRatio?.peRatio ?: 0.0, "", numberFormat)
+                        FinancialRow("Piyasa Değeri / Defter Değeri (PD/DD)", latestRatio?.pbRatio ?: 0.0, "", numberFormat)
+                        FinancialRow("Özkaynak Kârlılığı (ROE)", (latestRatio?.roe ?: 0.0) * 100, "%", numberFormat)
+                        FinancialRow("Varlık Kârlılığı (ROA)", (latestRatio?.roa ?: 0.0) * 100, "%", numberFormat)
+                        FinancialRow("Borç / Özkaynak Oranı", latestRatio?.debtToEquity ?: 0.0, "", numberFormat)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FinancialRow(label: String, value: Double, unit: String, format: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 12.sp, color = SubText, fontFamily = Manrope)
+        Text(
+            if (value != 0.0) "${NumberFormatter.format(value, format)} $unit".trim() else "N/A",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = InkText,
+            fontFamily = IBMPlexMono
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// AI ORACLE DOKTRİNİ KARTI (YENİ SEKME)
+// ─────────────────────────────────────────────────────────────────────────
+@Composable
+fun AiOracleTabCard(
+    symbol: String,
+    price: Double,
+    market: String,
+    viewModel: FinanceViewModel
+) {
+    val incomeStatements by viewModel.getIncomeStatements(symbol).collectAsState(initial = emptyList())
+    val companyRatios by viewModel.getCompanyRatios(symbol).collectAsState(initial = emptyList())
+
+    var oracleReport by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(symbol) {
+        isLoading = true
+        oracleReport = viewModel.getAiOracleReport(symbol, price, incomeStatements, companyRatios)
+        isLoading = false
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = BorderStroke(1.dp, LineBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PrimaryTeal))
+                Text(
+                    "🔮 AI ORACLE YATIRIM DOKTRİNİ VE SKORU",
+                    fontSize = 11.sp,
+                    fontFamily = JetBrainsMono,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryTeal,
+                    letterSpacing = 1.2.sp
+                )
+            }
+
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(color = PrimaryTeal, strokeWidth = 3.dp)
+                        Text("AI Oracle finansal doktrini hesaplıyor...", fontSize = 12.sp, color = SubText, fontFamily = Manrope)
+                    }
+                }
+            } else if (!oracleReport.isNullOrBlank()) {
+                MarkdownText(
+                    markdown = oracleReport ?: "",
+                    style = androidx.compose.ui.text.TextStyle(
+                        color = InkText,
+                        fontSize = 13.sp,
+                        fontFamily = Manrope,
+                        lineHeight = 20.sp
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Text(
+                    "AI Oracle raporu henüz oluşturulmadı.",
+                    fontSize = 12.sp,
+                    color = SubText,
+                    fontFamily = Manrope
+                )
             }
         }
     }

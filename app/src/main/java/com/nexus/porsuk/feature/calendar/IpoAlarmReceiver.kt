@@ -1,4 +1,4 @@
-package com.nexus.porsuk.ui.calendar
+package com.nexus.porsuk.feature.calendar
 
 import android.content.BroadcastReceiver
 import android.content.Context

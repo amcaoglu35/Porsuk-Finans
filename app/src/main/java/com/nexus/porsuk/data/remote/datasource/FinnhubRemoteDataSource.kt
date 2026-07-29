@@ -1,44 +1,47 @@
 package com.nexus.porsuk.data.remote.datasource
 
 import com.nexus.porsuk.core.common.NetworkResult
+import com.nexus.porsuk.core.network.BaseRemoteDataSource
+import com.nexus.porsuk.core.network.ErrorHandler
 import com.nexus.porsuk.data.local.entity.CompanyEntity
 import com.nexus.porsuk.data.local.entity.MarketQuoteEntity
+import com.nexus.porsuk.data.remote.api.FinnhubApi
+import com.nexus.porsuk.data.remote.api.FinnhubEconomicCalendarDto
+import com.nexus.porsuk.data.remote.dto.FinnhubCompanyProfileDto
+import com.nexus.porsuk.data.remote.dto.FinnhubQuoteDto
+import com.nexus.porsuk.data.remote.dto.FinnhubSymbolDto
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Porsuk Data Center — Finnhub ve BIST Uzak Veri Kaynağı Arayüzü (Remote Data Source Contract)
+ * Porsuk Data Center — Finnhub Uzak Veri Kaynağı Arayüzü
  */
 interface FinnhubRemoteDataSource {
-    suspend fun fetchAllCompanies(): NetworkResult<List<CompanyEntity>>
-    suspend fun fetchCompanyQuote(symbol: String): NetworkResult<MarketQuoteEntity>
-    suspend fun fetchMarketQuotes(symbols: List<String>): NetworkResult<List<MarketQuoteEntity>>
+    suspend fun fetchSymbols(exchange: String = "US"): NetworkResult<List<FinnhubSymbolDto>>
+    suspend fun fetchCompanyProfile(symbol: String): NetworkResult<FinnhubCompanyProfileDto>
+    suspend fun fetchCompanyQuote(symbol: String): NetworkResult<FinnhubQuoteDto>
+    suspend fun fetchEconomicCalendar(): NetworkResult<FinnhubEconomicCalendarDto>
 }
 
-/**
- * FinnhubRemoteDataSource Somut Sınıfı (Architecture-Ready / Mock & Framework Stub)
- */
 @Singleton
-class FinnhubRemoteDataSourceImpl @Inject constructor() : FinnhubRemoteDataSource {
+class FinnhubRemoteDataSourceImpl @Inject constructor(
+    private val finnhubApi: FinnhubApi,
+    errorHandler: ErrorHandler
+) : BaseRemoteDataSource(errorHandler), FinnhubRemoteDataSource {
 
-    override suspend fun fetchAllCompanies(): NetworkResult<List<CompanyEntity>> {
-        // Gerçek API entegrasyonu aşamasında Retrofit / Ktor çağrısı buraya eklenecektir.
-        return NetworkResult.Success(emptyList())
+    override suspend fun fetchSymbols(exchange: String): NetworkResult<List<FinnhubSymbolDto>> {
+        return safeApiCall { finnhubApi.getSymbols(exchange) }
     }
 
-    override suspend fun fetchCompanyQuote(symbol: String): NetworkResult<MarketQuoteEntity> {
-        return NetworkResult.Success(
-            MarketQuoteEntity(
-                symbol = symbol,
-                currentPrice = 0.0,
-                changeAmount = 0.0,
-                changePct = 0.0,
-                marketType = "BIST"
-            )
-        )
+    override suspend fun fetchCompanyProfile(symbol: String): NetworkResult<FinnhubCompanyProfileDto> {
+        return safeApiCall { finnhubApi.getCompanyProfile(symbol) }
     }
 
-    override suspend fun fetchMarketQuotes(symbols: List<String>): NetworkResult<List<MarketQuoteEntity>> {
-        return NetworkResult.Success(emptyList())
+    override suspend fun fetchCompanyQuote(symbol: String): NetworkResult<FinnhubQuoteDto> {
+        return safeApiCall { finnhubApi.getQuote(symbol) }
+    }
+
+    override suspend fun fetchEconomicCalendar(): NetworkResult<FinnhubEconomicCalendarDto> {
+        return safeApiCall { finnhubApi.getEconomicCalendar() }
     }
 }

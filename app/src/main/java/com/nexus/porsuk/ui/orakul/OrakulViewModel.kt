@@ -56,10 +56,34 @@ data class OrakulStressScenario(
     val advice: String           // Örn: "Döviz bazlı varlıklar koruyor..."
 )
 
+data class OracleHisseReport(
+    val aiScore: Int,
+    val riskScore: Int,
+    val growthPotential: Int,
+    val dividendScore: Int,
+    val financialHealth: Int,
+    val momentum: Int,
+    val volatility: Int,
+    val liquidity: Int,
+    val qualityScore: Int,
+    val confidence: Int,
+    val recommendation: String,
+    val fairValue: Double,
+    val strengths: List<String>,
+    val weaknesses: List<String>,
+    val opportunities: List<String>,
+    val risks: List<String>,
+    val shortTermOutlook: String,
+    val longTermOutlook: String,
+    val investmentThesis: String
+)
+
 data class OrakulUiState(
     val isLoading: Boolean = false,
+    val selectedSymbol: String = "XU100",
+    val hisseReport: OracleHisseReport? = null,
     val selectedMode: OrakulMode = OrakulMode.KAZI,
-    val streamingText: String = "",      // Canlı streaming yanıt
+    val streamingText: String = "",
     val rawResponse: String? = null,
     val decisions: List<OrakulDecision> = emptyList(),
     val lastAnalysisTime: String? = null,
@@ -67,19 +91,19 @@ data class OrakulUiState(
     val error: String? = null,
     val customQuestion: String = "",
     val investmentAmount: String = "",
-    val selectedTerm: String = "Orta Vade", // "Kısa Vade", "Orta Vade", "Uzun Vade"
-    val selectedMarket: String = "Tümü", // "Tümü", "BIST", "NASDAQ", "Avrupa"
+    val selectedTerm: String = "Orta Vade",
+    val selectedMarket: String = "Tümü",
     val history: List<OrakulHistoryEntry> = emptyList(),
     val marketSentimentScore: Int = 65,
     val rebalanceTrades: List<RebalanceTrade> = emptyList(),
     val rebalanceBaskets: List<Basket> = emptyList(),
     val selectedRebalanceBasketId: Int? = null,
     val stressScenarios: List<OrakulStressScenario> = emptyList(),
-    val basketRiskProfile: String = "BALANCED", // CONSERVATIVE, BALANCED, AGGRESSIVE
-    val basketStrategyFocus: String = "VALUE", // VALUE, GROWTH, DIVIDEND, MIXED
+    val basketRiskProfile: String = "BALANCED",
+    val basketStrategyFocus: String = "VALUE",
     val basketStockCount: Int = 5,
     val basketCashPct: Double = 10.0,
-    val basketReport: OraclePortfolioReport? = null   // Oracle 2.0 — 17 metrik analiz raporu
+    val basketReport: OraclePortfolioReport? = null
 )
 
 class OrakulViewModel(
@@ -147,6 +171,54 @@ class OrakulViewModel(
 
     fun setBasketCashPct(pct: Double) {
         _uiState.update { it.copy(basketCashPct = pct) }
+    }
+
+    fun analyzeSymbol(symbol: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(selectedSymbol = symbol, isLoading = true, error = null) }
+            try {
+                val apiKey = settingsManager.getGeminiApiKey()
+                if (apiKey.isNullOrBlank()) throw Exception("API Key missing")
+
+                val data = repository.getAiOracleData(symbol)
+                val income = data["income"] as List<com.nexus.porsuk.data.local.entity.IncomeStatementEntity>
+                val ratios = data["ratios"] as List<com.nexus.porsuk.data.local.entity.CompanyRatioEntity>
+                val price = data["price"] as Double
+
+                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                val reportJson = service.getAiOracleReport(symbol, price, income, ratios)
+                
+                val obj = org.json.JSONObject(reportJson)
+                val swotObj = obj.optJSONObject("swot")
+                val outlookObj = obj.optJSONObject("outlook")
+
+                val report = OracleHisseReport(
+                    aiScore = obj.optInt("aiScore", 0),
+                    riskScore = obj.optInt("riskScore", 0),
+                    growthPotential = obj.optInt("growthPotential", 0),
+                    dividendScore = obj.optInt("dividendScore", 0),
+                    financialHealth = obj.optInt("financialHealth", 0),
+                    momentum = obj.optInt("momentum", 0),
+                    volatility = obj.optInt("volatility", 0),
+                    liquidity = obj.optInt("liquidity", 0),
+                    qualityScore = obj.optInt("qualityScore", 0),
+                    confidence = obj.optInt("confidence", 0),
+                    recommendation = obj.optString("recommendation", "HOLD"),
+                    fairValue = obj.optDouble("fairValue", 0.0),
+                    strengths = swotObj?.optJSONArray("strengths")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+                    weaknesses = swotObj?.optJSONArray("weaknesses")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+                    opportunities = swotObj?.optJSONArray("opportunities")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+                    risks = swotObj?.optJSONArray("risks")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+                    shortTermOutlook = outlookObj?.optString("shortTerm", "") ?: "",
+                    longTermOutlook = outlookObj?.optString("longTerm", "") ?: "",
+                    investmentThesis = obj.optString("investmentThesis", "")
+                )
+
+                _uiState.update { it.copy(hisseReport = report, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
+            }
+        }
     }
 
     fun analyze() {

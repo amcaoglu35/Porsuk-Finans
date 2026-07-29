@@ -7,6 +7,7 @@ data class NewsArticle(
     val articleId: String,
     val title: String,
     val summary: String,
+    val aiSummary: String? = null,
     val content: String,
     val source: String,
     val category: NewsCategory,

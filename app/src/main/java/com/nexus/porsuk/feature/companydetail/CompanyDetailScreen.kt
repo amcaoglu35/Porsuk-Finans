@@ -26,7 +26,7 @@ fun CompanyDetailScreen(
     viewModel: CompanyDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val mainGreen = Color(0xFF14B88A)
+    val historicalPrices by viewModel.historicalPrices.collectAsState()
 
     Scaffold(
         bottomBar = {
@@ -69,7 +69,10 @@ fun CompanyDetailScreen(
 
                 // 3. Main Fluid Chart
                 item {
-                    CompanyMainChart(modifier = Modifier.fillMaxWidth())
+                    CompanyMainChart(
+                        data = historicalPrices,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 // 4. AI Summary & Agents
@@ -130,7 +133,8 @@ fun CompanyDetailScreen(
                                     scenarios = uiState.aiScenarios,
                                     targetPrice = uiState.aiTargetPrice,
                                     potential = uiState.aiPotentialReturn,
-                                    confidence = uiState.aiConfidenceScore
+                                    confidence = uiState.aiConfidenceScore,
+                                    summary = uiState.aiSummary
                                 )
                                 CompanyDetailTab.NEWS -> TabNewsContent(
                                     newsList = uiState.news
@@ -139,6 +143,9 @@ fun CompanyDetailScreen(
                                     board = uiState.boardMembers,
                                     ownership = uiState.ownershipStructure,
                                     timeline = uiState.corporateTimeline
+                                )
+                                CompanyDetailTab.AI_ORACLE -> TabAiOracleContent(
+                                    report = uiState.aiOracleReport
                                 )
                             }
                         }

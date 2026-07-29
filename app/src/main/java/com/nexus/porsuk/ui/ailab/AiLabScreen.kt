@@ -54,6 +54,7 @@ private val TextDark = Color(0xFF1E293B)
 private val TextSecondary = Color(0xFF64748B)
 private val BorderColor = Color(0xFFE2E8F0)
 private val BullishGreen = Color(0xFF10B981)
+private val SuccessGreen = Color(0xFF10B981)
 private val BearishRed = Color(0xFFEF4444)
 private val RiskOrange = Color(0xFFF59E0B)
 
@@ -61,6 +62,7 @@ private val RiskOrange = Color(0xFFF59E0B)
 @Composable
 fun AiLabScreen(
     viewModel: ChatViewModel,
+    labViewModel: AiLabViewModel,
     onNavigateToSettings: () -> Unit = {},
     initialPrompt: String? = null,
     onStockClick: (String, String) -> Unit = { _, _ -> },
@@ -76,6 +78,8 @@ fun AiLabScreen(
 ) {
     val context = LocalContext.current
     var textInput by remember { mutableStateOf("") }
+    val labState by labViewModel.uiState.collectAsState()
+    var selectedToolForReport by remember { mutableStateOf<String?>(null) }
 
     // Persistent Switch States (DataStore / rememberSaveable)
     var autoRebalanceEnabled by rememberSaveable { mutableStateOf(true) }
@@ -155,7 +159,7 @@ fun AiLabScreen(
                 }
             }
 
-            // 3. AI Araçları (10 Interactive Feature Cards Grid)
+            // 3. AI Araçları (15 Interactive Feature Cards Grid)
             item(key = "ai_tools_grid") {
                 AnimatedVisibility(
                     visible = isVisible,
@@ -163,18 +167,23 @@ fun AiLabScreen(
                 ) {
                     AiToolsGridSection(
                         onToolClick = { toolName ->
-                            when (toolName) {
-                                "Oracle" -> onNavigateToOracle()
-                                "Portföy Doktoru" -> onNavigateToDoctor()
-                                "Risk Analizi" -> onNavigateToDoctor()
-                                "Akıllı Tarayıcı" -> onNavigateToOpportunityCenter()
-                                "Akıllı Bildirimler" -> onNavigateToAlarmCenter()
-                                "Senaryo Simülasyonu" -> onNavigateToSimulator()
-                                "Makro Analiz" -> onNavigateToGlobalIntelligence()
-                                "Strateji Simülatörü" -> onNavigateToStrategyBuilder()
-                                else -> onNavigateToPlaceholder(toolName)
-                            }
+                            selectedToolForReport = toolName
+                            labViewModel.runTool(toolName)
                         }
+                    )
+                }
+            }
+
+            // AI Tool Report Display
+            if (selectedToolForReport != null) {
+                item(key = "tool_report_card") {
+                    ToolReportCard(
+                        toolName = selectedToolForReport!!,
+                        report = labState.toolReports[selectedToolForReport!!],
+                        isLoading = labState.toolLoadingStates[selectedToolForReport!!] ?: false,
+                        error = labState.toolErrorStates[selectedToolForReport!!],
+                        onRetry = { labViewModel.runTool(selectedToolForReport!!) },
+                        onClose = { selectedToolForReport = null }
                     )
                 }
             }
@@ -551,21 +560,26 @@ private fun AiChatCardSection(
     }
 }
 
-// ── 3. AI ARAÇLARI (10 Interactive Cards Grid) ──
+// ── 3. AI ARAÇLARI (15 Interactive Cards Grid) ──
 @Composable
 private fun AiToolsGridSection(onToolClick: (String) -> Unit) {
     val tools = remember {
         listOf(
-            AiToolItem("Oracle", "🔮", PurpleAccent),
-            AiToolItem("Portföy Doktoru", "🩺", BullishGreen),
-            AiToolItem("Akıllı Tarayıcı", "🔍", Color(0xFF3B82F6)),
-            AiToolItem("Risk Analizi", "⚖️", RiskOrange),
-            AiToolItem("Senaryo Simülasyonu", "🎭", Color(0xFF8B5CF6)),
-            AiToolItem("Haber Analizi", "📰", Color(0xFF06B6D4)),
-            AiToolItem("Makro Analiz", "🌐", Color(0xFFEC4899)),
-            AiToolItem("Temettü Asistanı", "💰", BullishGreen),
-            AiToolItem("Vergi Hesaplayıcı", "🧮", TextSecondary),
-            AiToolItem("Fon Analizi", "🧺", PurpleAccent)
+            AiToolItem("Portfolio Health Check", "🩺", BullishGreen),
+            AiToolItem("Stock Compare", "⚖️", PurpleAccent),
+            AiToolItem("Sector Compare", "🏢", Color(0xFF3B82F6)),
+            AiToolItem("AI Screener", "🔍", RiskOrange),
+            AiToolItem("Dividend Finder", "💰", BullishGreen),
+            AiToolItem("Growth Finder", "🚀", Color(0xFFEC4899)),
+            AiToolItem("Value Finder", "💎", RiskOrange),
+            AiToolItem("Momentum Finder", "⚡", PurpleAccent),
+            AiToolItem("Risk Scanner", "📡", BearishRed),
+            AiToolItem("Portfolio Diversification", "🧩", Color(0xFF8B5CF6)),
+            AiToolItem("AI Opportunity Finder", "🌟", SuccessGreen),
+            AiToolItem("AI Watchlist Analyzer", "👁️", Color(0xFF06B6D4)),
+            AiToolItem("AI Earnings Summary", "📊", PurpleAccent),
+            AiToolItem("AI News Summary", "📰", Color(0xFF64748B)),
+            AiToolItem("Economic Impact Analyzer", "🌐", Color(0xFFF59E0B))
         )
     }
 
@@ -579,7 +593,7 @@ private fun AiToolsGridSection(onToolClick: (String) -> Unit) {
         border = BorderStroke(1.dp, BorderColor)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text("🛠️ AI Araçları & Modülleri", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+            Text("🛠️ AI Uzman Araçları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
             Spacer(modifier = Modifier.height(14.dp))
 
             LazyRow(
@@ -588,6 +602,57 @@ private fun AiToolsGridSection(onToolClick: (String) -> Unit) {
                 items(tools, key = { it.title }) { tool ->
                     AnimatedAiToolCard(tool = tool, onClick = { onToolClick(tool.title) })
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolReportCard(
+    toolName: String,
+    report: String?,
+    isLoading: Boolean,
+    error: String?,
+    onRetry: () -> Unit,
+    onClose: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(6.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+        border = BorderStroke(1.dp, PurpleAccent.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(toolName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PurpleAccent)
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = TextSecondary)
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (isLoading) {
+                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = PurpleAccent)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("AI Uzmanı analiz yapıyor...", fontSize = 12.sp, color = TextSecondary)
+                }
+            } else if (error != null) {
+                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Hata: $error", color = BearishRed, fontSize = 13.sp, textAlign = TextAlign.Center)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent)) {
+                        Text("Tekrar Dene")
+                    }
+                }
+            } else if (report != null) {
+                dev.jeziellago.compose.markdowntext.MarkdownText(
+                    markdown = report,
+                    style = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, color = TextDark, lineHeight = 20.sp)
+                )
             }
         }
     }

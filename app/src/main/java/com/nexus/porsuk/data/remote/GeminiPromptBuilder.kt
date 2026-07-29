@@ -1,11 +1,7 @@
 package com.nexus.porsuk.data.remote
 
 import com.nexus.porsuk.data.local.InvestmentKnowledgeBase
-import com.nexus.porsuk.data.local.entity.BasketItem
-import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
-import com.nexus.porsuk.data.local.entity.Company
-import com.nexus.porsuk.data.local.entity.NewsItemEntity
-import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.data.local.entity.*
 import java.util.Locale
 
 /**
@@ -400,5 +396,141 @@ object GeminiPromptBuilder {
 
     fun buildMorningInsightPrompt(symbols: String): String {
         return "Sen Orakul'sun. Bugün borsa açılmak üzere. Takip listesindeki şu hisseler için ($symbols) O-EAGI formülüne göre çok kısa (maks 15 kelime) ve iddialı bir sabah yorumu yap."
+    }
+
+    fun buildDetailedCompanyAnalysisPrompt(
+        symbol: String,
+        income: List<IncomeStatementEntity>,
+        balance: List<BalanceSheetEntity>,
+        cashFlow: List<CashFlowEntity>,
+        ratios: List<CompanyRatioEntity>
+    ): String {
+        val financialSummary = """
+            GELİR TABLOSU (Son 4): ${income.joinToString { "${it.date}: ${it.revenue} Rev, ${it.netIncome} Net" }}
+            BİLANÇO: ${balance.firstOrNull()?.let { "${it.totalAssets} Asset, ${it.totalEquity} Equity, ${it.netDebt} Debt" }}
+            RASYOLAR: ${ratios.firstOrNull()?.let { "ROE: %${it.roe}, PE: ${it.peRatio}, Debt/Equity: ${it.debtToEquity}" }}
+        """.trimIndent()
+
+        return """
+            Sen kıdemli bir finansal analistsin. Aşağıdaki gerçek finansal verileri kullanarak $symbol hissesini analiz et.
+            
+            VERİLER:
+            $financialSummary
+            
+            GÖREV:
+            Aşağıdaki başlıklarla detaylı bir Markdown raporu hazırla:
+            1. Şirket Özeti ve Mali Durum
+            2. Temel Riskler
+            3. Rekabet Avantajları
+            4. Dezavantajlar ve Zayıf Yanlar
+            5. Sektördeki Konumu
+            6. Uzun ve Kısa Vadeli Görünüm
+            7. Yatırımcı Profili (Kime uygun?)
+            
+            Keskin, tarafsız ve profesyonel bir dil kullan.
+        """.trimIndent()
+    }
+
+    fun buildAiOraclePrompt(
+        symbol: String,
+        currentPrice: Double,
+        income: List<IncomeStatementEntity>,
+        ratios: List<CompanyRatioEntity>
+    ): String {
+        val lastRatio = ratios.firstOrNull()
+        return """
+            Sen "ORAKUL" yapay zekasısın. $symbol için bir "Yatırım Tezi" ve "Oracle Skoru" üret.
+            Güncel Fiyat: $currentPrice
+            ROE: %${lastRatio?.roe}
+            PE: ${lastRatio?.peRatio}
+            
+            GÖREV:
+            Aşağıdaki JSON formatında 10 farklı metrik ve detaylı analiz üret:
+            {
+              "aiScore": 0-100,
+              "riskScore": 0-100,
+              "growthPotential": 0-100,
+              "dividendScore": 0-100,
+              "financialHealth": 0-100,
+              "momentum": 0-100,
+              "volatility": 0-100,
+              "liquidity": 0-100,
+              "qualityScore": 0-100,
+              "confidence": 0-100,
+              "recommendation": "BUY/HOLD/SELL",
+              "fairValue": 0.0,
+              "swot": {
+                "strengths": ["..."],
+                "weaknesses": ["..."],
+                "opportunities": ["..."],
+                "risks": ["..."]
+              },
+              "outlook": {
+                "shortTerm": "...",
+                "longTerm": "..."
+              },
+              "investmentThesis": "Markdown formatında detaylı tez"
+            }
+            
+            Sadece JSON dön.
+        """.trimIndent()
+    }
+
+    fun buildLabToolPrompt(toolName: String, contextData: String): String {
+        return """
+            Sen Porsuk AI Lab uzmanısın. "$toolName" aracını kullanarak şu verileri analiz et:
+            $contextData
+            
+            GÖREV:
+            Profesyonel, aksiyon alınabilir ve detaylı bir Markdown raporu hazırla. 
+            Eğer bir tarama (screener) yapıyorsan, en iyi adayları listele ve nedenlerini açıkla.
+            Güven puanını belirtmeyi unutma.
+        """.trimIndent()
+    }
+
+    fun buildPortfolioInsightPrompt(
+        assets: List<com.nexus.porsuk.domain.model.PortfolioAsset>,
+        metrics: PortfolioDoctorMetrics
+    ): String {
+        val holdingsText = assets.joinToString("\n") { 
+            "- ${it.symbol}: ${it.quantity} adet, %${String.format(java.util.Locale.US, "%.1f", it.profitPercent)} kar/zarar"
+        }
+        return """
+            Sen Porsuk Finans AI Portföy Uzmanısın. Kullanıcının portföyünü analiz et ve aksiyon alınabilir öneriler sun.
+            
+            PORTFÖY VARLIKLARI:
+            $holdingsText
+            
+            KLİNİK METRİKLER:
+            ${metrics.diagnosisSummary}
+            
+            GÖREV:
+            1. Portföyün genel riskini ve getiri potansiyelini değerlendir.
+            2. Sektör yoğunlaşması varsa uyar, eksik veya fırsat sunan sektörleri belirt.
+            3. Temettü ve büyüme dengesini analiz et.
+            4. Volatiliteyi yorumla.
+            5. En fazla 4-5 kısa paragrafta özetle. Dilin profesyonel, yapıcı ve borsa simsarı bilgeliğinde olsun.
+            
+            Markdown formatında yanıt ver.
+        """.trimIndent()
+    }
+
+    fun buildCalendarInsightPrompt(
+        type: String,
+        data: String
+    ): String {
+        val typeTitle = if (type == "DIVIDEND") "Temettü" else "Halka Arz"
+        return """
+            Sen Orakul'sun. Aşağıdaki $typeTitle verilerini incele ve yatırımcılar için stratejik bir analiz raporu oluştur.
+            
+            VERİLER:
+            $data
+            
+            GÖREV:
+            - Bu etkinliklerin piyasa üzerindeki olası etkilerini yorumla.
+            - Öne çıkan fırsatları ve riskleri belirt.
+            - Orakul'un tescilli O-EAGI formülü çerçevesinde kısa bir değerlendirme yap.
+            - Markdown formatında, profesyonel ve iddialı bir dil kullan.
+        """.trimIndent()
     }
 }

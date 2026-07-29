@@ -30,12 +30,41 @@ interface FinnhubApi {
         @Query("symbol") symbol: String
     ): FinnhubCompanyProfileDto
 
+    @GET("quote")
+    suspend fun getQuote(
+        @Query("symbol") symbol: String
+    ): com.nexus.porsuk.data.remote.dto.FinnhubQuoteDto
+
     /**
      * Borsanın açık/kapalı durumunu sorgular.
      * @param exchange "US", "IS"
      */
     @GET("stock/market-status")
     suspend fun getMarketStatus(
-        @Query("exchange") exchange: String
+        @Query("exchange") exchange: String,
+        @Query("token") apiKey: String = com.nexus.porsuk.data.remote.ApiKeys.FINNHUB
     ): FinnhubMarketStatusDto
+
+    /**
+     * Ekonomik takvim verilerini çeker.
+     */
+    @GET("calendar/economic")
+    suspend fun getEconomicCalendar(
+        @Query("token") apiKey: String = com.nexus.porsuk.data.remote.ApiKeys.FINNHUB
+    ): FinnhubEconomicCalendarDto
 }
+
+data class FinnhubEconomicCalendarDto(
+    val economicCalendar: List<FinnhubEconomicEventDto>
+)
+
+data class FinnhubEconomicEventDto(
+    val actual: Double?,
+    val country: String,
+    val estimate: Double?,
+    val event: String,
+    val impact: String,
+    val prev: Double?,
+    val time: String,
+    val unit: String
+)

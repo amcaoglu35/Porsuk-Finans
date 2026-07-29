@@ -1,24 +1,28 @@
 package com.nexus.porsuk.feature.macro
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.domain.model.*
+import com.nexus.porsuk.ui.theme.*
+import java.util.Locale
 
-/**
- * Porsuk Macro Intelligence Platform — Ana Ekran (MacroIntelligenceScreen)
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MacroIntelligenceScreen(
@@ -31,107 +35,56 @@ fun MacroIntelligenceScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("Macro Intelligence Platform", fontWeight = FontWeight.Bold)
-                        Text(
-                            text = "Resesyon Olasılığı: %${uiState.aiOutlook.recessionProbabilityPct} • FRED / TCMB Entegre",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Text("Makro Ekonomi Lab", fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Geri")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.refreshMacro() }) {
+                        Icon(Icons.Default.Refresh, "Yenile")
                     }
                 }
             )
-        }
+        },
+        containerColor = BackgroundNew
     ) { innerPadding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            // Tab Switcher
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                // Makro Sekme Çipleri (MacroDashboardTabs)
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(MacroDashboardTab.entries) { tab ->
-                        FilterChip(
-                            selected = uiState.activeTab == tab,
-                            onClick = { viewModel.selectTab(tab) },
-                            label = { Text("${tab.iconEmoji} ${tab.displayName}") }
-                        )
-                    }
+                items(MacroDashboardTab.entries) { tab ->
+                    FilterChip(
+                        selected = uiState.activeTab == tab,
+                        onClick = { viewModel.selectTab(tab) },
+                        label = { Text(tab.displayName) },
+                        shape = RoundedCornerShape(20.dp)
+                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryTeal)
+                }
+            } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // 1. AI Makro Senaryo & Duruş Kartı
                     item {
                         MacroAiOutlookCard(outlook = uiState.aiOutlook)
                     }
 
-                    // 2. Merkez Bankaları Politikaları Kartı (Central Banks)
-                    item {
-                        Text(
-                            text = "Merkez Bankaları Politika Faizleri (Central Banks)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    items(uiState.centralBankPolicies) { bankPolicy ->
-                        CentralBankPolicyCard(policy = bankPolicy)
-                    }
-
-                    // 3. Makroekonomik Göstergeler (Economic Indicators)
-                    item {
-                        Text(
-                            text = "Önemli Ekonomik Göstergeler (Indicators)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
                     items(uiState.indicators) { indicator ->
-                        EconomicIndicatorCard(indicator = indicator)
-                    }
-
-                    // 4. Devlet Tahvilleri & FX Piyasası (Bonds & Commodities)
-                    item {
-                        Text(
-                            text = "Devlet Tahvili Getirileri & Emtia",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                        IndicatorChartCard(
+                            indicator = indicator,
+                            history = viewModel.getIndicatorData(indicator.indicatorId).collectAsState(initial = emptyList()).value
                         )
-                    }
-
-                    items(uiState.bondYields) { bond ->
-                        BondYieldCard(bond = bond)
-                    }
-
-                    items(uiState.commodities) { comm ->
-                        CommodityCard(commodity = comm)
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
@@ -140,127 +93,83 @@ fun MacroIntelligenceScreen(
 }
 
 @Composable
-private fun MacroAiOutlookCard(outlook: MacroAiOutlook) {
+fun MacroAiOutlookCard(outlook: MacroAiOutlook, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B1F1C))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.AutoAwesome, null, tint = PrimaryTeal)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Orakul Makro Analizi", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Resesyon Olasılığı: %${outlook.recessionProbabilityPct}",
+                color = PrimaryTeal,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(outlook.inflationCommentary, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+fun IndicatorChartCard(
+    indicator: EconomicIndicator,
+    history: List<Double>,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        colors = CardDefaults.cardColors(containerColor = CardNew),
+        border = androidx.compose.foundation.BorderStroke(1.dp, LineBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("🤖 AI Makro Görünüm & Resesyon Risk Analizi", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text("Resesyon Olasılığı: %${outlook.recessionProbabilityPct} (Düşük Risk 🟢)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("• ${outlook.inflationCommentary}", style = MaterialTheme.typography.bodySmall)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("• ${outlook.interestRateForecastText}", style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun CentralBankPolicyCard(policy: CentralBankPolicy) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(indicator.name, fontWeight = FontWeight.Bold, color = InkText)
+                    Text(indicator.indicatorId, fontSize = 10.sp, color = SubText)
+                }
                 Text(
-                    text = "${policy.bankType.iconEmoji} ${policy.bankType.displayName}",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                    "${indicator.currentValue}${indicator.unit}",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp,
+                    color = PrimaryTeal,
+                    fontFamily = IBMPlexMono
                 )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = "Faiz: %${policy.policyRatePct}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Mini Chart Placeholder
+            Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(BackgroundNew.copy(alpha = 0.5f))) {
+                if (history.isNotEmpty()) {
+                    com.nexus.porsuk.ui.common.PremiumLiveCanvasChart(
+                        prices = history,
+                        color = PrimaryTeal
                     )
+                } else {
+                    Text("Veri yok", modifier = Modifier.align(Alignment.Center), color = SubText, fontSize = 10.sp)
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(policy.statementSummary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("Son Karar: ${policy.lastDecisionDate} • Sonraki Toplantı: ${policy.nextMeetingDate}", style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
 
-@Composable
-private fun EconomicIndicatorCard(indicator: EconomicIndicator) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(indicator.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("Açıklanan: ${indicator.currentValue}${indicator.unit}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Önceki: ${indicator.previousValue}${indicator.unit}", style = MaterialTheme.typography.labelSmall)
-                Text("Beklenti: ${indicator.forecastValue}${indicator.unit}", style = MaterialTheme.typography.labelSmall)
-                Text("Tarih: ${indicator.releaseDate}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Önceki: ${indicator.previousValue}${indicator.unit}", fontSize = 11.sp, color = SubText)
+                val diff = if (indicator.previousValue != 0.0) ((indicator.currentValue - indicator.previousValue) / indicator.previousValue) * 100 else 0.0
+                Text("Değişim: %${String.format(Locale.US, "%.2f", diff)}", 
+                    fontSize = 11.sp, 
+                    color = if (indicator.currentValue >= indicator.previousValue) EmeraldNew else NegatifRed,
+                    fontWeight = FontWeight.Bold
+                )
             }
-        }
-    }
-}
-
-@Composable
-private fun BondYieldCard(bond: BondYieldItem) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(bond.countryName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("Vade: ${bond.maturityYears} Yıl", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text("Getiri: %${bond.yieldPct} (${bond.changePct}%)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun CommodityCard(commodity: CommodityItem) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("${commodity.name} (${commodity.commoditySymbol})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("Kategori: ${commodity.category}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text("$${commodity.priceUSD} (+%${commodity.changePct})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
     }
 }

@@ -8,13 +8,7 @@ data class RichCompanyDetails(
     val week52Low: String,
     val dividendYield: String,
     val volume: String,
-    val news: List<MockNewsItem>
-)
-
-data class MockNewsItem(
-    val title: String,
-    val source: String,
-    val timeAgo: String
+    val news: List<com.nexus.porsuk.data.local.entity.NewsItemEntity> = emptyList()
 )
 
 object RichOfflineDataEngine {
@@ -273,10 +267,7 @@ object RichOfflineDataEngine {
             week52Low = String.format(java.util.Locale.US, "%.2f%s", weekLowVal, unit),
             dividendYield = divYield,
             volume = volumeStr,
-            news = listOf(
-                MockNewsItem("$sym hissesi için analist raporu açıklandı", "Matriks", "3 saat önce"),
-                MockNewsItem("Şirket faaliyet raporu yayınlandı", "KAP", "1 gün önce")
-            )
+            news = emptyList()
         )
     }
 }

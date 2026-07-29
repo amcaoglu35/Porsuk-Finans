@@ -14,6 +14,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.feature.companydetail.*
+import com.nexus.porsuk.ui.theme.*
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
 fun TabAnalysisContent(
@@ -24,11 +26,33 @@ fun TabAnalysisContent(
     targetPrice: Double,
     potential: Double,
     confidence: Double,
+    summary: String,
     modifier: Modifier = Modifier
 ) {
     val mainGreen = Color(0xFF14B88A)
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // AI Detailed Report
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, LineBorder)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(text = "Orakul AI Detaylı Analiz Raporu", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PrimaryTeal)
+                Spacer(modifier = Modifier.height(12.dp))
+                if (summary.isBlank()) {
+                    Text("Analiz raporu oluşturuluyor...", color = SubText, fontSize = 14.sp)
+                } else {
+                    MarkdownText(
+                        markdown = summary,
+                        style = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, color = InkText, lineHeight = 20.sp, fontFamily = Manrope)
+                    )
+                }
+            }
+        }
+
         // Valuation Section
         AnalysisGridSection(title = "Değerleme Modelleri", items = valuationModules)
         

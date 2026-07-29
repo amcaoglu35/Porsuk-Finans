@@ -29,7 +29,8 @@ data class BasketDetailUiState(
     val profitLossAmount: Double = 0.0,
     val profitLossPercent: Double = 0.0,
     val holdings: List<HoldingUiModel> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val errorMessage: String? = null
 )
 
 data class BacktestResult(
@@ -66,7 +67,7 @@ class BasketDetailViewModel(
         _backtestResult.value = null
     }
 
-    fun optimizeBasket(companies: List<com.nexus.porsuk.data.local.entity.Company>) {
+    fun optimizeBasket() {
         viewModelScope.launch {
             _isOptimizing.value = true
             val apiKey = settingsManager.getGeminiApiKey()
@@ -77,6 +78,7 @@ class BasketDetailViewModel(
             }
 
             try {
+                val companies = repository.allCompanies.first()
                 val basket = repository.getBasketById(basketId).first() ?: return@launch
                 val items = repository.getBasketItems(basketId).first()
                 val companyMap = companies.associateBy { it.symbol }
@@ -198,16 +200,20 @@ class BasketDetailViewModel(
         }
     }
 
-    val allCompanies = repository.allCompanies
-    val numberFormat = settingsManager.numberFormat.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "TR")
+    private val _errorMessage = MutableStateFlow<String?>(null)
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
+    }
 
     val uiState: StateFlow<BasketDetailUiState> = combine(
         repository.getBasketById(basketId),
         repository.getBasketItems(basketId),
         repository.prices,
-        allCompanies
-    ) { basket, items, pricesMap, companies ->
-        if (basket == null) return@combine BasketDetailUiState()
+        repository.allCompanies,
+        _errorMessage
+    ) { basket: com.nexus.porsuk.data.local.entity.Basket?, items: List<com.nexus.porsuk.data.local.entity.BasketItem>, pricesMap: Map<String, com.nexus.porsuk.data.local.entity.PriceSnapshot>, companies: List<com.nexus.porsuk.data.local.entity.Company>, errorMsg: String? ->
+        if (basket == null) return@combine BasketDetailUiState(errorMessage = errorMsg)
 
         val companyMap = companies.associateBy { it.symbol }
         var totalValue = 0.0
@@ -250,7 +256,8 @@ class BasketDetailViewModel(
             profitLossAmount = profitLoss,
             profitLossPercent = if (totalCost > 0) (profitLoss / totalCost) * 100 else 0.0,
             holdings = finalHoldings,
-            isLoading = false
+            isLoading = false,
+            errorMessage = errorMsg
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BasketDetailUiState())
 
@@ -289,13 +296,22 @@ class BasketDetailViewModel(
 
     fun addStockToBasket(item: PendingBasketItem) {
         viewModelScope.launch {
+            val cleanSymbol = item.symbol.trim().uppercase()
+            val items = repository.getBasketItems(basketId).first()
+            val existingItem = items.find { it.symbol.uppercase() == cleanSymbol }
+            
+            if (existingItem != null) {
+                _errorMessage.value = "$cleanSymbol hisse senedi zaten bu sepette mevcut. Bir hisse 2 kez eklenemez."
+                return@launch
+            }
+
+            _errorMessage.value = null
             repository.executeTransaction(
                 basketId = basketId,
-                symbol = item.symbol,
+                symbol = cleanSymbol,
                 quantity = item.quantity,
                 price = item.buyPrice,
-                isBuy = true,
-                date = item.buyDate
+                isBuy = true
             )
         }
     }

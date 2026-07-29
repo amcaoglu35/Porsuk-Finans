@@ -29,6 +29,9 @@ data class NewsArticleEntity(
     @ColumnInfo(name = "summary")
     val summary: String,
 
+    @ColumnInfo(name = "ai_summary")
+    val aiSummary: String? = null,
+
     @ColumnInfo(name = "content")
     val content: String,
 

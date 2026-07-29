@@ -34,7 +34,7 @@ class NewsSyncWorker @AssistedInject constructor(
                     summary = "ABD Merkez Bankası (FED) beklentilere paralel şekilde faiz oranını %5.25 - %5.50 aralığında sabit bıraktı.",
                     content = "FED Başkanı kararın ardından yaptığı açıklamada enflasyondaki düşüş eğiliminin sevindirici olduğunu ancak temkinli duruşun korunacağını belirtti.",
                     source = "Bloomberg HT",
-                    category = NewsCategory.FED.name,
+                    category = "FED",
                     isBreaking = true,
                     sentiment = "NEUTRAL",
                     impactScore = 9
@@ -45,7 +45,7 @@ class NewsSyncWorker @AssistedInject constructor(
                     summary = "Türk Hava Yolları, 2025-2030 stratejik hedefleri doğrultusunda 15 yeni geniş gövdeli uçak alımı yapacağını duyurdu.",
                     content = "KAP bildirimine göre teslimatlar 2026 yılının ilk çeyreğinden itibaren başlayacaktır.",
                     source = "KAP",
-                    category = NewsCategory.KAP.name,
+                    category = "KAP",
                     symbol = "THYAO.IS",
                     sector = "Havacılık",
                     isBreaking = false,

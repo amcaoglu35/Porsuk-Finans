@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
@@ -8,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.nexus.porsuk"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.nexus.porsuk"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 4
         versionName = "0.4.0"
 
@@ -34,11 +33,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     lint {
         checkReleaseBuilds = false
@@ -96,6 +93,7 @@ dependencies {
 
     // OkHttp & Retrofit & Gson
     implementation(libs.okhttp)
+    implementation(libs.logging.interceptor)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.gson)

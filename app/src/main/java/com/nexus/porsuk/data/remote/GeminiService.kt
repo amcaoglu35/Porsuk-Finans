@@ -1,11 +1,7 @@
 package com.nexus.porsuk.data.remote
 
 import com.google.ai.client.generativeai.type.content
-import com.nexus.porsuk.data.local.entity.BasketItem
-import com.nexus.porsuk.data.local.entity.CachedCompanyInfo
-import com.nexus.porsuk.data.local.entity.Company
-import com.nexus.porsuk.data.local.entity.NewsItemEntity
-import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.ui.common.GeminiErrorParser
 import com.nexus.porsuk.ui.common.GeminiModels
 import kotlinx.coroutines.Dispatchers
@@ -386,6 +382,83 @@ class GeminiService(private val apiKey: String) {
             result
         } catch (e: Exception) {
             "Piyasalar açılıyor, bol kazançlar!"
+        }
+    }
+
+    suspend fun generatePortfolioAiInsight(
+        assets: List<com.nexus.porsuk.domain.model.PortfolioAsset>,
+        metrics: PortfolioDoctorMetrics
+    ): String = withContext(Dispatchers.IO) {
+        val pHash = assets.hashCode() + metrics.healthScore
+        val cacheKey = AiCacheManager.generateKey("portfolio_insight", portfolioHash = pHash)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildPortfolioInsightPrompt(assets, metrics)
+            val result = executeWithFallback(prompt)
+            val formatted = formatResponse(result)
+            AiCacheManager.put(cacheKey, formatted, isPortfolioRelated = true)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getDetailedCompanyAnalysis(
+        symbol: String,
+        income: List<IncomeStatementEntity>,
+        balance: List<BalanceSheetEntity>,
+        cashFlow: List<CashFlowEntity>,
+        ratios: List<CompanyRatioEntity>
+    ): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("detailed_analysis", symbol = symbol)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildDetailedCompanyAnalysisPrompt(symbol, income, balance, cashFlow, ratios)
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result)
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun getAiOracleReport(
+        symbol: String,
+        currentPrice: Double,
+        income: List<IncomeStatementEntity>,
+        ratios: List<CompanyRatioEntity>
+    ): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("ai_oracle_v2", symbol = symbol)
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildAiOraclePrompt(symbol, currentPrice, income, ratios)
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result)
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
+    suspend fun runLabTool(toolName: String, contextData: String): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("lab_tool", prompt = "$toolName:$contextData")
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = GeminiPromptBuilder.buildLabToolPrompt(toolName, contextData)
+            val result = executeWithFallback(prompt)
+            val formatted = formatResponse(result)
+            AiCacheManager.put(cacheKey, formatted)
+            formatted
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
         }
     }
 

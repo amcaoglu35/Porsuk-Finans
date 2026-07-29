@@ -53,8 +53,7 @@ fun BasketDetailScreen(
     onStockClick: (String, String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val numberFormat by viewModel.numberFormat.collectAsState()
-    val companies by viewModel.allCompanies.collectAsState(initial = emptyList())
+    val numberFormat = "#,##0.00"
     val isOptimizing by viewModel.isOptimizing.collectAsState()
     val optimizationResult by viewModel.optimizationResult.collectAsState()
 
@@ -161,11 +160,9 @@ fun BasketDetailScreen(
         },
         containerColor = BackgroundNew
     ) { padding ->
-        val sectorData = remember(uiState.holdings, companies) {
-            uiState.holdings.mapNotNull { holding ->
-                val company = companies.find { it.symbol == holding.symbol }
-                val sector = company?.sector ?: "Bilinmeyen"
-                sector to holding.currentValue
+        val sectorData = remember(uiState.holdings) {
+            uiState.holdings.map { holding ->
+                "Genel" to holding.currentValue
             }
             .groupBy { it.first }
             .map { (sector, values) ->
@@ -189,7 +186,7 @@ fun BasketDetailScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
-                            onClick = { viewModel.optimizeBasket(companies) },
+                            onClick = { viewModel.optimizeBasket() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp)
@@ -241,13 +238,12 @@ fun BasketDetailScreen(
                 }
 
                 items(uiState.holdings) { holding ->
-                    val company = companies.find { it.symbol == holding.symbol }
                     HoldingItem(
                         holding = holding,
                         market = uiState.market,
                         numberFormat = numberFormat,
-                        logoUrl = company?.logoUrl,
-                        initials = company?.logoInitials ?: holding.symbol.take(3),
+                        logoUrl = null,
+                        initials = holding.symbol.take(3),
                         onClick = {
                             selectedHoldingForActions = holding
                             showHoldingActionSheet = true

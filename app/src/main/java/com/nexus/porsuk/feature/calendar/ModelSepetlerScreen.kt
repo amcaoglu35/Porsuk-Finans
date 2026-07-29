@@ -1,4 +1,4 @@
-package com.nexus.porsuk.ui.calendar
+package com.nexus.porsuk.feature.calendar
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.theme.*
+import kotlin.math.roundToInt
 
 data class ModelPortfolio(
     val name: String,
@@ -269,7 +270,7 @@ fun ModelSepetlerScreen(
                                         fontFamily = IBMPlexMono
                                     )
                                     Text(
-                                        String.format(java.util.Locale.US, "%%%d", Math.round(weight * 100)),
+                                        String.format(java.util.Locale.US, "%%%d", (weight * 100).roundToInt()),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp,
                                         color = PrimaryTeal,

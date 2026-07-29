@@ -25,3 +25,26 @@
 -dontwarn java.lang.management.RuntimeMXBean
 -dontwarn org.joda.time.Instant
 
+# Retrofit & OkHttp
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# Gson & SerializedName
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.google.gson.** { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep class com.nexus.porsuk.data.remote.dto.** { *; }
+
+# Hilt
+-keep class dagger.hilt.** { *; }
+-keep class com.nexus.porsuk.di.** { *; }
+
+

@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 import com.nexus.porsuk.data.local.SettingsManager
+import com.nexus.porsuk.data.remote.PortfolioDoctorEngine
+import com.nexus.porsuk.data.remote.PortfolioDoctorMetrics
+import com.nexus.porsuk.domain.model.PortfolioAsset
 
 data class BasketWithStats(
     val basket: Basket,
@@ -60,11 +63,68 @@ class FinanceViewModel(
     val watchlist = repository.watchlist
     val allCompanies = repository.allCompanies
     val allCachedInfo = repository.getAllCachedInfo()
+
+    fun getIncomeStatements(symbol: String): Flow<List<IncomeStatementEntity>> = repository.getIncomeStatements(symbol)
+    fun getBalanceSheets(symbol: String): Flow<List<BalanceSheetEntity>> = repository.getBalanceSheets(symbol)
+    fun getCashFlows(symbol: String): Flow<List<CashFlowEntity>> = repository.getCashFlows(symbol)
+    fun getCompanyRatios(symbol: String): Flow<List<CompanyRatioEntity>> = repository.getCompanyRatios(symbol)
     val numberFormat = settingsManager.numberFormat.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "TR")
     val portfolioHistory: StateFlow<List<PortfolioHistoryEntry>> = repository.getPortfolioHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val xu100History: StateFlow<List<StockHistoryEntry>> = repository.getStockHistory("XU100")
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val consolidatedHoldings: StateFlow<List<PortfolioAsset>> = repository.getConsolidatedAssetsFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val _selectedChartTimeframe = MutableStateFlow(0) // 0: 1G, 1: 1H, 2: 1A, 3: 3A, 4: 6A, 5: 1Y, 6: Tümü
+    val selectedChartTimeframe: StateFlow<Int> = _selectedChartTimeframe.asStateFlow()
+
+    private val _portfolioChartData = MutableStateFlow<List<Double>>(emptyList())
+    val portfolioChartData: StateFlow<List<Double>> = _portfolioChartData.asStateFlow()
+
+    val portfolioRiskMetrics: StateFlow<PortfolioDoctorMetrics?> = combine(
+        allBasketItems,
+        allCompanies
+    ) { items, companies ->
+        if (items.isEmpty()) null
+        else PortfolioDoctorEngine.analyze(items, companies)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _aiPortfolioInsight = MutableStateFlow<String?>(null)
+    val aiPortfolioInsight: StateFlow<String?> = _aiPortfolioInsight.asStateFlow()
+
+    fun updateChartTimeframe(index: Int) {
+        _selectedChartTimeframe.value = index
+        viewModelScope.launch {
+            val range = when(index) {
+                0 -> "1d"
+                1 -> "5d"
+                2 -> "1mo"
+                3 -> "3mo"
+                4 -> "6mo"
+                5 -> "1y"
+                else -> "max"
+            }
+            val data = repository.fetchConsolidatedPerformance(range)
+            _portfolioChartData.value = data
+        }
+    }
+
+    fun generateAiPortfolioInsight() {
+        val assets = consolidatedHoldings.value
+        val metrics = portfolioRiskMetrics.value
+        if (assets.isNotEmpty() && metrics != null) {
+            viewModelScope.launch {
+                val apiKey = settingsManager.getGeminiApiKey()
+                if (!apiKey.isNullOrBlank()) {
+                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                    val insight = service.generatePortfolioAiInsight(assets, metrics)
+                    _aiPortfolioInsight.value = insight
+                }
+            }
+        }
+    }
 
     // Historical prices for stock details
     private val _historicalPrices = MutableStateFlow<List<Double>>(emptyList())
@@ -262,6 +322,20 @@ class FinanceViewModel(
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading
 
+    suspend fun getAiOracleReport(
+        symbol: String,
+        currentPrice: Double,
+        income: List<IncomeStatementEntity>,
+        ratios: List<CompanyRatioEntity>
+    ): String {
+        val apiKey = settingsManager.getGeminiApiKey()
+        if (apiKey.isNullOrBlank()) {
+            return "🔮 **AI Oracle Raporu**\n\nYapay Zeka analizleri için Ayarlar sayfasından geçerli bir Gemini API Key kaydedilmelidir."
+        }
+        val gemini = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+        return gemini.getAiOracleReport(symbol, currentPrice, income, ratios)
+    }
+
     // Faz 2 — Haber Duyarlılık Analizi
     private val _newsSentiment = MutableStateFlow<String?>(null)
     val newsSentiment: StateFlow<String?> = _newsSentiment
@@ -414,9 +488,7 @@ class FinanceViewModel(
             val popularSymbols = listOf("THYAO", "EREGL", "TUPRS", "ASELS", "KCHOL", "GARAN", "AKBNK", "BIMAS", "SISE", "PGSUS")
             
             // Kullanıcının sepetlerindeki TÜM hisseleri de güncelle
-            val basketItems = allBaskets.first().flatMap { basket ->
-                repository.getBasketItems(basket.id).first()
-            }
+            val basketItems = allBasketItems.first()
             val basketSymbols = basketItems.map { it.symbol }.distinct()
             
             val allToRefresh = (watchlistSymbols + popularSymbols + basketSymbols).distinct()
@@ -424,7 +496,8 @@ class FinanceViewModel(
             val jobs = allToRefresh.map { symbol ->
                 launch {
                     val company = repository.getCompany(symbol)
-                    val result = repository.refreshPrice(symbol, company?.market ?: "IST")
+                    val market = company?.market ?: "IST"
+                    val result = repository.refreshPrice(symbol, market)
                     if (result is ScrapeResult.Success) {
                         repository.prices.update { it + (symbol to result.data) }
                         repository.getCompany(symbol)?.let { comp ->
@@ -434,6 +507,10 @@ class FinanceViewModel(
                                 lastUpdated = System.currentTimeMillis()
                             )))
                         }
+                    }
+                    // Also refresh company metadata for portfolio assets
+                    if (symbol in basketSymbols) {
+                        repository.refreshCompanyInfo(symbol, market)
                     }
                 }
             }

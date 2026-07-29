@@ -48,7 +48,7 @@ class FinnhubMarketRepositoryImpl @Inject constructor(
                 NetworkResult.Success(
                     MarketStatus(
                         exchange = exchange,
-                        isOpen = dto.isOpen,
+                        isOpen = dto.isOpen ?: false,
                         session = dto.session ?: "REGULAR",
                         timezone = dto.timezone ?: "UTC",
                         holiday = dto.holiday

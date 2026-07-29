@@ -17,6 +17,8 @@ interface MacroRepository {
 interface MacroIndicatorRepository {
     fun getEconomicIndicators(): Flow<List<EconomicIndicator>>
     fun getIndicatorsByCategory(category: MacroIndicatorCategory): Flow<List<EconomicIndicator>>
+    suspend fun refreshIndicators(): Result<Unit>
+    fun getIndicatorHistory(indicatorId: String): Flow<List<Double>>
 }
 
 /**

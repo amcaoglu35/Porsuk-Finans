@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.ui.theme.*
 import com.nexus.porsuk.data.local.entity.CompanyEntity
 import com.nexus.porsuk.feature.companydetail.*
 
@@ -27,11 +28,11 @@ import com.nexus.porsuk.feature.companydetail.*
  */
 @Composable
 fun TabOverviewContent(
-    company: CompanyEntity?,
+    company: com.nexus.porsuk.data.local.entity.CompanyEntity?,
     summary: String,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -40,26 +41,28 @@ fun TabOverviewContent(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "Şirket Profili",
+                    text = "Şirket Özeti",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 22.sp
+                Spacer(modifier = Modifier.height(12.dp))
+                dev.jeziellago.compose.markdowntext.MarkdownText(
+                    markdown = summary,
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontSize = 14.sp,
+                        color = InkText,
+                        lineHeight = 22.sp,
+                        fontFamily = Manrope
+                    )
                 )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-                InfoRow("ISIN", company?.isin ?: "TRATHYAO91M5")
-                InfoRow("Ülke", company?.country ?: "Türkiye")
-                InfoRow("Sektör", company?.sector ?: "Ulaşım")
-                InfoRow("Endüstri", company?.industry ?: "Havacılık")
-                InfoRow("Kuruluş", "1933")
-                InfoRow("Web", company?.website ?: "thy.com")
+                InfoRow("ISIN", company?.isin ?: "N/A")
+                InfoRow("Ülke", company?.country ?: "N/A")
+                InfoRow("Sektör", company?.sector ?: "N/A")
+                InfoRow("Endüstri", company?.industry ?: "N/A")
+                InfoRow("Web", company?.website ?: "N/A")
             }
         }
     }
@@ -90,12 +93,12 @@ fun TabFinancialsContent(
                 Text(
                     text = "Finansal Özet",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = InkText
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 InfoRow("Hasılat", summary.revenue)
-                InfoRow("Brüt Kar", summary.grossProfit)
                 InfoRow("FAVÖK", summary.ebitda)
                 InfoRow("Net Kar", summary.netIncome)
                 InfoRow("EPS", summary.eps)
@@ -105,22 +108,18 @@ fun TabFinancialsContent(
             }
         }
         
-        // Çeyreklik Performans
-        FinancialSectionCard(title = "Çeyreklik Performans") {
-            QuarterlyPerformanceChart(data = quarterlyData)
+        // Çeyreklik Performans (Barlar)
+        if (quarterlyData.isNotEmpty()) {
+            FinancialSectionCard(title = "Çeyreklik Performans (Revenue vs Net Income)") {
+                QuarterlyPerformanceChart(data = quarterlyData)
+            }
         }
-        
-        // Marj Analizi
-        FinancialSectionCard(title = "Marj Analizi") {
-            MarginAnalysisChart(data = marginData)
-        }
-        
-        // Sağlık Kartları
-        FinancialSectionCard(title = "Finansal Sağlık") {
+
+        // Temel Oranlar (Rasyolar)
+        FinancialSectionCard(title = "Karlılık ve Verimlilik (ROE & ROA)") {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                HealthProgressBar("Likidite", healthData.liquidity)
-                HealthProgressBar("Borçluluk", healthData.leverage)
-                HealthProgressBar("Cari Oran", healthData.currentRatio / 2.0) // Normalized
+                HealthProgressBar("Özkaynak Karlılığı (ROE)", healthData.liquidity) // Using dummy mappings for now if healthData is incomplete
+                HealthProgressBar("Aktif Karlılığı (ROA)", healthData.leverage)
             }
         }
     }

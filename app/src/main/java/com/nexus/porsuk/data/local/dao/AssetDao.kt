@@ -144,10 +144,10 @@ interface AssetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: PortfolioTransaction)
 
-    @androidx.room.Delete
+    @Delete
     suspend fun deleteTransaction(transaction: PortfolioTransaction)
 
-    @androidx.room.Update
+    @Update
     suspend fun updateTransaction(transaction: PortfolioTransaction)
 
     @Query("DELETE FROM transactions")
@@ -299,4 +299,39 @@ interface AssetDao {
 
     @Query("DELETE FROM ai_proactive_insights WHERE id = :id")
     suspend fun deleteInsight(id: Long)
+
+    // Financial Statements
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertIncomeStatements(statements: List<IncomeStatementEntity>)
+
+    @Query("SELECT * FROM income_statements WHERE symbol = :symbol ORDER BY date DESC")
+    fun getIncomeStatements(symbol: String): Flow<List<IncomeStatementEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBalanceSheets(sheets: List<BalanceSheetEntity>)
+
+    @Query("SELECT * FROM balance_sheets WHERE symbol = :symbol ORDER BY date DESC")
+    fun getBalanceSheets(symbol: String): Flow<List<BalanceSheetEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCashFlows(flows: List<CashFlowEntity>)
+
+    @Query("SELECT * FROM cash_flows WHERE symbol = :symbol ORDER BY date DESC")
+    fun getCashFlows(symbol: String): Flow<List<CashFlowEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCompanyRatios(ratios: List<CompanyRatioEntity>)
+
+    @Query("SELECT * FROM company_ratios WHERE symbol = :symbol ORDER BY date DESC")
+    fun getCompanyRatios(symbol: String): Flow<List<CompanyRatioEntity>>
+
+    // Macro Data
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMacroData(data: List<MacroDataEntity>)
+
+    @Query("SELECT * FROM macro_data WHERE seriesId = :seriesId ORDER BY date ASC")
+    fun getMacroData(seriesId: String): Flow<List<MacroDataEntity>>
+    
+    @Query("SELECT * FROM macro_data ORDER BY lastUpdated DESC LIMIT 1")
+    suspend fun getLatestMacroUpdate(): MacroDataEntity?
 }

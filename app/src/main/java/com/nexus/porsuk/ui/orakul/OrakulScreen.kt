@@ -69,6 +69,8 @@ fun OrakulScreen(
     onKaziNavigate: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
     var selectedTimeframeIndex by remember { mutableIntStateOf(1) }
     var selectedAssetTab by remember { mutableIntStateOf(0) }
     var isRationaleExpanded by remember { mutableStateOf(false) }
@@ -121,6 +123,58 @@ fun OrakulScreen(
             contentPadding = PaddingValues(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp) // 24dp Standard Card Spacing
         ) {
+            // 0. Hisse Arama Çubuğu
+            item(key = "hisse_search_bar") {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardWhite),
+                    border = BorderStroke(1.dp, BorderColor)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        placeholder = { Text("Analiz edilecek hisse (Örn: AAPL)...") },
+                        trailingIcon = {
+                            IconButton(onClick = { 
+                                if (searchQuery.isNotBlank()) {
+                                    viewModel.analyzeSymbol(searchQuery.uppercase())
+                                }
+                            }) {
+                                Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryPurple)
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedBorderColor = PrimaryPurple
+                        )
+                    )
+                }
+            }
+
+            if (uiState.isLoading) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PrimaryPurple)
+                    }
+                }
+            }
+
+            if (uiState.hisseReport != null) {
+                // 1. Hisse Skor Kartları (10'lu Grid)
+                item(key = "hisse_score_grid") {
+                    HisseScoreGrid(uiState.hisseReport!!)
+                }
+
+                // 2. Hisse Detaylı Analiz Kartları
+                item(key = "hisse_detailed_analysis") {
+                    HisseDetailedAnalysis(uiState.hisseReport!!)
+                }
+            }
+
             // 1. Hero Cosmic Glass Orb Kartı
             item(key = "oracle_hero_card") {
                 AnimatedVisibility(
@@ -1322,8 +1376,107 @@ private fun SectorExplanationBottomSheet(
 }
 
 // ── PREVIEW SUPPORT ──
-@Preview(showBackground = true)
 @Composable
-private fun OracleTopBarPreview() {
-    OracleTopBar(onShareClick = {}, onNotificationClick = {})
+private fun HisseScoreGrid(report: OracleHisseReport) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Text("Hisse Performans Metrikleri", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDark)
+        Spacer(modifier = Modifier.height(14.dp))
+        
+        val scores = listOf(
+            OracleGaugeItem("Genel AI", report.aiScore, "Potansiyel: ${report.aiScore}%", PrimaryPurple),
+            OracleGaugeItem("Risk", report.riskScore, "Oynaklık: ${report.riskScore}%", WarningOrange),
+            OracleGaugeItem("Büyüme", report.growthPotential, "İvme: ${report.growthPotential}%", SuccessGreen),
+            OracleGaugeItem("Temettü", report.dividendScore, "Verim: ${report.dividendScore}%", Color(0xFF3B82F6)),
+            OracleGaugeItem("Sağlık", report.financialHealth, "Mali Durum", SuccessGreen),
+            OracleGaugeItem("Momentum", report.momentum, "Güç: ${report.momentum}%", Color(0xFFEC4899)),
+            OracleGaugeItem("Volatilite", report.volatility, "Risk: ${report.volatility}%", WarningOrange),
+            OracleGaugeItem("Likidite", report.liquidity, "Derinlik", PrimaryPurple),
+            OracleGaugeItem("Kalite", report.qualityScore, "Şirket Kalitesi", SuccessGreen),
+            OracleGaugeItem("Güven", report.confidence, "AI Güven", PrimaryPurple)
+        )
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            scores.take(5).forEach { item -> UniformScoreGaugeTile(item = item, modifier = Modifier.weight(1f)) }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            scores.drop(5).forEach { item -> UniformScoreGaugeTile(item = item, modifier = Modifier.weight(1f)) }
+        }
+    }
+}
+
+@Composable
+private fun HisseDetailedAnalysis(report: OracleHisseReport) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Recommendation Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, BorderColor)
+        ) {
+            Row(modifier = Modifier.padding(20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Orakul Kararı", fontSize = 12.sp, color = TextSecondary)
+                    Text(report.recommendation, fontSize = 22.sp, fontWeight = FontWeight.Black, color = when(report.recommendation) {
+                        "BUY" -> SuccessGreen
+                        "SELL" -> ErrorRed
+                        else -> WarningOrange
+                    })
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Adil Değer", fontSize = 12.sp, color = TextSecondary)
+                    Text("${report.fairValue}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark, fontFamily = IBMPlexMono)
+                }
+            }
+        }
+
+        // SWOT Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, BorderColor)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("SWOT Analizi", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                SwotItem("💪 Güçlü Yönler", report.strengths, SuccessGreen)
+                SwotItem("📉 Zayıf Yönler", report.weaknesses, WarningOrange)
+                SwotItem("🚀 Fırsatlar", report.opportunities, Color(0xFF3B82F6))
+                SwotItem("⚠️ Riskler", report.risks, ErrorRed)
+            }
+        }
+
+        // Outlook and Thesis
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, BorderColor)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("Görünüm ve Yatırım Tezi", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Kısa Vade: ${report.shortTermOutlook}", fontSize = 13.sp, color = TextDark)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Uzun Vade: ${report.longTermOutlook}", fontSize = 13.sp, color = TextDark)
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = BorderColor)
+                Spacer(modifier = Modifier.height(12.dp))
+                dev.jeziellago.compose.markdowntext.MarkdownText(markdown = report.investmentThesis)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwotItem(label: String, items: List<String>, color: Color) {
+    if (items.isEmpty()) return
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
+        items.forEach { item ->
+            Text("• $item", fontSize = 11.sp, color = TextSecondary, modifier = Modifier.padding(start = 8.dp))
+        }
+    }
 }

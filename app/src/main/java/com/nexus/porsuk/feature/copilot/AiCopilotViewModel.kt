@@ -63,9 +63,16 @@ class AiCopilotViewModel @Inject constructor(
 
             aiRepository.streamCopilotResponse(promptText, uiState.value.activeProvider).collect { chunkMessage ->
                 _uiState.update { current ->
-                    val otherMessages = current.messages.filter { it.messageId != chunkMessage.messageId }
+                    val updatedMessages = if (chunkMessage.messageId == null) {
+                        // No identifier, just append the incoming chunk
+                        current.messages + chunkMessage
+                    } else {
+                        // Remove any existing message with same ID before appending
+                        val otherMessages = current.messages.filter { it.messageId != chunkMessage.messageId }
+                        otherMessages + chunkMessage
+                    }
                     current.copy(
-                        messages = otherMessages + chunkMessage,
+                        messages = updatedMessages,
                         isStreamingResponse = chunkMessage.isStreaming
                     )
                 }
@@ -100,7 +107,14 @@ class AiCopilotViewModel @Inject constructor(
 
             launch {
                 conversationRepository.getThreadMessages("thread_default").collect { msgs ->
-                    _uiState.update { it.copy(messages = msgs) }
+                    _uiState.update { current ->
+        // Preserve existing messages (e.g., user prompts) when loading initial thread messages
+        if (current.messages.isEmpty()) {
+            current.copy(messages = msgs)
+        } else {
+            current
+        }
+    }
                 }
             }
 

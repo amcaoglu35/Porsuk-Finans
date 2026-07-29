@@ -86,7 +86,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.calendar.IpoAlarmReceiver"
+            android:name=".feature.calendar.IpoAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
     </application>

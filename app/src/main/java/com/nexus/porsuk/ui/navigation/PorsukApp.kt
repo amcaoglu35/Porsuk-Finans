@@ -43,9 +43,9 @@ import com.nexus.porsuk.ui.settings.SettingsScreen
 import com.nexus.porsuk.ui.settings.SettingsViewModel
 import com.nexus.porsuk.ui.stock.CompanyDetailScreen
 import com.nexus.porsuk.ui.orakul.*
-import com.nexus.porsuk.ui.calendar.CalendarScreen
-import com.nexus.porsuk.ui.calendar.CalendarViewModel
-import com.nexus.porsuk.ui.calendar.ModelSepetlerScreen
+import com.nexus.porsuk.feature.calendar.CalendarScreen
+import com.nexus.porsuk.feature.calendar.CalendarViewModel
+import com.nexus.porsuk.feature.calendar.ModelSepetlerScreen
 import com.nexus.porsuk.ui.theme.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -392,8 +392,12 @@ fun PorsukApp(
                         val chatViewModel: com.nexus.porsuk.ui.chat.ChatViewModel = viewModel(
                             factory = FinanceViewModelFactory(context)
                         )
+                        val labViewModel: com.nexus.porsuk.ui.ailab.AiLabViewModel = viewModel(
+                            factory = FinanceViewModelFactory(context)
+                        )
                         com.nexus.porsuk.ui.ailab.AiLabScreen(
                             viewModel = chatViewModel,
+                            labViewModel = labViewModel,
                             onNavigateToSettings = { navController.navigate(Screen.Ayarlar.route) },
                             initialPrompt = initialPrompt,
                             onStockClick = { symbol, market ->
@@ -563,7 +567,9 @@ fun PorsukApp(
                         )
                     ) { backStackEntry ->
                         val initialTab = backStackEntry.arguments?.getInt("initialTab") ?: 0
-                        com.nexus.porsuk.feature.calendar.CalendarScreen(
+                        val calendarViewModel: CalendarViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                        CalendarScreen(
+                            viewModel = calendarViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
@@ -573,9 +579,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.ModelSepetler.route) {
-                        val calendarViewModel: CalendarViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val calendarViewModel: CalendarViewModel = androidx.hilt.navigation.compose.hiltViewModel()
                         ModelSepetlerScreen(
                             viewModel = calendarViewModel,
                             onBack = { navController.popBackStack() }
@@ -641,15 +645,9 @@ fun PorsukApp(
                                 defaultValue = "IST"
                             }
                         )
-                    ) { backStackEntry ->
-                        val symbol = backStackEntry.arguments?.getString("symbol") ?: "THYAO"
-                        val market = backStackEntry.arguments?.getString("market") ?: "IST"
-                        CompanyDetailScreen(
-                            symbol = symbol,
-                            market = market,
-                            viewModel = financeViewModel,
-                            onBack = { navController.popBackStack() },
-                            onNavigateToChart = { s -> navController.navigate(Screen.AdvancedChart.createRoute(s)) }
+                    ) {
+                        com.nexus.porsuk.feature.companydetail.CompanyDetailScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 

@@ -22,17 +22,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.nexus.porsuk.data.local.entity.NewsEntity
+import com.nexus.porsuk.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun TabNewsContent(
-    newsList: List<NewsEntity>,
+    newsList: List<com.nexus.porsuk.data.local.entity.NewsEntity>,
     modifier: Modifier = Modifier
 ) {
     val mainGreen = Color(0xFF14B88A)
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (newsList.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                Text("Şirket ile ilgili haber bulunamadı.", color = SubText, fontSize = 14.sp)
+            }
+            return@Column
+        }
+
         // AI Haber Özeti Kartı
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -44,25 +52,13 @@ fun TabNewsContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = mainGreen, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "AI Haber Özeti", style = MaterialTheme.typography.labelLarge, color = mainGreen, fontWeight = FontWeight.Bold)
+                    Text(text = "AI Duyarlılık Analizi", style = MaterialTheme.typography.labelLarge, color = mainGreen, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Bugün paylaşılan haberler genel olarak pozitif. THY'nin yeni rotaları ve kargo büyümesi piyasa tarafından olumlu karşılanıyor.",
+                    text = "En son paylaşılan ${newsList.size} haber analiz edildi. Genel duyarlılık dengeli seyrediyor.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Filtreler
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(listOf("Tümü", "Şirket", "KAP", "Ekonomi", "Sektör")) { filter ->
-                FilterChip(
-                    selected = filter == "Tümü",
-                    onClick = { },
-                    label = { Text(text = filter) },
-                    shape = RoundedCornerShape(12.dp)
+                    color = InkText
                 )
             }
         }
@@ -75,9 +71,9 @@ fun TabNewsContent(
 }
 
 @Composable
-fun NewsCard(news: NewsEntity) {
+fun NewsCard(news: com.nexus.porsuk.data.local.entity.NewsEntity) {
     val mainGreen = Color(0xFF14B88A)
-    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val sdf = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -85,72 +81,35 @@ fun NewsCard(news: NewsEntity) {
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column {
-            // Haber Görseli (Mock)
-            AsyncImage(
-                model = "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800",
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-                contentScale = ContentScale.Crop
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = "${news.source} • ${sdf.format(Date(news.publishedAt))}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SubText
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = news.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = InkText,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
 
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        text = "${news.source} • ${sdf.format(Date(news.publishedAt))}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    // AI Sentiment Tag
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(mainGreen))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Pozitif", style = MaterialTheme.typography.labelSmall, color = mainGreen, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = news.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
+            if (news.summary.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = news.summary,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = SubText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Etki Skoru:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        color = Color(0xFF14B88A).copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = "Yüksek",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = mainGreen,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
             }
         }
     }

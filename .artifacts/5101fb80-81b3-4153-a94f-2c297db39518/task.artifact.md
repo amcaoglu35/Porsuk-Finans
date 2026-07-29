@@ -1,0 +1,8 @@
+- `[ ]` Fix failing MacroIntelligenceViewModelTest
+    - `[ ]` Update MacroIntelligenceViewModel.kt with correct initial state and imports
+    - `[ ]` Update MacroIntelligenceViewModelTest.kt to collect uiState
+    - `[ ]` Verify tests pass
+- `[ ]` Prepare for GitHub upload
+    - `[ ]` Check Git status
+    - `[ ]` Commit changes
+    - `[ ]` Push to GitHub (Requires user repository URL)

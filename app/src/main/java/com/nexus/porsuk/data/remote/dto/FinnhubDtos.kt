@@ -36,9 +36,23 @@ data class FinnhubCompanyProfileDto(
  * Finnhub Piyasa Durumu Veri Transfer Nesnesi
  */
 data class FinnhubMarketStatusDto(
-    @SerializedName("exchange") val exchange: String,
-    @SerializedName("isOpen") val isOpen: Boolean,
+    @SerializedName("exchange") val exchange: String? = null,
+    @SerializedName("isOpen") val isOpen: Boolean? = false,
     @SerializedName("session") val session: String? = null,
     @SerializedName("timezone") val timezone: String? = null,
     @SerializedName("holiday") val holiday: String? = null
+)
+
+/**
+ * Finnhub Anlık Hisse Fiyatı (Quote) DTO
+ */
+data class FinnhubQuoteDto(
+    @SerializedName("c") val currentPrice: Double? = null,
+    @SerializedName("d") val change: Double? = null,
+    @SerializedName("dp") val changePercent: Double? = null,
+    @SerializedName("h") val highPrice: Double? = null,
+    @SerializedName("l") val lowPrice: Double? = null,
+    @SerializedName("o") val openPrice: Double? = null,
+    @SerializedName("pc") val previousClose: Double? = null,
+    @SerializedName("t") val timestamp: Long? = null
 )

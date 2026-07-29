@@ -21,7 +21,11 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import com.nexus.porsuk.data.remote.PortfolioDoctorMetrics
+import com.nexus.porsuk.domain.model.PortfolioAsset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,13 +74,22 @@ fun PortfolioScreen(
     val totalBalance by viewModel.totalBalanceTry.collectAsState()
     val totalChange by viewModel.totalChangePercent.collectAsState()
     val numberFormat by viewModel.numberFormat.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    
+    val consolidatedHoldings by viewModel.consolidatedHoldings.collectAsState()
+    val portfolioChartData by viewModel.portfolioChartData.collectAsState()
+    val selectedTimeframe by viewModel.selectedChartTimeframe.collectAsState()
+    val riskMetrics by viewModel.portfolioRiskMetrics.collectAsState()
+    val aiInsight by viewModel.aiPortfolioInsight.collectAsState()
 
     var isBalanceVisible by remember { mutableStateOf(true) }
-    var selectedTimeframeIndex by remember { mutableIntStateOf(0) }
 
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
+        if (portfolioChartData.isEmpty()) {
+            viewModel.updateChartTimeframe(0)
+        }
     }
 
     Scaffold(
@@ -89,82 +102,101 @@ fun PortfolioScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp) // 24dp Card Spacing Specification
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshAllData() },
+            modifier = Modifier.padding(padding)
         ) {
-            // 1. Portföy Özeti Kartı
-            item(key = "portfolio_summary_hero") {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(400)) + slideInVertically(initialOffsetY = { 40 })
-                ) {
-                    PortfolioSummaryHeroCard(
-                        totalBalance = totalBalance,
-                        totalChange = totalChange,
-                        isBalanceVisible = isBalanceVisible,
-                        onToggleVisibility = { isBalanceVisible = !isBalanceVisible },
-                        numberFormat = numberFormat
-                    )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 36.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 1. Portföy Özeti Kartı
+                item(key = "portfolio_summary_hero") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(400)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        PortfolioSummaryHeroCard(
+                            totalBalance = totalBalance,
+                            totalChange = totalChange,
+                            isBalanceVisible = isBalanceVisible,
+                            onToggleVisibility = { isBalanceVisible = !isBalanceVisible },
+                            numberFormat = numberFormat,
+                            riskMetrics = riskMetrics
+                        )
+                    }
                 }
-            }
 
-            // 2. Varlık Dağılımı & 3. Sektör Dağılımı (Side-by-Side Donut Grid)
-            item(key = "allocations_donuts_section") {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(550)) + slideInVertically(initialOffsetY = { 40 })
-                ) {
-                    AllocationsDonutGridSection(onAnalysisClick = onAnalysisClick)
+                // 2. Varlık Dağılımı & 3. Sektör Dağılımı (Side-by-Side Donut Grid)
+                item(key = "allocations_donuts_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(550)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        AllocationsDonutGridSection(
+                            onAnalysisClick = onAnalysisClick,
+                            riskMetrics = riskMetrics
+                        )
+                    }
                 }
-            }
 
-            // 4. Portföy Performansı (Chart & Hover Touch Tooltip)
-            item(key = "portfolio_performance_chart") {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(700)) + slideInVertically(initialOffsetY = { 40 })
-                ) {
-                    PortfolioPerformanceChartCard(
-                        selectedTimeframe = selectedTimeframeIndex,
-                        onTimeframeSelected = { selectedTimeframeIndex = it }
-                    )
+                // 4. Portföy Performansı (Chart & Hover Touch Tooltip)
+                item(key = "portfolio_performance_chart") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(700)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        PortfolioPerformanceChartCard(
+                            selectedTimeframe = selectedTimeframe,
+                            onTimeframeSelected = { viewModel.updateChartTimeframe(it) },
+                            chartData = portfolioChartData,
+                            numberFormat = numberFormat
+                        )
+                    }
                 }
-            }
 
-            // 5. Varlıklarım Tablosu
-            item(key = "my_holdings_section") {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(850)) + slideInVertically(initialOffsetY = { 40 })
-                ) {
-                    MyHoldingsSection(onStockClick = onStockClick)
+                // 5. Varlıklarım Tablosu
+                item(key = "my_holdings_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(850)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        MyHoldingsSection(
+                            onStockClick = onStockClick,
+                            holdings = consolidatedHoldings,
+                            numberFormat = numberFormat
+                        )
+                    }
                 }
-            }
 
-            // 6. AI Portföy Doktoru & 7. Oracle Kartı
-            item(key = "ai_doctor_and_oracle_section") {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(1000)) + slideInVertically(initialOffsetY = { 40 })
-                ) {
-                    AiDoctorAndOracleSection(onAnalysisClick = onAnalysisClick)
+                // 6. AI Portföy Doktoru & 7. Oracle Kartı
+                item(key = "ai_doctor_and_oracle_section") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(1000)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        AiDoctorAndOracleSection(
+                            onAnalysisClick = onAnalysisClick,
+                            riskMetrics = riskMetrics,
+                            aiInsight = aiInsight,
+                            onGenerateInsight = { viewModel.generateAiPortfolioInsight() }
+                        )
+                    }
                 }
-            }
 
-            // 8. Hızlı İşlemler
-            item(key = "quick_actions_and_reports") {
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter = fadeIn(tween(1150)) + slideInVertically(initialOffsetY = { 40 })
-                ) {
-                    QuickActionsAndReportsSection(
-                        onLedgerClick = onLedgerClick,
-                        onAnalysisClick = onAnalysisClick
-                    )
+                // 8. Hızlı İşlemler
+                item(key = "quick_actions_and_reports") {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn(tween(1150)) + slideInVertically(initialOffsetY = { 40 })
+                    ) {
+                        QuickActionsAndReportsSection(
+                            onLedgerClick = onLedgerClick,
+                            onAnalysisClick = onAnalysisClick
+                        )
+                    }
                 }
             }
         }
@@ -250,10 +282,17 @@ private fun PortfolioSummaryHeroCard(
     totalChange: Double,
     isBalanceVisible: Boolean,
     onToggleVisibility: () -> Unit,
-    numberFormat: String
+    numberFormat: String,
+    riskMetrics: PortfolioDoctorMetrics?
 ) {
     val displayValue = remember(totalBalance, isBalanceVisible) {
         if (isBalanceVisible) CurrencyFormatter.formatTRY(totalBalance, numberFormat) else "₺••••••••"
+    }
+
+    val dailyValueStr = remember(totalChange, riskMetrics, numberFormat) {
+        val amt = (totalBalance * totalChange / 100.0)
+        val sign = if (totalChange >= 0) "^" else "v"
+        "$sign %${String.format("%.2f", totalChange)} (${CurrencyFormatter.formatTRY(amt, numberFormat)}) Bugün"
     }
 
     Card(
@@ -336,15 +375,15 @@ private fun PortfolioSummaryHeroCard(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "^ %2,35 (₺28.750,45) Bugün",
+                            text = dailyValueStr,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono),
-                            color = SuccessGreen
+                            color = if (totalChange >= 0) SuccessGreen else ErrorRed
                         )
                     }
                 }
 
                 // Mini Sparkline Graph (Enlarged size)
-                val mockSparkValues = remember { listOf(40f, 42f, 41f, 45f, 44f, 48f, 47f, 52f, 50f, 56f, 54f, 62f) }
+                val mockSparkValues = emptyList<Float>()
                 Sparkline(
                     values = mockSparkValues,
                     color = SuccessGreen,
@@ -365,24 +404,32 @@ private fun PortfolioSummaryHeroCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                MetricColumnItem(title = "Toplam Getiri", value = "₺245.750,45", percentage = "^ %24,36", isPositive = true)
-                MetricColumnItem(title = "Getiri (Yıl)", value = "₺325.420,15", percentage = "^ %32,68", isPositive = true)
+                MetricColumnItem(
+                    title = "Toplam Kar/Zarar",
+                    value = CurrencyFormatter.formatTRY(totalBalance * totalChange / 100.0, numberFormat),
+                    percentage = "${if(totalChange >=0) "^" else "v"} %${String.format("%.1f", totalChange)}",
+                    isPositive = totalChange >= 0
+                )
                 
                 // Risk Skoru Gauge
                 ProminentGaugeColumnItem(
                     title = "Risk Skoru",
-                    score = 72,
+                    score = riskMetrics?.healthScore ?: 0,
                     maxScore = 100,
-                    label = "Orta",
-                    color = WarningOrange
+                    label = riskMetrics?.concentrationRisk?.substringBefore(" ") ?: "Nötr",
+                    color = when {
+                        (riskMetrics?.healthScore ?: 0) > 80 -> SuccessGreen
+                        (riskMetrics?.healthScore ?: 0) > 50 -> WarningOrange
+                        else -> ErrorRed
+                    }
                 )
 
                 // AI Sağlık Puanı Gauge
                 ProminentGaugeColumnItem(
-                    title = "AI Sağlık Puanı",
-                    score = 85,
+                    title = "AI Sağlık",
+                    score = riskMetrics?.healthScore ?: 0,
                     maxScore = 100,
-                    label = "İyi",
+                    label = "Detay",
                     color = SuccessGreen
                 )
             }
@@ -453,55 +500,66 @@ private fun ProminentGaugeColumnItem(
     }
 }
 
-// ── 3 & 4. VARLIK DAĞILIMI VE SEKTÖR DAĞILIMI (Side-by-Side Donut Grid) ──
+// ── 3 & 4. DAĞILIM ANALİZLERİ (Side-by-Side Donut Grid) ──
 @Composable
-private fun AllocationsDonutGridSection(onAnalysisClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+private fun AllocationsDonutGridSection(
+    onAnalysisClick: () -> Unit,
+    riskMetrics: PortfolioDoctorMetrics?
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Varlık Dağılımı Card
-        AssetAllocationCard(
-            modifier = Modifier.weight(1f),
-            onAnalysisClick = onAnalysisClick
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Varlık Dağılımı Card
+            DistributionCard(
+                title = "Varlık Tipi",
+                modifier = Modifier.weight(1f),
+                segments = listOf(
+                    AssetSegment("Hisse", 85f, "", PrimaryPurple),
+                    AssetSegment("Nakit", 15f, "", Color(0xFF3B82F6))
+                )
+            )
 
-        // Sektör Dağılımı Card
+            // Ülke Dağılımı Card
+            DistributionCard(
+                title = "Ülke Dağılımı",
+                modifier = Modifier.weight(1f),
+                segments = riskMetrics?.countryBreakdown?.map { (country, pct) ->
+                    AssetSegment(country, pct.toFloat(), "", when(country) {
+                        "ABD (US)" -> SuccessGreen
+                        "Avrupa (EU)" -> WarningOrange
+                        else -> PrimaryPurple
+                    })
+                } ?: emptyList()
+            )
+        }
+
+        // Sektör Dağılımı Card (Full Width)
         SectorAllocationCard(
-            modifier = Modifier.weight(1f),
-            onAnalysisClick = onAnalysisClick
+            modifier = Modifier.fillMaxWidth(),
+            onAnalysisClick = onAnalysisClick,
+            riskMetrics = riskMetrics
         )
     }
 }
 
 @Composable
-private fun AssetAllocationCard(
-    modifier: Modifier = Modifier,
-    onAnalysisClick: () -> Unit
+private fun DistributionCard(
+    title: String,
+    segments: List<AssetSegment>,
+    modifier: Modifier = Modifier
 ) {
-    var selectedIndex by remember { mutableIntStateOf(-1) }
     var animated by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        animated = true
-    }
-
-    val segments = remember {
-        listOf(
-            AssetSegment("Hisse Senedi", 62.5f, "₺153.500", PrimaryPurple),
-            AssetSegment("Nakit", 18.3f, "₺44.950", Color(0xFF3B82F6)),
-            AssetSegment("Yabancı Hisse", 12.4f, "₺30.450", SuccessGreen),
-            AssetSegment("Fon", 4.8f, "₺11.780", WarningOrange),
-            AssetSegment("Diğer", 2.0f, "₺4.910", Color(0xFF94A3B8))
-        )
-    }
+    LaunchedEffect(Unit) { animated = true }
 
     val animProgress by animateFloatAsState(
         targetValue = if (animated) 1.0f else 0.0f,
         animationSpec = tween(1200, easing = FastOutSlowInEasing),
-        label = "asset_donut_anim"
+        label = "dist_donut_anim"
     )
 
     Card(
@@ -511,92 +569,33 @@ private fun AssetAllocationCard(
         border = BorderStroke(1.dp, BorderColor)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            Text("Varlık Dağılımı", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
-
+            Text(title, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Donut Chart Canvas (Enlarged 135dp radius)
             Box(
-                modifier = Modifier
-                    .size(135.dp)
-                    .align(Alignment.CenterHorizontally),
+                modifier = Modifier.size(100.dp).align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokeWidth = 16.dp.toPx()
+                    val strokeWidth = 12.dp.toPx()
                     var startAngle = -90f
-
-                    segments.forEachIndexed { idx, seg ->
+                    segments.forEach { seg ->
                         val sweep = (seg.pct / 100f) * 360f * animProgress
-                        val isSelected = idx == selectedIndex
-                        drawArc(
-                            color = if (isSelected) seg.color else seg.color.copy(alpha = if (selectedIndex == -1) 1.0f else 0.4f),
-                            startAngle = startAngle,
-                            sweepAngle = sweep,
-                            useCenter = false,
-                            style = Stroke(width = if (isSelected) strokeWidth + 4.dp.toPx() else strokeWidth, cap = StrokeCap.Butt)
-                        )
+                        drawArc(color = seg.color, startAngle = startAngle, sweepAngle = sweep, useCenter = false, style = Stroke(width = strokeWidth))
                         startAngle += sweep
                     }
                 }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Toplam", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSecondary)
-                    Text("%100", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp), color = TextDark)
-                }
+                Text("%100", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = TextDark)
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Interactive Segment Info Box (Tıklanınca Gösterilen Yapı)
-            if (selectedIndex in segments.indices) {
-                val sel = segments[selectedIndex]
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = sel.color.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, sel.color.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(sel.label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = sel.color)
-                        Text("%${sel.pct} • ${sel.amount}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = TextDark)
-                    }
-                }
-            }
-
-            // Segment Legend List
-            segments.forEachIndexed { idx, seg ->
-                DonutLegendRow(
-                    color = seg.color,
-                    label = seg.label,
-                    value = "%${seg.pct}",
-                    isSelected = idx == selectedIndex,
-                    onClick = { selectedIndex = if (selectedIndex == idx) -1 else idx }
-                )
-            }
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onAnalysisClick),
-                shape = RoundedCornerShape(14.dp),
-                color = LightBackground,
-                border = BorderStroke(1.dp, BorderColor)
-            ) {
-                Row(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Detaylı Dağılım", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp), color = PrimaryPurple)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = PrimaryPurple, modifier = Modifier.size(10.dp))
+            segments.take(2).forEach { seg ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(seg.color))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(seg.label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = TextSecondary, maxLines = 1)
+                    }
+                    Text("%${String.format("%.0f", seg.pct)}", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold), color = TextDark)
                 }
             }
         }
@@ -608,7 +607,8 @@ private data class AssetSegment(val label: String, val pct: Float, val amount: S
 @Composable
 private fun SectorAllocationCard(
     modifier: Modifier = Modifier,
-    onAnalysisClick: () -> Unit
+    onAnalysisClick: () -> Unit,
+    riskMetrics: PortfolioDoctorMetrics?
 ) {
     var selectedIndex by remember { mutableIntStateOf(0) } // Default selected sector
     var animated by remember { mutableStateOf(false) }
@@ -617,14 +617,16 @@ private fun SectorAllocationCard(
         animated = true
     }
 
-    val sectors = remember {
-        listOf(
-            SectorSegment("Teknoloji", 28.4f, "Teknoloji ağırlığınız ideal seviyede.", PrimaryPurple),
-            SectorSegment("Bankacılık", 18.7f, "Bankacılık sektörü güçlü temettü sağlıyor.", Color(0xFF3B82F6)),
-            SectorSegment("Savunma", 12.1f, "Savunma sanayi sipariş momentumu yüksek.", SuccessGreen),
-            SectorSegment("Holding", 11.3f, "Holding portföy çeşitliliğinizi destekliyor.", WarningOrange),
-            SectorSegment("Enerji", 8.6f, "Yenilenebilir enerji potansiyeli yüksek.", Color(0xFFEC4899))
-        )
+    val sectors = remember(riskMetrics) {
+        riskMetrics?.sectorBreakdown?.map { (sector, pct) ->
+            val color = when {
+                sector.contains("Teknoloji") -> PrimaryPurple
+                sector.contains("Banka") -> Color(0xFF3B82F6)
+                sector.contains("Savunma") -> SuccessGreen
+                else -> WarningOrange
+            }
+            SectorSegment(sector, pct.toFloat(), "Ağırlık: %${String.format("%.1f", pct)}", color)
+        } ?: emptyList()
     }
 
     val animProgress by animateFloatAsState(
@@ -754,10 +756,15 @@ private fun DonutLegendRow(
 @Composable
 private fun PortfolioPerformanceChartCard(
     selectedTimeframe: Int,
-    onTimeframeSelected: (Int) -> Unit
+    onTimeframeSelected: (Int) -> Unit,
+    chartData: List<Double>,
+    numberFormat: String
 ) {
-    val timeframes = remember { listOf("Günlük", "Haftalık", "Aylık", "Yılbaşı", "1Y", "Tümü") }
-    val timeLabels = remember { listOf("09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:00") }
+    val timeframes = remember { listOf("1G", "1H", "1A", "3A", "6A", "1Y", "Tümü") }
+    
+    val displayData = remember(chartData) {
+        if (chartData.isEmpty()) listOf(0.0, 0.0, 0.0, 0.0, 0.0) else chartData
+    }
 
     var animState by remember { mutableStateOf(false) }
     LaunchedEffect(selectedTimeframe) {
@@ -859,12 +866,13 @@ private fun PortfolioPerformanceChartCard(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(Unit) {
+                        .pointerInput(displayData) {
                             detectTapGestures(
                                 onPress = { offset ->
                                     touchOffset = offset
-                                    val approxVal = 1050000 + ((1.0f - (offset.y / size.height)) * 235450).toInt()
-                                    hoveredPrice = "₺${String.format("%,d", approxVal)}"
+                                    val idx = (offset.x / size.width * (displayData.size - 1)).toInt().coerceIn(0, displayData.size - 1)
+                                    val valAtPoint = displayData[idx]
+                                    hoveredPrice = CurrencyFormatter.formatTRY(valAtPoint, numberFormat)
                                 }
                             )
                         }
@@ -872,16 +880,17 @@ private fun PortfolioPerformanceChartCard(
                     val width = size.width
                     val height = size.height
 
-                    val points = listOf(
-                        Offset(0f, height * 0.75f),
-                        Offset(width * 0.15f, height * 0.60f),
-                        Offset(width * 0.30f, height * 0.68f),
-                        Offset(width * 0.45f, height * 0.38f),
-                        Offset(width * 0.60f, height * 0.45f),
-                        Offset(width * 0.75f, height * 0.20f),
-                        Offset(width * 0.90f, height * 0.30f),
-                        Offset(width, height * 0.10f)
-                    )
+                    val minVal = displayData.minOrNull() ?: 0.0
+                    val maxVal = displayData.maxOrNull() ?: 1.0
+                    val range = (maxVal - minVal).coerceAtLeast(1.0)
+
+                    val points = displayData.mapIndexed { idx, value ->
+                        val x = if (displayData.size > 1) idx.toFloat() / (displayData.size - 1) * width else width / 2
+                        val y = height - ((value - minVal) / range * height).toFloat().coerceIn(0f, height.toFloat())
+                        Offset(x, y)
+                    }
+
+                    if (points.isEmpty()) return@Canvas
 
                     // Path drawing animation mask
                     val currentWidth = width * chartAnimProgress
@@ -938,12 +947,12 @@ private fun PortfolioPerformanceChartCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Time Labels Row
+            // Time Labels Placeholder
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                timeLabels.forEach { label ->
+                listOf("Açılış", "Kapanış").forEach { label ->
                     Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, fontFamily = IBMPlexMono), color = TextSecondary)
                 }
             }
@@ -957,9 +966,9 @@ private fun PortfolioPerformanceChartCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                ChartSummaryMetric("Minimum", "₺1.050.000", ErrorRed)
-                ChartSummaryMetric("Maksimum", "₺1.285.450", SuccessGreen)
-                ChartSummaryMetric("Ortalama", "₺1.168.200", PrimaryPurple)
+                ChartSummaryMetric("Minimum", CurrencyFormatter.formatTRY(displayData.minOrNull() ?: 0.0, numberFormat), ErrorRed)
+                ChartSummaryMetric("Maksimum", CurrencyFormatter.formatTRY(displayData.maxOrNull() ?: 0.0, numberFormat), SuccessGreen)
+                ChartSummaryMetric("Ortalama", CurrencyFormatter.formatTRY(displayData.average(), numberFormat), PrimaryPurple)
             }
         }
     }
@@ -976,17 +985,11 @@ private fun ChartSummaryMetric(title: String, value: String, color: Color) {
 
 // ── 6. VARLIKLARIM TABLOSU (Holdings Table with Spacious Rows & Larger Logos) ──
 @Composable
-private fun MyHoldingsSection(onStockClick: (String, String) -> Unit) {
-    val holdings = remember {
-        listOf(
-            HoldingItem("THYAO", "Türk Hava Yolları", "120", "₺52.680,00", "₺439,00", "^ %1,42", "₺735,60", "^ %18,75", "₺8.325,60", true),
-            HoldingItem("ASELS", "Aselsan", "250", "₺56.750,00", "₺227,00", "^ %2,15", "₺1.192,50", "^ %24,36", "₺11.125,40", true),
-            HoldingItem("KCHOL", "Koç Holding", "80", "₺14.592,00", "₺182,40", "^ %0,66", "₺95,60", "^ %12,48", "₺1.620,80", true),
-            HoldingItem("BIMAS", "BİM Birleşik Mağazalar", "45", "₺12.420,00", "₺276,00", "v %-0,48", "-₺59,40", "^ %8,21", "₺942,60", false),
-            HoldingItem("USD/TRY", "Döviz", "1.200 USD", "₺38.760,00", "₺32,30", "^ %0,35", "₺134,40", "^ %6,15", "₺2.246,80", true)
-        )
-    }
-
+private fun MyHoldingsSection(
+    onStockClick: (String, String) -> Unit,
+    holdings: List<PortfolioAsset>,
+    numberFormat: String
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1025,7 +1028,19 @@ private fun MyHoldingsSection(onStockClick: (String, String) -> Unit) {
             HorizontalDivider(color = BorderColor)
 
             holdings.forEach { item ->
-                HoldingRowItem(item = item, onClick = { onStockClick(item.symbol, "BIST") })
+                val uiItem = HoldingItem(
+                    symbol = item.symbol,
+                    name = item.name,
+                    qty = String.format("%.0f", item.quantity),
+                    totalValue = CurrencyFormatter.formatTRY(item.totalValue, numberFormat),
+                    avgCost = "Maliyet: ${CurrencyFormatter.formatTRY(item.averageCost, numberFormat)}",
+                    dailyChangePct = "%0.0", // TODO: Add daily change to PortfolioAsset if needed
+                    dailyChangeAmt = "₺0",
+                    totalReturnPct = "%${String.format("%.1f", item.profitPercent)}",
+                    totalReturnAmt = CurrencyFormatter.formatTRY(item.profitLoss, numberFormat),
+                    isDailyPositive = true
+                )
+                HoldingRowItem(item = uiItem, onClick = { onStockClick(item.symbol, "BIST") })
                 HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
             }
 
@@ -1121,7 +1136,12 @@ private fun HoldingRowItem(item: HoldingItem, onClick: () -> Unit) {
 
 // ── 7. AI PORTFÖY DOKTORU & 8. ORACLE KARTI ──
 @Composable
-private fun AiDoctorAndOracleSection(onAnalysisClick: () -> Unit) {
+private fun AiDoctorAndOracleSection(
+    onAnalysisClick: () -> Unit,
+    riskMetrics: PortfolioDoctorMetrics?,
+    aiInsight: String?,
+    onGenerateInsight: () -> Unit
+) {
     Column(
         modifier = Modifier.padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -1147,14 +1167,14 @@ private fun AiDoctorAndOracleSection(onAnalysisClick: () -> Unit) {
                         Text("AI Portföy Doktoru", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = TextDark)
                     }
 
-                    // AI Confidence Badge (%88 Güven)
+                    // AI Confidence Badge
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = PurpleSoftBg,
                         border = BorderStroke(1.dp, PrimaryPurple.copy(0.3f))
                     ) {
                         Text(
-                            "%88 Güven",
+                            "%${riskMetrics?.healthScore ?: 0} Sağlık",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 10.sp, fontFamily = IBMPlexMono),
                             color = PrimaryPurple,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1169,21 +1189,42 @@ private fun AiDoctorAndOracleSection(onAnalysisClick: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    DoctorMetricItem("Portföy Sağlığı", "88/100", SuccessGreen)
-                    DoctorMetricItem("Risk", "Dengeli", WarningOrange)
-                    DoctorMetricItem("Çeşitlilik", "Yüksek", SuccessGreen)
-                    DoctorMetricItem("Volatilite", "%14.2", PrimaryPurple)
+                    DoctorMetricItem("Portföy Sağlığı", "${riskMetrics?.healthScore ?: 0}/100", SuccessGreen)
+                    DoctorMetricItem("Risk", riskMetrics?.currencyRisk?.substringBefore(" ") ?: "Nötr", WarningOrange)
+                    DoctorMetricItem("Çeşitlilik", if((riskMetrics?.sectorBreakdown?.size ?: 0) > 3) "Yüksek" else "Düşük", SuccessGreen)
+                    DoctorMetricItem("Volatilite", "%${String.format("%.1f", riskMetrics?.volatilityPercent ?: 0.0)}", PrimaryPurple)
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
                 HorizontalDivider(color = BorderColor)
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Bullet Point Structured AI Commentary (7th Requirement Spec)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AiBulletItem("✅", "Güçlü Yanlar", "Teknoloji ve bankacılık sektör ağırlığı yüksek verimlilik sunuyor.")
-                    AiBulletItem("⚠", "Riskler", "Savunma ve enerji sektörlerinde dönemsel dalgalanma riski mevcut.")
-                    AiBulletItem("💡", "Öneriler", "Yenilenebilir enerjiye %5 ilave ağırlık vererek Sharpe oranını %12 artırabilirsiniz.")
+                // AI Insight or Loading/Empty State
+                if (aiInsight != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = aiInsight,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
+                            color = TextDark,
+                            fontFamily = Manrope
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Portföyün için AI analizi oluşturulmadı.", fontSize = 11.sp, color = TextSecondary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onGenerateInsight,
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("AI Analizi Oluştur", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1191,10 +1232,10 @@ private fun AiDoctorAndOracleSection(onAnalysisClick: () -> Unit) {
                 Button(
                     onClick = onAnalysisClick,
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple.copy(alpha = 0.1f), contentColor = PrimaryPurple),
                     modifier = Modifier.fillMaxWidth().height(44.dp)
                 ) {
-                    Text("Portföyü Tara & Rebalans Yap", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                    Text("Detaylı Analiz & Rebalans", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = Manrope)
                 }
             }
         }
@@ -1276,7 +1317,7 @@ private fun OracleHighlightCard() {
                     Text("Oracle Bugünü Yorumladı", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = Color.White)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "Piyasada pozitif momentum devam ediyor. Portföyünüz için rebalans zamanı uygun.",
+                        "Porsuk piyasaları senin için kokluyor... Gerçek zamanlı verilerle yakında burada!",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 15.sp),
                         color = Color.White.copy(alpha = 0.88f)
                     )
@@ -1284,7 +1325,7 @@ private fun OracleHighlightCard() {
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                // Circular Progress Arc for %87 Güven (8th Requirement Spec)
+                // Circular Progress Arc for %0 Güven (Waiting for API)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
                         modifier = Modifier.size(42.dp),
@@ -1302,12 +1343,12 @@ private fun OracleHighlightCard() {
                             drawArc(
                                 color = Color(0xFFC084FC),
                                 startAngle = -90f,
-                                sweepAngle = confidenceSweep,
+                                sweepAngle = 0f,
                                 useCenter = false,
                                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                             )
                         }
-                        Text("%87", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, fontFamily = IBMPlexMono), color = Color(0xFFC084FC))
+                        Text("%0", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, fontFamily = IBMPlexMono), color = Color(0xFFC084FC))
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text("Güven", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = Color.White.copy(alpha = 0.8f))

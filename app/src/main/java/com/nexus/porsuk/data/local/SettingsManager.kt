@@ -55,6 +55,7 @@ class SettingsManager(private val context: Context) {
         val LAST_ORAKUL_RUN_TIME = longPreferencesKey("last_orakul_run_time")
         val IS_SAMPLE_SEEDED = booleanPreferencesKey("is_sample_seeded")
         val IS_ONBOARDING_COMPLETED = booleanPreferencesKey("is_onboarding_completed")
+        val FMP_API_KEY = stringPreferencesKey("fmp_api_key")
         val DAILY_ORAKUL_NOTIF = booleanPreferencesKey("daily_orakul_notif")
         val LAST_MORNING_NOTIF_TIME = longPreferencesKey("last_morning_notif_time") // ITEM 7
         val LAST_EVENING_NOTIF_TIME = longPreferencesKey("last_evening_notif_time")
@@ -78,6 +79,7 @@ class SettingsManager(private val context: Context) {
     val lastEveningNotifTime: Flow<Long> = context.dataStore.data.map { it[LAST_EVENING_NOTIF_TIME] ?: 0L }
     val targetAllocationJson: Flow<String> = context.dataStore.data.map { it[TARGET_ALLOCATION] ?: "" }
     val activeIpoAlarms: Flow<Set<String>> = context.dataStore.data.map { it[ACTIVE_IPO_ALARMS] ?: emptySet() }
+    val fmpApiKey: Flow<String?> = context.dataStore.data.map { it[FMP_API_KEY] }
 
     suspend fun setLatestOrakulTip(tip: String) {
         context.dataStore.edit { it[LATEST_ORAKUL_TIP] = tip }
@@ -163,6 +165,10 @@ class SettingsManager(private val context: Context) {
             backupPrefs.edit().putString("gemini_api_key", key).apply()
         }
         _geminiApiKey.value = key.trim()
+    }
+
+    suspend fun saveFmpApiKey(key: String) {
+        context.dataStore.edit { it[FMP_API_KEY] = key }
     }
 
     fun getGeminiApiKey(): String? {

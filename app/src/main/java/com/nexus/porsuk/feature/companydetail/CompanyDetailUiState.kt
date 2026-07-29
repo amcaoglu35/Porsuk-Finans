@@ -11,7 +11,8 @@ enum class CompanyDetailTab(val title: String) {
     FINANCIALS("Finansallar"),
     ANALYSIS("Analizler"),
     NEWS("Haberler"),
-    CORPORATE("Kurumsallar")
+    CORPORATE("Kurumsallar"),
+    AI_ORACLE("AI Oracle")
 }
 
 /**
@@ -58,7 +59,19 @@ data class CompanyDetailUiState(
     // Redesign - Corporate Data
     val boardMembers: List<BoardMember> = emptyList(),
     val ownershipStructure: List<OwnerData> = emptyList(),
-    val corporateTimeline: List<TimelineEvent> = emptyList()
+    val corporateTimeline: List<TimelineEvent> = emptyList(),
+
+    // AI Oracle
+    val aiOracleReport: AiOracleReport? = null
+)
+
+data class AiOracleReport(
+    val aiScore: Int,
+    val riskScore: Int,
+    val confidence: Int,
+    val fairValue: Double,
+    val recommendation: String,
+    val investmentThesis: String
 )
 
 data class AiAgentConsensus(

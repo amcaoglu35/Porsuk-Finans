@@ -14,6 +14,8 @@ interface NewsIntelligenceRepository {
     fun getBookmarkedNews(): Flow<List<NewsArticle>>
     suspend fun setBookmark(articleId: String, isBookmarked: Boolean)
     suspend fun markAsRead(articleId: String)
+    suspend fun refreshNewsByCategory(category: NewsCategory): Result<Unit>
+    suspend fun refreshNewsBySymbol(symbol: String): Result<Unit>
 }
 
 /**

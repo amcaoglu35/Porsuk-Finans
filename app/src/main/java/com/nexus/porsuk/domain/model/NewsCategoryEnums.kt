@@ -1,23 +1,18 @@
 package com.nexus.porsuk.domain.model
 
 /**
- * Porsuk News Intelligence Center — 13 Haber Kategorisi
+ * Porsuk News Intelligence Center — Haber Kategorileri
  */
 enum class NewsCategory(val displayName: String) {
-    ALL("Tüm Haberler"),
+    LATEST("Son Haberler"),
     COMPANY("Şirket Haberleri"),
-    KAP("KAP Bildirimleri"),
-    TURKEY_ECONOMY("Türkiye Ekonomisi"),
-    WORLD_ECONOMY("Dünya Ekonomisi"),
-    FED("FED & Merkez Bankaları"),
-    TCMB("TCMB Duyuruları"),
-    BIST("BIST Piyasaları"),
-    USA_MARKETS("ABD Piyasaları"),
-    EUROPE_MARKETS("Avrupa Piyasaları"),
-    ETF("ETF Haberleri"),
-    TEFAS("TEFAS Fon Duyuruları"),
-    CRYPTO("Kripto Para Haberleri"),
-    COMMODITY("Emtia & Enerji");
+    SECTOR("Sektör Haberleri"),
+    ECONOMY("Ekonomi Haberleri"),
+    WORLD("Dünya Piyasaları"),
+    CRYPTO("Kripto Para"),
+    TECH("Teknoloji"),
+    AI("Yapay Zeka"),
+    ALL("Tüm Haberler");
 
     companion object {
         fun fromString(name: String?): NewsCategory {

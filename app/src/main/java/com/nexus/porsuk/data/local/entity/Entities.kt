@@ -84,9 +84,11 @@ data class NewsItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val symbol: String,
     val title: String,
+    val summary: String? = null,
     val source: String,
     val publishedAt: Long,
     val url: String,
+    val imageUrl: String? = null,
     val sentiment: String? = null // POSITIVE, NEGATIVE, NEUTRAL
 )
 
@@ -269,5 +271,54 @@ data class EconomicEventEntry(
     val expectedValue: String?,
     val actualValue: String?,
     val comment: String
+)
+
+@Entity(tableName = "income_statements", primaryKeys = ["symbol", "date"])
+data class IncomeStatementEntity(
+    val symbol: String,
+    val date: String,
+    val revenue: Double,
+    val grossProfit: Double,
+    val ebitda: Double,
+    val netIncome: Double,
+    val eps: Double
+)
+
+@Entity(tableName = "balance_sheets", primaryKeys = ["symbol", "date"])
+data class BalanceSheetEntity(
+    val symbol: String,
+    val date: String,
+    val totalAssets: Double,
+    val totalLiabilities: Double,
+    val totalEquity: Double,
+    val netDebt: Double
+)
+
+@Entity(tableName = "cash_flows", primaryKeys = ["symbol", "date"])
+data class CashFlowEntity(
+    val symbol: String,
+    val date: String,
+    val operatingCashFlow: Double,
+    val freeCashFlow: Double
+)
+
+@Entity(tableName = "company_ratios", primaryKeys = ["symbol", "date"])
+data class CompanyRatioEntity(
+    val symbol: String,
+    val date: String,
+    val roe: Double,
+    val roa: Double,
+    val peRatio: Double,
+    val pbRatio: Double,
+    val currentRatio: Double,
+    val debtToEquity: Double
+)
+
+@Entity(tableName = "macro_data", primaryKeys = ["seriesId", "date"])
+data class MacroDataEntity(
+    val seriesId: String,
+    val date: String,
+    val value: Double,
+    val lastUpdated: Long = System.currentTimeMillis()
 )
 
