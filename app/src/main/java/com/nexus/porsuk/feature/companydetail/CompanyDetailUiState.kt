@@ -15,6 +15,27 @@ enum class CompanyDetailTab(val title: String) {
     AI_ORACLE("AI Oracle")
 }
 
+enum class ChartType {
+    LINE, CANDLESTICK
+}
+
+enum class ChartTimeFrame(val label: String) {
+    ONE_DAY("1G"),
+    ONE_WEEK("1H"),
+    ONE_MONTH("1A"),
+    ONE_YEAR("1Y"),
+    ALL("TÜMÜ")
+}
+
+data class CandleStickData(
+    val timestamp: Long,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val volume: Double
+)
+
 /**
  * Porsuk Company Detail Module — UI Ekran Durumu (CompanyDetailUiState)
  */
@@ -30,6 +51,13 @@ data class CompanyDetailUiState(
     val selectedTab: CompanyDetailTab = CompanyDetailTab.OVERVIEW,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
+    val isOffline: Boolean = false,
+    val lastUpdatedFormatted: String? = null,
+
+    // Interactive Chart Options
+    val chartType: ChartType = ChartType.LINE,
+    val selectedTimeFrame: ChartTimeFrame = ChartTimeFrame.ONE_MONTH,
+    val candleStickList: List<CandleStickData> = emptyList(),
 
     // Redesign - AI & Summary
     val aiSummary: String = "",

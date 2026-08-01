@@ -13,9 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.feature.companydetail.components.*
 
@@ -48,14 +51,33 @@ fun CompanyDetailScreen(
             ) {
                 // 1. Header Area
                 item {
-                    CompanyDetailHeader(
-                        company = uiState.company,
-                        isFavorite = uiState.isFavorite,
-                        onBack = onNavigateBack,
-                        onFavoriteToggle = { viewModel.toggleFavorite() },
-                        onAlarmClick = { },
-                        onShareClick = { }
-                    )
+                    Column {
+                        if (uiState.isOffline) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFFFFBEB))
+                                    .padding(vertical = 6.dp, horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "📴 Çevrimdışı Mod • Son Güncelleme: ${uiState.lastUpdatedFormatted ?: "Bilinmiyor"}",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFB45309)
+                                )
+                            }
+                        }
+
+                        CompanyDetailHeader(
+                            company = uiState.company,
+                            isFavorite = uiState.isFavorite,
+                            onBack = onNavigateBack,
+                            onFavoriteToggle = { viewModel.toggleFavorite() },
+                            onAlarmClick = { },
+                            onShareClick = { }
+                        )
+                    }
                 }
 
                 // 2. Price and AI Score
@@ -67,10 +89,15 @@ fun CompanyDetailScreen(
                     )
                 }
 
-                // 3. Main Fluid Chart
+                // 3. Main Interactive Chart
                 item {
                     CompanyMainChart(
                         data = historicalPrices,
+                        candles = uiState.candleStickList,
+                        chartType = uiState.chartType,
+                        selectedTimeFrame = uiState.selectedTimeFrame,
+                        onChartTypeChange = { viewModel.setChartType(it) },
+                        onTimeFrameChange = { viewModel.setTimeFrame(it) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

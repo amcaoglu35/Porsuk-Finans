@@ -4,7 +4,7 @@ import com.nexus.porsuk.data.local.entity.Company
 
 object DatabaseSeeder {
     /**
-     * Uygulamanın anasayfasında BIST, NASDAQ ve Avrupa'nın en popüler 17 dev şirketinin 
+     * Uygulamanın anasayfasında BIST, NASDAQ ve Avrupa'nın en popüler şirketlerinin 
      * otomatik olarak listelenmesi için zengin bir başlangıç listesi hazırlar.
      */
     fun getPopularCompanies(): List<Company> {
@@ -18,6 +18,21 @@ object DatabaseSeeder {
             Company("SAHOL", "Sabancı Holding", "BIST", "https://logo.clearbit.com/sabanci.com", "SAH", "Holding"),
             Company("BIMAS", "BİM Birleşik Mağazalar", "BIST", "https://logo.clearbit.com/bim.com.tr", "BIM", "Perakende"),
             Company("SASA", "Sasa Polyester", "BIST", "https://logo.clearbit.com/sasa.com.tr", "SAS", "Kimya"),
+            Company("GARAN", "Garanti BBVA", "BIST", "https://logo.clearbit.com/garantibbva.com.tr", "GAR", "Bankacılık"),
+            Company("AKBNK", "Akbank", "BIST", "https://logo.clearbit.com/akbank.com", "AKB", "Bankacılık"),
+            Company("ISCTR", "İş Bankası", "BIST", "https://logo.clearbit.com/isbank.com.tr", "ISC", "Bankacılık"),
+            Company("PGSUS", "Pegasus Hava Yolları", "BIST", "https://logo.clearbit.com/flypgs.com", "PGS", "Havacılık"),
+            Company("FROTO", "Ford Otosan", "BIST", "https://logo.clearbit.com/fordotosan.com.tr", "FRO", "Otomotiv"),
+            Company("ARCLK", "Arçelik", "BIST", "https://logo.clearbit.com/arcelik.com.tr", "ARC", "Beyaz Eşya"),
+            Company("TCELL", "Turkcell", "BIST", "https://logo.clearbit.com/turkcell.com.tr", "TCE", "Telekomünikasyon"),
+            Company("SISE", "Şişecam", "BIST", "https://logo.clearbit.com/sisecam.com.tr", "SIS", "Cam"),
+            Company("HEKTS", "Hektaş", "BIST", "https://logo.clearbit.com/hektas.com.tr", "HEK", "Tarım"),
+            Company("TOASO", "Tofaş Oto. Fab.", "BIST", "https://logo.clearbit.com/tofas.com.tr", "TOA", "Otomotiv"),
+            Company("EKGYO", "Emlak Konut GYO", "BIST", "https://logo.clearbit.com/emlakkonut.com.tr", "EKG", "Gayrimenkul"),
+            Company("ENKAI", "Enka İnşaat", "BIST", "https://logo.clearbit.com/enka.com", "ENK", "İnşaat"),
+            Company("VESTL", "Vestel Elektronik", "BIST", "https://logo.clearbit.com/vestelinternational.com", "VES", "Elektronik"),
+            Company("PETKM", "Petkim Petrokimya", "BIST", "https://logo.clearbit.com/petkim.com.tr", "PET", "Kimya"),
+            Company("KOZAL", "Koza Altın", "BIST", "https://logo.clearbit.com/kozaaltin.com.tr", "KOZ", "Madencilik"),
             
             // --- AMERİKA BORSASI (NASDAQ / NYSE) ---
             Company("AAPL", "Apple Inc.", "NASDAQ", "https://logo.clearbit.com/apple.com", "AAP", "Teknoloji"),
@@ -34,3 +49,4 @@ object DatabaseSeeder {
         )
     }
 }
+

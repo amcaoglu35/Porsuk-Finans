@@ -42,13 +42,63 @@ class CompanyDetailViewModel @Inject constructor(
     val uiState: StateFlow<CompanyDetailUiState> = _uiState.asStateFlow()
 
     val historicalPrices: StateFlow<List<Double>> = financeRepository.getStockHistory(symbol)
-        .map { list -> list.map { it.price } }
+        .map { list -> 
+            val pricesList = list.map { it.price }
+            generateCandlestickData(pricesList)
+            pricesList
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         loadCompanyDetailData()
         observeWatchlistStatus()
         fetchHistory()
+    }
+
+    fun setChartType(type: ChartType) {
+        _uiState.update { it.copy(chartType = type) }
+    }
+
+    fun setTimeFrame(timeFrame: ChartTimeFrame) {
+        _uiState.update { it.copy(selectedTimeFrame = timeFrame) }
+        viewModelScope.launch {
+            val range = when (timeFrame) {
+                ChartTimeFrame.ONE_DAY -> "1d"
+                ChartTimeFrame.ONE_WEEK -> "5d"
+                ChartTimeFrame.ONE_MONTH -> "1mo"
+                ChartTimeFrame.ONE_YEAR -> "1y"
+                ChartTimeFrame.ALL -> "max"
+            }
+            financeRepository.fetchHistoricalPrices(symbol, market, range, "1d")
+        }
+    }
+
+    private fun generateCandlestickData(prices: List<Double>) {
+        if (prices.isEmpty()) return
+        val candles = mutableListOf<CandleStickData>()
+        val chunkSize = (prices.size / 20).coerceAtLeast(1)
+        val chunks = prices.chunked(chunkSize)
+        
+        var baseTimestamp = System.currentTimeMillis() - (chunks.size * 86400000L)
+        chunks.forEach { chunk ->
+            val open = chunk.first()
+            val close = chunk.last()
+            val high = chunk.maxOrNull() ?: open
+            val low = chunk.minOrNull() ?: open
+            val volume = (high - low) * 1000 + (open * 50)
+            candles.add(
+                CandleStickData(
+                    timestamp = baseTimestamp,
+                    open = open,
+                    high = high,
+                    low = low,
+                    close = close,
+                    volume = volume
+                )
+            )
+            baseTimestamp += 86400000L
+        }
+        _uiState.update { it.copy(candleStickList = candles) }
     }
 
     private fun fetchHistory() {
@@ -82,12 +132,23 @@ class CompanyDetailViewModel @Inject constructor(
 
     private fun loadCompanyDetailData() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+            val formattedTime = sdf.format(java.util.Date())
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, lastUpdatedFormatted = formattedTime) }
 
             // 1. Refresh real data from API and Save to Room
             launch {
-                financeRepository.refreshFullCompanyDetail(symbol)
-                financeRepository.refreshPrice(symbol, market)
+                try {
+                    financeRepository.refreshFullCompanyDetail(symbol)
+                    financeRepository.refreshPrice(symbol, market)
+                    _uiState.update { it.copy(isOffline = false) }
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(
+                        isOffline = true,
+                        errorMessage = null, // don't block UI, show offline badge instead
+                        isLoading = false
+                    )}
+                }
             }
 
             // 2. Observe Room data for UI
@@ -121,8 +182,8 @@ class CompanyDetailViewModel @Inject constructor(
                                 QuickMetricItem("Borç/Özkaynak", String.format(java.util.Locale.US, "%.1f", last.debtToEquity))
                             ),
                             financialHealth = it.financialHealth.copy(
-                                liquidity = last.roe, // Mapping ROE to liquidity field for UI reuse
-                                leverage = last.roa,
+                                liquidity = last.currentRatio,
+                                leverage = last.debtToEquity,
                                 currentRatio = last.currentRatio
                             )
                         )}

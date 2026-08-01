@@ -1,25 +1,27 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.app.android.application)
+    alias(libs.plugins.app.android.application.compose)
+    alias(libs.plugins.app.hilt)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.app.kotlin.serialization)
 }
 
 android {
     namespace = "com.nexus.porsuk"
-    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.nexus.porsuk"
-        minSdk = 26
-        targetSdk = 37
-        versionCode = 4
-        versionName = "0.4.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 1
+        versionName = "1.0.0"
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -29,87 +31,68 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
+
     buildFeatures {
-        compose = true
         buildConfig = true
     }
-    lint {
-        checkReleaseBuilds = false
-        abortOnError = false
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/ui-tooling_release.kotlin_module",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+            )
+        }
     }
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(projects.core.common)
+    implementation(projects.core.domain)
+    implementation(projects.core.ui)
+    implementation(projects.feature.sample)
 
-    // Hilt Dependency Injection (KSP Annotation Processor)
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.hilt.navigation.compose)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
+    implementation(libs.java.inject)
 
-    // Jsoup for Web Scraping
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.animation.graphics)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.androidx.activity.compose)
+
+    implementation(libs.coil.compose)
+    implementation(libs.google.material)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.gson)
     implementation(libs.jsoup)
-
-    // Room Database
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
-
-    // Vico Charts
-    implementation(libs.vico.compose)
-    implementation(libs.vico.compose.m3)
-
-    // Gemini AI
-    implementation(libs.generativeai)
-
-    // Navigation
-    implementation(libs.androidx.navigation.compose)
-
-    // Glance for Widget
+    implementation(libs.google.ai.generativeai)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
-
-    // DataStore & Security
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.security.crypto)
-
-    // WorkManager
-    implementation(libs.androidx.work.runtime.ktx)
-
-    // OkHttp & Retrofit & Gson
-    implementation(libs.okhttp)
-    implementation(libs.logging.interceptor)
-    implementation(libs.retrofit)
-    implementation(libs.converter.gson)
-    implementation(libs.gson)
-
-    // Image Loading
-    implementation(libs.coil.compose)
-
-    // Markdown Renderer
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.compose.markdown)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    debugImplementation(libs.leakcanary)
 
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    debugImplementation(libs.androidx.compose.ui.tooling)
+    androidTestImplementation(libs.test.runner)
+    androidTestImplementation(libs.espresso.core)
 }

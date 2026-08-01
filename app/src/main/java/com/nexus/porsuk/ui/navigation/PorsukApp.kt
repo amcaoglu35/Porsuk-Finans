@@ -133,127 +133,132 @@ fun PorsukApp(
                                     .fillMaxWidth()
                                     .navigationBarsPadding()
                             ) {
+                                val items = listOf(
+                                    Screen.Panel,
+                                    Screen.Piyasalar,
+                                    Screen.Analiz,
+                                    Screen.Sepetler,
+                                    Screen.Orakul,
+                                    Screen.Sohbet
+                                )
+
+                                val selectedIndex = items.indexOfFirst { screen ->
+                                    when (screen) {
+                                        Screen.Sohbet   -> currentRoute == screen.route || currentRoute?.startsWith("ai_lab") == true
+                                        Screen.Analiz   -> currentRoute == screen.route || currentRoute?.startsWith("analiz") == true
+                                        Screen.Piyasalar -> currentRoute == screen.route || currentRoute?.startsWith("markets") == true
+                                        else            -> currentRoute == screen.route
+                                    }
+                                }.coerceAtLeast(0)
+
                                 BoxWithConstraints(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(64.dp)
                                 ) {
-                            val items = listOf(
-                                Screen.Panel,
-                                Screen.Piyasalar,
-                                Screen.Sepetler,
-                                Screen.Orakul,
-                                Screen.Sohbet
-                            )
-                            val screenWidth = maxWidth
-                            val itemWidth = screenWidth / 5
-                            val selectedIndex = items.indexOfFirst { screen ->
-                                when (screen) {
-                                    Screen.Sepetler -> currentRoute == screen.route || currentRoute?.startsWith("basket_detail") == true || currentRoute?.startsWith("basket_create") == true
-                                    Screen.Sohbet   -> currentRoute == screen.route || currentRoute?.startsWith("sohbet") == true
-                                    else            -> currentRoute == screen.route
-                                }
-                            }.coerceAtLeast(0)
-                            
-                            val animatedOffset by animateDpAsState(
-                                targetValue = itemWidth * selectedIndex + (itemWidth - 40.dp) / 2,
-                                animationSpec = tween(200, easing = LinearOutSlowInEasing),
-                                label = "indicator_offset"
-                            )
-                            
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                items.forEachIndexed { idx, screen ->
-                                    val selected = selectedIndex == idx
-                                    
-                                    val animatedScale by animateFloatAsState(
-                                        targetValue = if (selected) 1.08f else 1.0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        ),
-                                        label = "icon_scale_${screen.route}"
+                                    val itemWidth = maxWidth / items.size
+
+                                    val animatedOffset by animateDpAsState(
+                                        targetValue = itemWidth * selectedIndex + (itemWidth - 40.dp) / 2,
+                                        animationSpec = tween(200, easing = LinearOutSlowInEasing),
+                                        label = "indicator_offset"
                                     )
-                                    
-                                    val emoji = when (screen) {
-                                        Screen.Panel     -> "📊"
-                                        Screen.Piyasalar -> "🌍"
-                                        Screen.Sepetler  -> "🧺"
-                                        Screen.Orakul    -> "🔮"
-                                        Screen.Sohbet    -> "🤖"
-                                        else             -> "📊"
-                                    }
-                                    
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                val targetRoute = screen.route.substringBefore("?")
-                                                if (currentRoute?.substringBefore("?") != targetRoute) {
-                                                    navController.navigate(targetRoute) {
-                                                        popUpTo(navController.graph.startDestinationId) {
-                                                            saveState = true
-                                                        }
-                                                        launchSingleTop = true
-                                                        restoreState = true
-                                                    }
-                                                }
-                                            },
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
+
+                                    Row(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = emoji,
-                                            fontSize = 20.sp,
-                                            modifier = Modifier
-                                                .graphicsLayer(
-                                                    scaleX = animatedScale,
-                                                    scaleY = animatedScale,
-                                                    alpha = if (selected) 1f else 0.6f
+                                        items.forEachIndexed { idx, screen ->
+                                            val selected = selectedIndex == idx
+
+                                            val animatedScale by animateFloatAsState(
+                                                targetValue = if (selected) 1.08f else 1.0f,
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                ),
+                                                label = "icon_scale_${screen.route}"
+                                            )
+
+                                            val emoji = when (screen) {
+                                                Screen.Panel     -> "📊"
+                                                Screen.Piyasalar -> "🌍"
+                                                Screen.Analiz    -> "📈"
+                                                Screen.Sepetler  -> "🧺"
+                                                Screen.Orakul    -> "🔮"
+                                                Screen.Sohbet    -> "🤖"
+                                                else             -> "📊"
+                                            }
+
+                                            Column(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .fillMaxHeight()
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        val targetRoute = screen.route.substringBefore("?")
+                                                        if (currentRoute?.substringBefore("?") != targetRoute) {
+                                                            navController.navigate(targetRoute) {
+                                                                popUpTo(navController.graph.startDestinationId) {
+                                                                    saveState = true
+                                                                }
+                                                                launchSingleTop = true
+                                                                restoreState = true
+                                                            }
+                                                        }
+                                                    },
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center
+                                            ) {
+                                                Text(
+                                                    text = emoji,
+                                                    fontSize = 18.sp,
+                                                    modifier = Modifier
+                                                        .graphicsLayer(
+                                                            scaleX = animatedScale,
+                                                            scaleY = animatedScale,
+                                                            alpha = if (selected) 1f else 0.6f
+                                                        )
                                                 )
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = when (screen) {
-                                                Screen.Panel     -> "Portföy"
-                                                Screen.Piyasalar -> "Piyasalar"
-                                                Screen.Sepetler  -> "Sepetlerim"
-                                                Screen.Orakul    -> "Orakul"
-                                                Screen.Sohbet    -> "AI Lab"
-                                                else             -> screen.title
-                                            },
-                                            fontFamily = Manrope,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 10.5.sp,
-                                            color = if (selected) PrimaryTeal else Color(0xFF8B978F)
-                                        )
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                                Text(
+                                                    text = when (screen) {
+                                                        Screen.Panel     -> "Portföy"
+                                                        Screen.Piyasalar -> "Piyasalar"
+                                                        Screen.Analiz    -> "Analiz"
+                                                        Screen.Sepetler  -> "Sepetlerim"
+                                                        Screen.Orakul    -> "Orakul"
+                                                        Screen.Sohbet    -> "AI Lab"
+                                                        else             -> screen.title
+                                                    },
+                                                    fontFamily = Manrope,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 9.5.sp,
+                                                    color = if (selected) PrimaryTeal else Color(0xFF8B978F)
+                                                )
+                                            }
+                                        }
                                     }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(x = animatedOffset, y = 61.dp)
+                                            .size(width = 40.dp, height = 3.dp)
+                                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(PrimaryTeal, AquaNew)
+                                                )
+                                            )
+                                    )
                                 }
                             }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = animatedOffset, y = 61.dp)
-                                    .size(width = 40.dp, height = 3.dp)
-                                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(PrimaryTeal, AquaNew)
-                                        )
-                                    )
-                            )
                         }
                     }
                 }
-            }
-        }
-    ) { innerPadding ->
+            ) { innerPadding ->
                 NavHost(
                     navController = navController,
                     startDestination = if (settingsUiState.isOnboardingCompleted) Screen.Panel.route else Screen.Onboarding.route,
