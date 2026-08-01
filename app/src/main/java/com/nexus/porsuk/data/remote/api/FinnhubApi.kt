@@ -42,7 +42,7 @@ interface FinnhubApi {
     @GET("stock/market-status")
     suspend fun getMarketStatus(
         @Query("exchange") exchange: String,
-        @Query("token") apiKey: String = com.nexus.porsuk.data.remote.ApiKeys.FINNHUB
+        @Query("token") apiKey: String? = null
     ): FinnhubMarketStatusDto
 
     /**
@@ -50,7 +50,7 @@ interface FinnhubApi {
      */
     @GET("calendar/economic")
     suspend fun getEconomicCalendar(
-        @Query("token") apiKey: String = com.nexus.porsuk.data.remote.ApiKeys.FINNHUB
+        @Query("token") apiKey: String? = null
     ): FinnhubEconomicCalendarDto
 }
 

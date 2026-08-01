@@ -55,4 +55,5 @@ interface ApiKeyProvider {
     fun getNewsApiKey(): String
     fun getFredKey(): String
     fun getExchangeRateKey(): String
+    fun getYahooRapidApiKey(): String
 }

@@ -1,3 +1,19 @@
+import java.util.Properties
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+
+fun getRequiredProperty(key: String): String {
+    val value = localProperties.getProperty(key)?.trim()
+    if (value.isNullOrBlank()) {
+        throw GradleException("Missing $key in local.properties")
+    }
+    return value
+}
+
 plugins {
     alias(libs.plugins.app.android.application)
     alias(libs.plugins.app.android.application.compose)
@@ -13,6 +29,20 @@ android {
         applicationId = "com.nexus.porsuk"
         versionCode = 1
         versionName = "1.0.0"
+
+        val finnhubKey = getRequiredProperty("FINNHUB_API_KEY")
+        val fmpKey = getRequiredProperty("FMP_API_KEY")
+        val newsApiKey = getRequiredProperty("NEWS_API_KEY")
+        val exchangeRateKey = getRequiredProperty("EXCHANGE_RATE_API_KEY")
+        val fredKey = getRequiredProperty("FRED_API_KEY")
+        val yahooKey = getRequiredProperty("YAHOO_RAPIDAPI_KEY")
+
+        buildConfigField("String", "FINNHUB_API_KEY", "\"$finnhubKey\"")
+        buildConfigField("String", "FMP_API_KEY", "\"$fmpKey\"")
+        buildConfigField("String", "NEWS_API_KEY", "\"$newsApiKey\"")
+        buildConfigField("String", "EXCHANGE_RATE_API_KEY", "\"$exchangeRateKey\"")
+        buildConfigField("String", "FRED_API_KEY", "\"$fredKey\"")
+        buildConfigField("String", "YAHOO_RAPIDAPI_KEY", "\"$yahooKey\"")
     }
 
     buildTypes {

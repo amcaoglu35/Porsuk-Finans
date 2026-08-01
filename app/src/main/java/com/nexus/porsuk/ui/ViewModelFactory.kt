@@ -16,8 +16,6 @@ import com.nexus.porsuk.ui.settings.SettingsViewModel
 import com.nexus.porsuk.ui.orakul.OrakulViewModel
 import com.nexus.porsuk.feature.calendar.CalendarViewModel
 
-import com.nexus.porsuk.data.remote.ApiKeys
-
 class FinanceViewModelFactory(
     private val context: Context,
     private val basketId: Int = -1
@@ -46,12 +44,13 @@ class FinanceViewModelFactory(
                 val database = PorsukDatabase.getDatabase(context.applicationContext)
                 val sm = getSettingsManager(context)
                 val eventBus = com.nexus.porsuk.core.common.PorsukEventBus() // Simple instance for factory
+                val configProvider = com.nexus.porsuk.core.network.ConfigProviderImpl()
                 val instance = FinanceRepository(
                     database.assetDao(),
                     GoogleFinanceScraper(),
                     eventBus,
-                    FinnhubService(ApiKeys.FINNHUB),
-                    YahooFinanceService(ApiKeys.YAHOO),
+                    FinnhubService(configProvider.getFinnhubKey()),
+                    YahooFinanceService(configProvider.getYahooRapidApiKey()),
                     sm
                 )
                 repository = instance

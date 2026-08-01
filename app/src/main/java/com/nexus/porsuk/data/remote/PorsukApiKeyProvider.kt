@@ -15,4 +15,5 @@ class PorsukApiKeyProvider @Inject constructor(
     override fun getNewsApiKey(): String = configProvider.getNewsApiKey()
     override fun getFredKey(): String = configProvider.getFredKey()
     override fun getExchangeRateKey(): String = configProvider.getExchangeRateKey()
+    override fun getYahooRapidApiKey(): String = configProvider.getYahooRapidApiKey()
 }

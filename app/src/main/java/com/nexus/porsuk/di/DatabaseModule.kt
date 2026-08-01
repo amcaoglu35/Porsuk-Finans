@@ -64,14 +64,15 @@ object DatabaseModule {
         settingsManager: SettingsManager,
         eventBus: com.nexus.porsuk.core.common.PorsukEventBus,
         newsApi: com.nexus.porsuk.data.remote.api.NewsApi,
-        fredRemoteDataSource: com.nexus.porsuk.data.remote.datasource.FredRemoteDataSource
+        fredRemoteDataSource: com.nexus.porsuk.data.remote.datasource.FredRemoteDataSource,
+        configProvider: com.nexus.porsuk.core.network.ConfigProvider
     ): FinanceRepository {
         return FinanceRepository(
             assetDao,
             com.nexus.porsuk.data.remote.GoogleFinanceScraper(),
             eventBus,
-            com.nexus.porsuk.data.remote.FinnhubService(com.nexus.porsuk.data.remote.ApiKeys.FINNHUB),
-            com.nexus.porsuk.data.remote.YahooFinanceService(com.nexus.porsuk.data.remote.ApiKeys.YAHOO),
+            com.nexus.porsuk.data.remote.FinnhubService(configProvider.getFinnhubKey()),
+            com.nexus.porsuk.data.remote.YahooFinanceService(configProvider.getYahooRapidApiKey()),
             settingsManager,
             newsApi,
             fredRemoteDataSource

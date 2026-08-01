@@ -6,7 +6,6 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.nexus.porsuk.data.local.PorsukDatabase
-import com.nexus.porsuk.data.remote.ApiKeys
 import com.nexus.porsuk.data.remote.FinnhubService
 import com.nexus.porsuk.data.remote.GoogleFinanceScraper
 import com.nexus.porsuk.data.remote.YahooFinanceService
@@ -33,13 +32,14 @@ class PorsukUpdateWorker(
             val assetDao = database.assetDao()
             val settingsManager = com.nexus.porsuk.data.local.SettingsManager(applicationContext)
             val apiKey = settingsManager.getGeminiApiKey()
+            val configProvider = com.nexus.porsuk.core.network.ConfigProviderImpl()
             
             val repository = FinanceRepository(
                 assetDao,
                 GoogleFinanceScraper(),
                 null, // No EventBus for background sync to avoid UI loops
-                FinnhubService(ApiKeys.FINNHUB),
-                YahooFinanceService(ApiKeys.YAHOO),
+                FinnhubService(configProvider.getFinnhubKey()),
+                YahooFinanceService(configProvider.getYahooRapidApiKey()),
                 settingsManager
             )
 

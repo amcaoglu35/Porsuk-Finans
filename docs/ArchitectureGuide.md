@@ -27,6 +27,17 @@ All modules communicate through `PorsukEventBus`. This enables complete decoupli
 
 ## Developer Guide
 
+### Setup & API Keys Configuration
+Before building the project, copy `local.properties.example` to `local.properties` and fill in the required API keys:
+- `FINNHUB_API_KEY`
+- `FMP_API_KEY`
+- `NEWS_API_KEY`
+- `EXCHANGE_RATE_API_KEY`
+- `FRED_API_KEY`
+- `YAHOO_RAPIDAPI_KEY`
+
+If any key is missing or empty in `local.properties`, the Gradle build will intentionally fail to prevent unauthenticated or hardcoded key builds.
+
 ### Adding a New Module
 1. Define Domain Models in `domain/model/`.
 2. Define Repository Interface in `domain/repository/`.
