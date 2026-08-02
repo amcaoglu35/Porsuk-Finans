@@ -41,7 +41,6 @@ import com.nexus.porsuk.ui.orakul.OrakulScreen
 import com.nexus.porsuk.ui.orakul.OrakulViewModel
 import com.nexus.porsuk.ui.settings.SettingsScreen
 import com.nexus.porsuk.ui.settings.SettingsViewModel
-import com.nexus.porsuk.ui.stock.CompanyDetailScreen
 import com.nexus.porsuk.ui.orakul.*
 import com.nexus.porsuk.feature.calendar.CalendarScreen
 import com.nexus.porsuk.feature.calendar.CalendarViewModel

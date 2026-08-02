@@ -132,6 +132,7 @@ fun AnalysisGridSection(title: String, items: List<ScoreCardData>) {
 @Composable
 fun ScoreCard(item: ScoreCardData, modifier: Modifier = Modifier) {
     val scoreColor = when {
+        item.status == "Veri Yok" || item.score <= 0.0 -> Color(0xFF6B7280)
         item.score > 0.8 -> Color(0xFF14B88A)
         item.score > 0.5 -> Color(0xFFFFB800)
         else -> Color.Red
