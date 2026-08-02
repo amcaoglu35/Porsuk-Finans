@@ -1,8 +1,4 @@
-- `[ ]` Fix failing MacroIntelligenceViewModelTest
-    - `[ ]` Update MacroIntelligenceViewModel.kt with correct initial state and imports
-    - `[ ]` Update MacroIntelligenceViewModelTest.kt to collect uiState
-    - `[ ]` Verify tests pass
-- `[ ]` Prepare for GitHub upload
-    - `[ ]` Check Git status
-    - `[ ]` Commit changes
-    - `[ ]` Push to GitHub (Requires user repository URL)
+- `[x]` APK Alımı Sırasındaki Hafıza Hatasının Giderilmesi
+    - `[x]` `gradle.properties` dosyasını güncelle (Hafıza artırımı)
+    - `[x]` Build işlemini tekrar dene (`assembleDebug`)
+- `[x]` Genel Doğrulama ve Walkthrough Güncellemesi

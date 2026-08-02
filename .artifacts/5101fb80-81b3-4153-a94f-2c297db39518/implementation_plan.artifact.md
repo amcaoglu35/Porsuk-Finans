@@ -1,21 +1,20 @@
-# Fix failing MacroIntelligenceViewModelTest
+# APK Alımı Sırasındaki Hafıza Hatasının Giderilmesi
 
-The test `loadMacroData updates uiState with indicators and AI outlook` in `MacroIntelligenceViewModelTest` is failing because `uiState` is created using `stateIn(..., SharingStarted.WhileSubscribed(5000), MacroIntelligenceUiState())`.
+APK oluşturma (build) işlemi sırasında "java.lang.OutOfMemoryError: Java heap space" hatası alındığı tespit edildi. Bu durum, projenin büyüklüğü ve eklenen yeni özellikler nedeniyle Kotlin derleyicisinin (compiler) mevcut hafıza limitlerini aşmasından kaynaklanmaktadır.
 
-In the test environment, `uiState.value` returns the initial value `MacroIntelligenceUiState()` because there are no active collectors to trigger the `combine` block. The default `activeTab` in `MacroIntelligenceUiState` is `GLOBAL_HEATMAP`, but the test expects `INFLATION` (which is the value set in `MacroIntelligenceViewModel`).
+## Önerilen Değişiklikler
 
-## Proposed Changes
+### [Bileşen: Gradle Yapılandırması]
 
-### [Component: Macro Intelligence]
+#### [MODIFY] [gradle.properties](file:///C:/Users/amcao/AndroidStudioProjects/Porsuk/gradle.properties)
+- `org.gradle.jvmargs` değeri `2048m`den `4096m`ye yükseltilecek.
+- `kotlin.daemon.jvmargs=-Xmx2048m` ayarı eklenerek Kotlin derleme sürecine özel hafıza alanı ayrılacak.
+- `org.gradle.parallel=true` aktif edilerek derleme hızı optimize edilecek.
 
-#### [MODIFY] [MacroIntelligenceViewModelTest.kt](file:///C:/Users/amcao/AndroidStudioProjects/Porsuk/app/src/test/java/com/nexus/porsuk/feature/macro/MacroIntelligenceViewModelTest.kt)
-- Update the test to collect the `uiState` flow, ensuring the `combine` block executes and updates the state.
+## Doğrulama Planı
 
-#### [MODIFY] [MacroIntelligenceViewModel.kt](file:///C:/Users/amcao/AndroidStudioProjects/Porsuk/app/src/main/java/com/nexus/porsuk/feature/macro/MacroIntelligenceViewModel.kt)
-- Update the `stateIn` initial value to match the ViewModel's intended initial tab (`INFLATION`) for consistency, even if not strictly required for the test if collection is added.
-- Add missing import for `MacroIndicatorCategory` to clean up the code.
+### Otomatik Testler
+- `gradlew assembleDebug` komutu çalıştırılarak APK paketleme işleminin başarıyla tamamlandığı doğrulanacak.
 
-## Verification Plan
-
-### Automated Tests
-- Run `app:testDebugUnitTest` to verify that all tests pass, including the fixed one.
+### Manuel Doğrulama
+- Hafıza ayarları güncellendikten sonra build işleminin takılmadan bittiği gözlemlenecek.

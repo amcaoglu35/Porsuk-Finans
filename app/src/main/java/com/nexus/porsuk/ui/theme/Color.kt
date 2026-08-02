@@ -22,8 +22,10 @@ val RedSoft = Color(0xFFFDEAF0)
 val DemirCelik = Color(0xFF8AA6FF)
 val WarningGold = Color(0xFFF9A825)
 val EmeraldNew = Color(0xFF10B981)
+val PozitifGreen = EmeraldNew
 val RoseNew = Color(0xFFF43F5E)
 val AmberNew = Color(0xFFF59E0B)
+val AmberWarning = AmberNew
 
 // COMPATIBILITY ALIASES (Map existing design vars to new system colors)
 val Background = BackgroundNew
