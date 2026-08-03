@@ -100,6 +100,11 @@ fun DashboardScreen(
     onReportingClick: () -> Unit = {},
     onAiEngineClick: () -> Unit = {},
     onPluginsClick: () -> Unit = {},
+    onCloudSyncClick: () -> Unit = {},
+    onDoctorClick: () -> Unit = {},
+    onWatchlistClick: () -> Unit = {},
+    onAlertsClick: () -> Unit = {},
+    onAllToolsClick: () -> Unit = {},
     onChatClick: (String) -> Unit
 ) {
     val watchlist by viewModel.watchlist.collectAsState(initial = emptyList())
@@ -242,7 +247,12 @@ fun DashboardScreen(
                         onInstitutionalClick = onInstitutionalClick,
                         onReportingClick = onReportingClick,
                         onAiEngineClick = onAiEngineClick,
-                        onPluginsClick = onPluginsClick
+                        onPluginsClick = onPluginsClick,
+                        onCloudSyncClick = onCloudSyncClick,
+                        onDoctorClick = onDoctorClick,
+                        onWatchlistClick = onWatchlistClick,
+                        onAlertsClick = onAlertsClick,
+                        onAllToolsClick = onAllToolsClick
                     )
                 }
 
@@ -952,7 +962,12 @@ fun QuickActionsGrid(
     onInstitutionalClick: () -> Unit = {},
     onReportingClick: () -> Unit = {},
     onAiEngineClick: () -> Unit = {},
-    onPluginsClick: () -> Unit = {}
+    onPluginsClick: () -> Unit = {},
+    onCloudSyncClick: () -> Unit = {},
+    onDoctorClick: () -> Unit = {},
+    onWatchlistClick: () -> Unit = {},
+    onAlertsClick: () -> Unit = {},
+    onAllToolsClick: () -> Unit = {}
 ) {
     val actions = listOf(
         QuickActionItem(
@@ -972,6 +987,42 @@ fun QuickActionsGrid(
             gradientEnd = Color(0xFF008BA3),
             accentSoft = AquaSoft,
             onClick = onCalendarClick
+        ),
+        QuickActionItem(
+            emoji = "🩺",
+            title = "Portföy Doktoru",
+            subtitle = "Sağlık Skoru & Rebalans",
+            gradientStart = Color(0xFF6C4CF1),
+            gradientEnd = Color(0xFF4C2CE1),
+            accentSoft = Color(0xFFF3F0FF),
+            onClick = onDoctorClick
+        ),
+        QuickActionItem(
+            emoji = "⭐",
+            title = "İzleme Listesi",
+            subtitle = "Favori Hisselerim",
+            gradientStart = Color(0xFFF59E0B),
+            gradientEnd = Color(0xFFD97706),
+            accentSoft = Color(0xFFFEF3C7),
+            onClick = onWatchlistClick
+        ),
+        QuickActionItem(
+            emoji = "🔔",
+            title = "Alarmlarım",
+            subtitle = "Fiyat & Bildirim",
+            gradientStart = Color(0xFFEF4444),
+            gradientEnd = Color(0xFFB91C1C),
+            accentSoft = Color(0xFFFEE2E2),
+            onClick = onAlertsClick
+        ),
+        QuickActionItem(
+            emoji = "☁️",
+            title = "Yedekleme",
+            subtitle = "Bulut Senkronizasyon",
+            gradientStart = Color(0xFF3B82F6),
+            gradientEnd = Color(0xFF1D4ED8),
+            accentSoft = Color(0xFFDBEAFE),
+            onClick = onCloudSyncClick
         ),
         QuickActionItem(
             emoji = "📊",
@@ -1001,13 +1052,13 @@ fun QuickActionsGrid(
             onClick = onAiEngineClick
         ),
         QuickActionItem(
-            emoji = "🧩",
-            title = "Eklenti Marketi",
-            subtitle = "API & Plugin Yönetimi",
+            emoji = "🧰",
+            title = "Tüm Araçlar",
+            subtitle = "14 Finansal Modül",
             gradientStart = Color(0xFF10B981),
-            gradientEnd = Color(0xFF007A58),
+            gradientEnd = Color(0xFF047857),
             accentSoft = AquaSoft,
-            onClick = onPluginsClick
+            onClick = onAllToolsClick
         )
     )
 

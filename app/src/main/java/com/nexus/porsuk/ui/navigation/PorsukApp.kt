@@ -317,6 +317,21 @@ fun PorsukApp(
                             onPluginsClick = {
                                 navController.navigate(Screen.PluginMarketplace.route)
                             },
+                            onCloudSyncClick = {
+                                navController.navigate(Screen.CloudSync.route)
+                            },
+                            onDoctorClick = {
+                                navController.navigate(Screen.PortfolioDoctor.route)
+                            },
+                            onWatchlistClick = {
+                                navController.navigate(Screen.Watchlist.route)
+                            },
+                            onAlertsClick = {
+                                navController.navigate(Screen.Alerts.route)
+                            },
+                            onAllToolsClick = {
+                                navController.navigate(Screen.AllTools.route)
+                            },
                             onChatClick = { prompt ->
                                 navController.navigate(Screen.Sohbet.createRoute(prompt))
                             }
@@ -325,7 +340,6 @@ fun PorsukApp(
 
                     composable(Screen.Sepetler.route) {
                         com.nexus.porsuk.ui.portfolio.PortfolioScreen(
-                            viewModel = financeViewModel,
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
@@ -823,6 +837,101 @@ fun PorsukApp(
                     composable(Screen.AiEngineManager.route) {
                         com.nexus.porsuk.feature.ai.AiEngineManagerScreen(
                             onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.CloudSync.route) {
+                        com.nexus.porsuk.feature.cloudsync.CloudSyncScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.PortfolioDoctor.route) {
+                        com.nexus.porsuk.feature.doctor.PortfolioDoctorScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Watchlist.route) {
+                        com.nexus.porsuk.feature.watchlist.WatchlistScreen(
+                            onNavigateToCompanyDetail = { symbol ->
+                                navController.navigate(Screen.CompanyDetail.createRoute(symbol))
+                            }
+                        )
+                    }
+
+                    composable(Screen.Alerts.route) {
+                        com.nexus.porsuk.feature.alerts.AlertsScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.News.route) {
+                        com.nexus.porsuk.feature.news.NewsScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Backtest.route) {
+                        com.nexus.porsuk.feature.backtest.BacktestScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Dividend.route) {
+                        com.nexus.porsuk.feature.dividend.DividendScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Risk.route) {
+                        com.nexus.porsuk.feature.risk.RiskScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Scanner.route) {
+                        com.nexus.porsuk.feature.scanner.ScannerScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Screener.route) {
+                        com.nexus.porsuk.feature.screener.ScreenerUltimateScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Chart.route) {
+                        com.nexus.porsuk.feature.chart.ChartScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Technical.route) {
+                        com.nexus.porsuk.feature.technical.TechnicalScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.MasterScore.route) {
+                        com.nexus.porsuk.feature.masterscore.MasterScoreScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.GlobalMarkets.route) {
+                        com.nexus.porsuk.feature.globalmarkets.GlobalMarketsScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.AllTools.route) {
+                        com.nexus.porsuk.ui.tools.AllToolsScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onToolClick = { route ->
+                                navController.navigate(route)
+                            }
                         )
                     }
                 }
