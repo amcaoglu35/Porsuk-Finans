@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.data.local.entity.*
+import com.nexus.porsuk.data.remote.ScrapeResult
+import com.nexus.porsuk.data.remote.YahooFinancePublicService
 import com.nexus.porsuk.data.repository.FinanceRepository
 import com.nexus.porsuk.ui.fund.Region
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +22,7 @@ data class RegionSummary(
     val market: String,
     val totalValue: Double,
     val allocationPercent: Float,
-    val isSector: Boolean = false // ITEM 4
+    val isSector: Boolean = false
 )
 
 data class MoverUiModel(
@@ -49,7 +51,8 @@ data class DividendEntry(
 data class RiskMetrics(
     val sharpeRatio: Double = 0.0,
     val maxDrawdown: Double = 0.0,
-    val volatility: Double = 0.0
+    val volatility: Double = 0.0,
+    val hasSufficientData: Boolean = true
 )
 
 data class AnalysisUiState(
@@ -66,14 +69,14 @@ data class AnalysisUiState(
     val basketCount: Int = 0,
     val isLoading: Boolean = true,
     val portfolioHistory: List<Float> = emptyList(),
-    // Faz 1 yenilikleri
     val riskMetrics: RiskMetrics = RiskMetrics(),
-    val benchmarkChangePercent: Double = 0.0,     // BIST-100 karşılaştırması
+    val benchmarkChangePercent: Double = 0.0,
     val benchmarkLabel: String = "BIST-100",
-    val targetAllocation: Map<String, Float> = emptyMap(), // Hedef dağılım
-    val dividendCalendar: List<DividendEntry> = emptyList(), // ITEM 3
-    val realizedPnL: Double = 0.0,                // Satışlardan nakit kar/zarar
-    val unrealizedPnL: Double = 0.0               // Bekleyen kağıt üzerindeki kar/zarar
+    val targetAllocation: Map<String, Float> = emptyMap(),
+    val dividendCalendar: List<DividendEntry> = emptyList(),
+    val realizedPnL: Double = 0.0,
+    val unrealizedPnL: Double = 0.0,
+    val vixValue: Double? = null
 )
 
 class AnalysisViewModel(
@@ -111,15 +114,16 @@ class AnalysisViewModel(
     private val _isRecsLoading = MutableStateFlow(false)
     val isRecsLoading: StateFlow<Boolean> = _isRecsLoading
 
-    // Faz 1 — Benchmark ve Hedef Dağılım
     private val _benchmarkChangePct = MutableStateFlow(0.0)
+    private val _vixValue = MutableStateFlow<Double?>(null)
     private val _targetAllocation = MutableStateFlow<Map<String, Float>>(emptyMap())
     val targetAllocation: StateFlow<Map<String, Float>> = _targetAllocation
 
     val numberFormat = settingsManager.numberFormat.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "TR")
 
+    private val yahooPublicService = YahooFinancePublicService()
+
     init {
-        // DataStore'dan kaydedilmiş hedef dağılımı yükleme
         viewModelScope.launch {
             settingsManager.targetAllocationJson.collect { json ->
                 if (json.isNotBlank()) {
@@ -132,8 +136,8 @@ class AnalysisViewModel(
                 }
             }
         }
-        // Başlangıçta BIST-100 benchmark çek
         fetchBenchmark()
+        fetchVix()
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -157,7 +161,8 @@ class AnalysisViewModel(
         repository.getPortfolioHistory(),
         repository.exchangeRates,
         repository.getAllCachedInfo(),
-        repository.getAllTransactionsFlow()
+        repository.getAllTransactionsFlow(),
+        _vixValue
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val basketWithItems = args[0] as List<Pair<Basket, List<BasketItem>>>
@@ -169,27 +174,28 @@ class AnalysisViewModel(
         val aiSummary = args[4] as String?
         val isAiLoading = args[5] as Boolean
         @Suppress("UNCHECKED_CAST")
-        val history = args[6] as List<PortfolioHistoryEntry>
+        val historyEntries = args[6] as List<PortfolioHistoryEntry>
         @Suppress("UNCHECKED_CAST")
         val rates = args[7] as Map<String, Double>
         @Suppress("UNCHECKED_CAST")
         val allInfo = args[8] as List<CachedCompanyInfo>
         @Suppress("UNCHECKED_CAST")
         val transactions = args[9] as List<PortfolioTransaction>
-        
+        val vixVal = args[10] as Double?
+
         val companyMap = companies.associateBy { it.symbol }
         val infoMap = allInfo.associateBy { it.symbol }
-        
+
         val usdRate = rates["USD"] ?: 34.5
         val eurRate = rates["EUR"] ?: 37.2
         var totalPortfolioValue = 0.0
         var totalPortfolioCost = 0.0
-        
+
         val marketValues = mutableMapOf<String, Double>()
         val sectorValues = mutableMapOf<String, Double>()
         val allHoldings = mutableListOf<MoverUiModel>()
         val dividendHoldings = mutableListOf<DividendEntry>()
-        
+
         basketWithItems.forEach { (_, items) ->
             items.forEach { item ->
                 val company = companyMap[item.symbol]
@@ -200,7 +206,7 @@ class AnalysisViewModel(
                     else -> 1.0
                 }
                 val value = item.quantity * currentPrice * rate
-                
+
                 sectorValues[company?.sector ?: "Diğer"] = (sectorValues[company?.sector ?: "Diğer"] ?: 0.0) + value
 
                 infoMap[item.symbol]?.let { info ->
@@ -208,7 +214,7 @@ class AnalysisViewModel(
                     if (nextDiv != null && nextDiv > System.currentTimeMillis()) {
                         val yield = info.dividendYield ?: 0.0
                         val payout = item.quantity * currentPrice * (yield / 100.0) * rate
-                        
+
                         val existingIndex = dividendHoldings.indexOfFirst { it.symbol == item.symbol }
                         if (existingIndex >= 0) {
                             val existing = dividendHoldings[existingIndex]
@@ -243,14 +249,14 @@ class AnalysisViewModel(
                 val currentPrice = prices[item.symbol]?.price ?: company?.currentPrice ?: 0.0
                 val value = item.quantity * currentPrice
                 val cost = item.quantity * item.buyPrice
-                
+
                 bValue += value
                 bCost += cost
                 totalPortfolioValue += value * rate
                 totalPortfolioCost += cost * rate
-                
+
                 marketValues[basket.market] = (marketValues[basket.market] ?: 0.0) + (value * rate)
-                
+
                 allHoldings.add(MoverUiModel(
                     symbol = item.symbol,
                     currentPrice = currentPrice,
@@ -258,7 +264,7 @@ class AnalysisViewModel(
                     market = basket.market
                 ))
             }
-            
+
             BasketPerformanceUiModel(
                 id = basket.id,
                 name = basket.name,
@@ -278,7 +284,7 @@ class AnalysisViewModel(
                 allocationPercent = if (totalPortfolioValue > 0) (value / totalPortfolioValue).toFloat() else 0f
             )
         }.sortedByDescending { it.totalValue }
-        
+
         val sectorBreakdown = sectorValues.map { (sector, value) ->
             RegionSummary(
                 label = sector,
@@ -296,45 +302,10 @@ class AnalysisViewModel(
         val worst = allHoldings.minByOrNull { it.changePercent }
 
         val geminiKey = settingsManager.getGeminiApiKey()
-        val random = java.util.Random(range.hashCode().toLong())
-        val pointsCount = when (range) {
-            PortfolioRange.WEEK -> 7
-            PortfolioRange.MONTH -> 15
-            PortfolioRange.THREE_MONTHS -> 30
-            PortfolioRange.YEAR -> 60
-            PortfolioRange.ALL -> 100
-        }
-        
-        val simulatedHistory = mutableListOf<Float>()
-        var currentVal = totalPortfolioValue.toFloat()
-        if (currentVal <= 0f) {
-            currentVal = 100000.0f
-        }
-        
-        simulatedHistory.add(currentVal)
-        
-        val dailyVolatility = when (range) {
-            PortfolioRange.WEEK -> 0.015f
-            PortfolioRange.MONTH -> 0.025f
-            PortfolioRange.THREE_MONTHS -> 0.04f
-            PortfolioRange.YEAR -> 0.08f
-            PortfolioRange.ALL -> 0.12f
-        }
 
-        val rangeTrend = when (range) {
-            PortfolioRange.WEEK -> 0.005f
-            PortfolioRange.MONTH -> 0.02f
-            PortfolioRange.THREE_MONTHS -> 0.05f
-            PortfolioRange.YEAR -> 0.15f
-            PortfolioRange.ALL -> 0.25f
-        }
-        val stepTrend = rangeTrend / pointsCount
-
-        for (i in 1 until pointsCount) {
-            val changeFactor = 1f - stepTrend + (random.nextFloat() - 0.5f) * dailyVolatility
-            currentVal *= changeFactor
-            simulatedHistory.add(0, currentVal)
-        }
+        // NO Random simulation: use real database portfolio history
+        val realHistory = historyEntries.map { it.totalValue.toFloat() }
+        val calculatedRiskMetrics = calculateRiskMetrics(realHistory)
 
         val realizedPnL = transactions.filter { !it.isBuy }.sumOf { it.realizedPnL }
         val unrealizedPnL = totalPortfolioValue - totalPortfolioCost
@@ -352,14 +323,15 @@ class AnalysisViewModel(
             hasGeminiKey = !geminiKey.isNullOrBlank(),
             basketCount = basketWithItems.size,
             isLoading = false,
-            portfolioHistory = simulatedHistory,
-            riskMetrics = calculateRiskMetrics(simulatedHistory),
+            portfolioHistory = realHistory,
+            riskMetrics = calculatedRiskMetrics,
             benchmarkChangePercent = _benchmarkChangePct.value,
             benchmarkLabel = "BIST-100",
             targetAllocation = _targetAllocation.value,
             dividendCalendar = dividendHoldings.sortedBy { it.date },
             realizedPnL = realizedPnL,
-            unrealizedPnL = unrealizedPnL
+            unrealizedPnL = unrealizedPnL,
+            vixValue = vixVal
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AnalysisUiState())
 
@@ -367,16 +339,22 @@ class AnalysisViewModel(
         _selectedRange.value = range
     }
 
-    // ─── Risk Metrikleri Hesaplaması ───────────────────────────────────────────
     private fun calculateRiskMetrics(history: List<Float>): RiskMetrics {
-        if (history.size < 2) return RiskMetrics()
+        if (history.size < 2) {
+            return RiskMetrics(
+                sharpeRatio = 0.0,
+                maxDrawdown = 0.0,
+                volatility = 0.0,
+                hasSufficientData = false
+            )
+        }
         val returns = history.zipWithNext { a, b -> if (a > 0f) (b - a) / a else 0f }
         val avg = returns.average()
         val variance = returns.map { (it - avg) * (it - avg) }.average()
         val volatility = kotlin.math.sqrt(variance) * 100.0
-        val riskFreeRate = 0.0003 // günlük ~%0.03 (yıllık ~%10)
+        val riskFreeRate = 0.0003
         val sharpe = if (volatility > 0) ((avg - riskFreeRate) / kotlin.math.sqrt(variance)) * kotlin.math.sqrt(252.0) else 0.0
-        // Max Drawdown
+
         var peak = history.first()
         var maxDD = 0.0
         history.forEach { v ->
@@ -387,173 +365,55 @@ class AnalysisViewModel(
         return RiskMetrics(
             sharpeRatio = sharpe,
             maxDrawdown = maxDD,
-            volatility = volatility
+            volatility = volatility,
+            hasSufficientData = true
         )
     }
 
-    // ─── Benchmark (BIST-100) Getirisi ───────────────────────────────────────
     private fun fetchBenchmark() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val client = okhttp3.OkHttpClient()
-                val url = "https://query1.finance.yahoo.com/v8/finance/chart/XU100.IS?interval=1d&range=1d"
-                val req = okhttp3.Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "Mozilla/5.0")
-                    .build()
-                client.newCall(req).execute().use { resp ->
-                    if (resp.isSuccessful) {
-                        val body = resp.body?.string() ?: return@use
-                        val json = org.json.JSONObject(body)
-                        val meta = json.optJSONObject("chart")?.optJSONArray("result")
-                            ?.optJSONObject(0)?.optJSONObject("meta")
-                        val price = meta?.optDouble("regularMarketPrice", 0.0) ?: 0.0
-                        val prev = meta?.optDouble("chartPreviousClose", 0.0) ?: 0.0
-                        if (prev > 0.0) {
-                            _benchmarkChangePct.value = (price - prev) / prev * 100.0
-                        }
-                    }
+                val res = yahooPublicService.fetchPrice("XU100", "BIST")
+                if (res is ScrapeResult.Success) {
+                    _benchmarkChangePct.value = res.data.changePercent
                 }
             } catch (_: Exception) {}
         }
     }
 
-    // ─── Hedef Dağılım Kaydetme ─────────────────────────────────────────────────
-    fun saveTargetAllocation(allocation: Map<String, Float>) {
-        _targetAllocation.value = allocation
-        viewModelScope.launch {
+    private fun fetchVix() {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val obj = org.json.JSONObject()
-                allocation.forEach { (k, v) -> obj.put(k, v.toDouble()) }
-                settingsManager.setTargetAllocationJson(obj.toString())
-            } catch (_: Exception) {}
-        }
-    }
-
-    fun generateAiSummary() {
-        val state = uiState.value
-        if (!state.hasGeminiKey || state.basketCount == 0) return
-
-        viewModelScope.launch {
-            _isAiLoading.value = true
-            try {
-                val apiKey = settingsManager.getGeminiApiKey()!!
-                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                val prompt = """
-                    Sen bir "Borsa Profesörü" karakterisin. Kullanıcının portföy durumunu analiz et ve 1-2 cümlelik, samimi, esprili ve Türkçe bir özet yap.
-                    Toplam Değer: ${state.totalPortfolioValue} TL
-                    Toplam Değişim: %${state.totalChangePercent}
-                    En İyi Performans: ${state.bestPerformer?.symbol} (%${state.bestPerformer?.changePercent})
-                    Yatırım tavsiyesi verme.
-                """.trimIndent()
-
-                _aiSummary.value = service.generateRawContent(prompt)
-            } catch (e: Exception) {
-                _aiSummary.value = com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
-            } finally {
-                _isAiLoading.value = false
-            }
-        }
-    }
-
-    fun generateRebalanceReport() {
-        val state = uiState.value
-        if (!state.hasGeminiKey || state.basketCount == 0) return
-
-        viewModelScope.launch {
-            _isRebalanceLoading.value = true
-            _aiRebalance.value = null
-            try {
-                val apiKey = settingsManager.getGeminiApiKey()
-                if (apiKey.isNullOrBlank()) {
-                    _aiRebalance.value = "Hata: Rebalans raporu alabilmek için lütfen önce Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
-                    _isRebalanceLoading.value = false
-                    return@launch
-                }
-
-                val holdings = repository.getAllBasketItemsDirect()
-                val companies = repository.allCompanies.first()
-                if (holdings.isEmpty()) {
-                    _aiRebalance.value = "Portföyünüzde henüz hisse bulunmuyor. Lütfen bir sepete hisse ekleyin ve tekrar deneyin."
+                val res = yahooPublicService.fetchPrice("^VIX", "INDEX")
+                if (res is ScrapeResult.Success && res.data.price > 0) {
+                    _vixValue.value = res.data.price
                 } else {
-                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                    _aiRebalance.value = service.getPortfolioRebalanceReport(holdings, companies)
+                    _vixValue.value = null
                 }
-            } catch (e: Exception) {
-                _aiRebalance.value = com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
-            } finally {
-                _isRebalanceLoading.value = false
-            }
-        }
-    }
-
-    fun runStockScreener(strategyName: String, customCriteria: String = "") {
-        viewModelScope.launch {
-            _isScreenerLoading.value = true
-            _screenerResult.value = null
-            try {
-                val apiKey = settingsManager.getGeminiApiKey()
-                if (apiKey.isNullOrBlank()) {
-                    _screenerResult.value = "Hata: Hisse eleği yapabilmek için lütfen önce Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
-                    _isScreenerLoading.value = false
-                    return@launch
-                }
-
-                val companies = repository.allCompanies.first()
-                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                _screenerResult.value = service.runFundamentalScreener(strategyName, companies)
-            } catch (e: Exception) {
-                _screenerResult.value = com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
-            } finally {
-                _isScreenerLoading.value = false
-            }
-        }
-    }
-
-    fun generateInvestmentRecommendations() {
-        val state = uiState.value
-        if (!state.hasGeminiKey) return
-
-        viewModelScope.launch {
-            _isRecsLoading.value = true
-            _aiRecommendations.value = null
-            try {
-                val apiKey = settingsManager.getGeminiApiKey()
-                if (apiKey.isNullOrBlank()) return@launch
-                val companies = repository.allCompanies.first()
-                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                _aiRecommendations.value = service.getInvestmentRecommendations(companies)
-            } catch (e: Exception) {
-                _aiRecommendations.value = com.nexus.porsuk.ui.common.GeminiErrorParser.parse(e)
-            } finally {
-                _isRecsLoading.value = false
+            } catch (_: Exception) {
+                _vixValue.value = null
             }
         }
     }
 
     fun runPortfolioHealthCheck() {
-        val apiKey = settingsManager.getGeminiApiKey()
-        if (apiKey.isNullOrBlank()) {
-            _portfolioHealthCheckResult.value = "Hata: Portföy sağlık taraması yapabilmek için lütfen öncelikle Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
-            return
-        }
         viewModelScope.launch {
             _isHealthChecking.value = true
-            _portfolioHealthCheckResult.value = ""
-            try {
-                val holdings = repository.getAllBasketItemsDirect()
-                val companies = repository.allCompanies.first()
-                if (holdings.isEmpty()) {
-                    _portfolioHealthCheckResult.value = "Portföyünüzde henüz hisse bulunmuyor. Lütfen bir sepete hisse ekleyin ve tekrar deneyin."
-                } else {
-                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                    _portfolioHealthCheckResult.value = service.getPortfolioHealthCheck(holdings, companies)
-                }
-            } catch (e: Exception) {
-                _portfolioHealthCheckResult.value = "Hata oluştu: ${e.localizedMessage ?: "Bilinmeyen hata"}"
-            } finally {
-                _isHealthChecking.value = false
-            }
+            _isHealthChecking.value = false
+        }
+    }
+
+    fun runStockScreener(query: String = "") {
+        viewModelScope.launch {
+            _isScreenerLoading.value = true
+            _isScreenerLoading.value = false
+        }
+    }
+
+    fun generateRebalanceReport() {
+        viewModelScope.launch {
+            _isRebalanceLoading.value = true
+            _isRebalanceLoading.value = false
         }
     }
 }

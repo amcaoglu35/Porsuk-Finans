@@ -34,6 +34,20 @@ class FinanceViewModel(
 
     val prices: StateFlow<Map<String, PriceSnapshot>> = repository.prices.asStateFlow()
     val exchangeRates: StateFlow<Map<String, Double>> = repository.exchangeRates.asStateFlow()
+    val allTefasFunds: StateFlow<List<com.nexus.porsuk.data.local.entity.TefasFundEntity>> = repository.allTefasFunds
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun refreshExchangeRates() {
+        viewModelScope.launch {
+            repository.refreshExchangeRates()
+        }
+    }
+
+    fun fetchPrice(symbol: String, market: String) {
+        viewModelScope.launch {
+            repository.refreshPrice(symbol, market)
+        }
+    }
 
     enum class ProfitCalculationMode { NOMINAL, INFLATION_ADJUSTED, USD_ADJUSTED }
     private val _profitMode = MutableStateFlow(ProfitCalculationMode.NOMINAL)

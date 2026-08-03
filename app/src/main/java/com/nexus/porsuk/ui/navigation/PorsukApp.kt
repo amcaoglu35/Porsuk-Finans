@@ -277,7 +277,6 @@ fun PorsukApp(
 
                     composable(Screen.Panel.route) {
                         DashboardScreen(
-                            viewModel = financeViewModel,
                             onStockClick = { symbol, market -> 
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
@@ -361,6 +360,7 @@ fun PorsukApp(
                         )
                         com.nexus.porsuk.ui.markets.MarketsScreen(
                             viewModel = analysisViewModel,
+                            financeViewModel = financeViewModel,
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
@@ -423,7 +423,7 @@ fun PorsukApp(
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
                             onNavigateToOracle = { navController.navigate(Screen.Orakul.route) },
-                            onNavigateToDoctor = { navController.navigate(Screen.Analiz.route) },
+                            onNavigateToDoctor = { navController.navigate(Screen.PortfolioDoctor.route) },
                             onNavigateToSimulator = { navController.navigate(Screen.PortfolioSimulator.route) },
                             onNavigateToOpportunityCenter = { navController.navigate(Screen.OpportunityCenter.route) },
                             onNavigateToAlarmCenter = { navController.navigate(Screen.AlarmCenter.route) },
@@ -458,20 +458,14 @@ fun PorsukApp(
                     }
 
                     composable(Screen.OpportunityCenter.route) {
-                        com.nexus.porsuk.ui.opportunity.AiOpportunityCenterScreen(
-                            onBack = { navController.popBackStack() },
-                            onStockClick = { symbol, market ->
-                                navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
-                            }
+                        com.nexus.porsuk.feature.scanner.ScannerScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
                     composable(Screen.AlarmCenter.route) {
-                        com.nexus.porsuk.ui.alarm.AiAlarmCenterScreen(
-                            onBack = { navController.popBackStack() },
-                            onStockClick = { symbol, market ->
-                                navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
-                            }
+                        com.nexus.porsuk.feature.alerts.AlertsScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
@@ -482,17 +476,14 @@ fun PorsukApp(
                     }
 
                     composable(Screen.AiStrategyBuilder.route) {
-                        com.nexus.porsuk.ui.strategy.AiStrategyBuilderScreen(
-                            onBack = { navController.popBackStack() }
+                        com.nexus.porsuk.feature.strategybuilder.StrategyBuilderScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
                     composable(Screen.GlobalIntelligence.route) {
-                        com.nexus.porsuk.ui.global.GlobalMarketIntelligenceScreen(
-                            onBack = { navController.popBackStack() },
-                            onMarketClick = { symbol ->
-                                navController.navigate(Screen.CompanyDetail.createRoute(symbol, "BIST"))
-                            }
+                        com.nexus.porsuk.feature.globalmarkets.GlobalMarketsScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 

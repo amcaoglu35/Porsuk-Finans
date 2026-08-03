@@ -20,7 +20,8 @@ class FinanceRepository @Inject constructor(
     private val yahooService: YahooFinanceService? = null,
     private val settingsManager: com.nexus.porsuk.data.local.SettingsManager? = null,
     private val newsApi: NewsApi? = null,
-    private val fredRemoteDataSource: FredRemoteDataSource? = null
+    private val fredRemoteDataSource: FredRemoteDataSource? = null,
+    private val tefasFundDao: com.nexus.porsuk.data.local.dao.TefasFundDao? = null
 ) {
     val allBaskets: Flow<List<Basket>> = assetDao.getAllBaskets()
     val allBasketItems: Flow<List<BasketItem>> = assetDao.getAllBasketItemsFlow()
@@ -29,6 +30,7 @@ class FinanceRepository @Inject constructor(
     val allDividends: Flow<List<DividendCalendarEntry>> = assetDao.getAllDividends()
     val allIpos: Flow<List<IpoCalendarEntry>> = assetDao.getAllIpos()
     val allEconomicEvents: Flow<List<EconomicEventEntry>> = assetDao.getAllEconomicEvents()
+    val allTefasFunds: Flow<List<com.nexus.porsuk.data.local.entity.TefasFundEntity>> = tefasFundDao?.getAllActiveFunds() ?: flowOf(emptyList())
 
     val prices = MutableStateFlow<Map<String, PriceSnapshot>>(emptyMap())
     val exchangeRates = MutableStateFlow<Map<String, Double>>(mapOf("USD" to 34.5, "EUR" to 37.2))
@@ -234,11 +236,23 @@ class FinanceRepository @Inject constructor(
     }
 
     suspend fun refreshExchangeRates() {
-        val usdResult = yahooPublicService.fetchPrice("USDTRY", "BIST")
-        val eurResult = yahooPublicService.fetchPrice("EURTRY", "BIST")
+        val pairs = listOf(
+            "USD" to "USDTRY",
+            "EUR" to "EURTRY",
+            "GBP" to "GBPTRY",
+            "CHF" to "CHFTRY",
+            "JPY" to "JPYTRY",
+            "CAD" to "CADTRY",
+            "AUD" to "AUDTRY"
+        )
         val current = exchangeRates.value.toMutableMap()
-        if (usdResult is ScrapeResult.Success && usdResult.data.price > 0) current["USD"] = usdResult.data.price
-        if (eurResult is ScrapeResult.Success && eurResult.data.price > 0) current["EUR"] = eurResult.data.price
+        pairs.forEach { (code, sym) ->
+            val res = yahooPublicService.fetchPrice(sym, "FOREX")
+            if (res is ScrapeResult.Success && res.data.price > 0) {
+                current[code] = res.data.price
+                prices.update { it + (sym to res.data) }
+            }
+        }
         exchangeRates.value = current
     }
 

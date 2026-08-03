@@ -20,6 +20,12 @@ class YahooFinancePublicService {
         return when {
             sym == "USDTRY" || sym == "USD-TRY" -> "USDTRY=X"
             sym == "EURTRY" || sym == "EUR-TRY" -> "EURTRY=X"
+            sym == "GBPTRY" || sym == "GBP-TRY" -> "GBPTRY=X"
+            sym == "CHFTRY" || sym == "CHF-TRY" -> "CHFTRY=X"
+            sym == "JPYTRY" || sym == "JPY-TRY" -> "JPYTRY=X"
+            sym == "CADTRY" || sym == "CAD-TRY" -> "CADTRY=X"
+            sym == "AUDTRY" || sym == "AUD-TRY" -> "AUDTRY=X"
+            sym.endsWith("TRY") && sym.length == 6 -> "$sym=X"
             sym == "XU100" || sym == "INDEXBIST:XU100" || sym == "BIST100" -> "XU100.IS"
             market.uppercase() == "BIST" || market.uppercase() == "IST" -> if (sym.contains(".")) sym else "$sym.IS"
             market.uppercase() == "FRA" || market.uppercase() == "EURONEXT" -> if (sym.contains(".")) sym else "$sym.DE"
