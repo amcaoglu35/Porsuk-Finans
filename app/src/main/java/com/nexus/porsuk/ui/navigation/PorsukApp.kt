@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -498,9 +499,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.Orakul.route) {
-                        val orakulViewModel: OrakulViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val orakulViewModel: OrakulViewModel = hiltViewModel()
                         OrakulScreen(
                             viewModel = orakulViewModel,
                             onNavigateToSettings = {

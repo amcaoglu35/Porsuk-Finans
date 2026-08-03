@@ -101,10 +101,6 @@ class FinanceViewModelFactory(
                 @Suppress("UNCHECKED_CAST")
                 com.nexus.porsuk.ui.ledger.TransactionLedgerViewModel(repo) as T
             }
-            modelClass.isAssignableFrom(OrakulViewModel::class.java) -> {
-                @Suppress("UNCHECKED_CAST")
-                OrakulViewModel(repo, sm) as T
-            }
             modelClass.isAssignableFrom(com.nexus.porsuk.ui.orakul.KaziViewModel::class.java) -> {
                 @Suppress("UNCHECKED_CAST")
                 com.nexus.porsuk.ui.orakul.KaziViewModel(getKaziRepository(context), context) as T

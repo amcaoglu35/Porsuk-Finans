@@ -7,6 +7,8 @@ import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.data.remote.OracleAnalysisEngine
 import com.nexus.porsuk.data.remote.OraclePortfolioReport
 import com.nexus.porsuk.data.repository.FinanceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -103,10 +105,20 @@ data class OrakulUiState(
     val basketStrategyFocus: String = "VALUE",
     val basketStockCount: Int = 5,
     val basketCashPct: Double = 10.0,
-    val basketReport: OraclePortfolioReport? = null
+    val basketReport: OraclePortfolioReport? = null,
+    val sourceEngine: String = "Gemini 2.0 Flash",
+    val consensusWeights: Map<String, Int> = mapOf(
+        "Temel & İçsel Değer" to 30,
+        "Adli Muhasebe & Sağlık" to 25,
+        "Haber & Sentiment Entropisi" to 25,
+        "İvme & Teknik Teyit" to 20
+    ),
+    val bullCase: String? = null,
+    val bearCase: String? = null
 )
 
-class OrakulViewModel(
+@HiltViewModel
+class OrakulViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager
 ) : ViewModel() {
@@ -177,43 +189,12 @@ class OrakulViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(selectedSymbol = symbol, isLoading = true, error = null) }
             try {
-                val apiKey = settingsManager.getGeminiApiKey()
-                if (apiKey.isNullOrBlank()) throw Exception("API Key missing")
-
                 val data = repository.getAiOracleData(symbol)
                 val income = data["income"] as List<com.nexus.porsuk.data.local.entity.IncomeStatementEntity>
                 val ratios = data["ratios"] as List<com.nexus.porsuk.data.local.entity.CompanyRatioEntity>
                 val price = data["price"] as Double
 
-                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                val reportJson = service.getAiOracleReport(symbol, price, income, ratios)
-                
-                val obj = org.json.JSONObject(reportJson)
-                val swotObj = obj.optJSONObject("swot")
-                val outlookObj = obj.optJSONObject("outlook")
-
-                val report = OracleHisseReport(
-                    aiScore = obj.optInt("aiScore", 0),
-                    riskScore = obj.optInt("riskScore", 0),
-                    growthPotential = obj.optInt("growthPotential", 0),
-                    dividendScore = obj.optInt("dividendScore", 0),
-                    financialHealth = obj.optInt("financialHealth", 0),
-                    momentum = obj.optInt("momentum", 0),
-                    volatility = obj.optInt("volatility", 0),
-                    liquidity = obj.optInt("liquidity", 0),
-                    qualityScore = obj.optInt("qualityScore", 0),
-                    confidence = obj.optInt("confidence", 0),
-                    recommendation = obj.optString("recommendation", "HOLD"),
-                    fairValue = obj.optDouble("fairValue", 0.0),
-                    strengths = swotObj?.optJSONArray("strengths")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
-                    weaknesses = swotObj?.optJSONArray("weaknesses")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
-                    opportunities = swotObj?.optJSONArray("opportunities")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
-                    risks = swotObj?.optJSONArray("risks")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
-                    shortTermOutlook = outlookObj?.optString("shortTerm", "") ?: "",
-                    longTermOutlook = outlookObj?.optString("longTerm", "") ?: "",
-                    investmentThesis = obj.optString("investmentThesis", "")
-                )
-
+                val report = repository.getAiOracleReport(symbol, price, income, ratios)
                 _uiState.update { it.copy(hisseReport = report, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
@@ -226,7 +207,7 @@ class OrakulViewModel(
         val question = _uiState.value.customQuestion
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isLoading = true, error = null, rawResponse = null, streamingText = "", decisions = emptyList())
+                it.copy(isLoading = true, error = null, rawResponse = null, streamingText = "", decisions = emptyList(), bullCase = null, bearCase = null)
             }
             try {
                 val apiKey = settingsManager.getGeminiApiKey()
@@ -274,7 +255,6 @@ class OrakulViewModel(
 
                 val filteredCompanies = companiesFiltered
 
-                // Daha zengin teknik veri, USD bazlı getiri, global borsa desteği
                 val companyInfoList = filteredCompanies.map { c ->
                     val info = try { repository.getCachedInfo(c.symbol).first() } catch (_: Exception) { null }
                     val newsList = try { repository.getNews(c.symbol).first() } catch (_: Exception) { emptyList() }
@@ -287,13 +267,11 @@ class OrakulViewModel(
                     val low52: Double? = info?.week52Low
                     val price: Double = pricesMap[c.symbol]?.price ?: c.currentPrice
 
-                    // 52h içindeki fiyat pozisyonu (0 = dip, 100 = zirve)
                     val position52 = if (high52 != null && low52 != null && high52 > low52) {
                         val pct = ((price - low52) / (high52 - low52) * 100.0).toInt().coerceIn(0, 100)
                         "$pct% (52h arası)"
                     } else "?"
 
-                    // Tahmini momentum bölgesi
                     val momentumZone: String = if (high52 != null && low52 != null && high52 > low52) {
                         val pct: Double = (price - low52) / (high52 - low52)
                         when {
@@ -304,14 +282,12 @@ class OrakulViewModel(
                         }
                     } else "?"
 
-                    // Tahmini RSI (52h pozisyona dayalı yaklaşım, gerçek RSI için OHLCV gerekir)
                     val approxRsi: String = if (high52 != null && low52 != null && high52 > low52) {
                         val pct = (price - low52) / (high52 - low52)
                         val rsi = (pct * 100.0).coerceIn(10.0, 90.0)
                         String.format(java.util.Locale.US, "%.0f", rsi)
                     } else "50"
 
-                    // Piyasa tag (BIST, NASDAQ, NYSE, FRA)
                     val marketTag = when (c.market?.uppercase()) {
                         "NASDAQ" -> "[NASDAQ]"
                         "NYSE" -> "[NYSE]"
@@ -354,13 +330,18 @@ class OrakulViewModel(
                     sb.toString()
                 } else "Portföyde henüz hisse yok."
 
-                // STREAMING: buildPrompt() ile mode'a özgü doğru prompt üretilir ve GeminiService'e gönderilir
                 val orakulPrompt = buildPrompt(currentMode, companyLines, portfolioLines, question)
-                val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
                 var accumulated = ""
-                service.getOrakulStream(orakulPrompt).collect { chunk ->
+                repository.getOrakulStream(orakulPrompt).collect { chunk ->
                     accumulated += chunk
-                    _uiState.update { it.copy(streamingText = accumulated) }
+                    val (bull, bear) = parseBullBearCases(accumulated)
+                    _uiState.update { 
+                        it.copy(
+                            streamingText = accumulated,
+                            bullCase = bull,
+                            bearCase = bear
+                        ) 
+                    }
                 }
 
                 // Streaming bitti, parse et
@@ -553,6 +534,17 @@ class OrakulViewModel(
 
             OrakulMode.KAZI -> "DERİN KAZI MODU: Bu mod arka planda çalışır."
         }
+    }
+
+    private fun parseBullBearCases(text: String): Pair<String?, String?> {
+        val bull = text.substringAfter("---BOĞA SENARYOSU---", "")
+            .substringBefore("---AYI SENARYOSU---", "")
+            .substringBefore("---SENARYOLAR SONU---", "")
+            .trim()
+        val bear = text.substringAfter("---AYI SENARYOSU---", "")
+            .substringBefore("---SENARYOLAR SONU---", "")
+            .trim()
+        return Pair(bull.ifBlank { null }, bear.ifBlank { null })
     }
 
     /**

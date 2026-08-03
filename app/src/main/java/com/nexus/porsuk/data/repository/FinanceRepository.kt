@@ -403,4 +403,49 @@ class FinanceRepository @Inject constructor(
             assetDao.insertNews(result.data)
         }
     }
+
+    suspend fun getAiOracleReport(
+        symbol: String,
+        price: Double,
+        income: List<IncomeStatementEntity>,
+        ratios: List<CompanyRatioEntity>
+    ): com.nexus.porsuk.ui.orakul.OracleHisseReport {
+        val apiKey = settingsManager?.getGeminiApiKey()?.takeIf { it.isNotBlank() }
+            ?: throw Exception("Gemini API anahtarı bulunamadı")
+        val service = GeminiService(apiKey)
+        val reportJson = service.getAiOracleReport(symbol, price, income, ratios)
+        
+        val obj = org.json.JSONObject(reportJson)
+        val swotObj = obj.optJSONObject("swot")
+        val outlookObj = obj.optJSONObject("outlook")
+
+        return com.nexus.porsuk.ui.orakul.OracleHisseReport(
+            aiScore = obj.optInt("aiScore", 0),
+            riskScore = obj.optInt("riskScore", 0),
+            growthPotential = obj.optInt("growthPotential", 0),
+            dividendScore = obj.optInt("dividendScore", 0),
+            financialHealth = obj.optInt("financialHealth", 0),
+            momentum = obj.optInt("momentum", 0),
+            volatility = obj.optInt("volatility", 0),
+            liquidity = obj.optInt("liquidity", 0),
+            qualityScore = obj.optInt("qualityScore", 0),
+            confidence = obj.optInt("confidence", 0),
+            recommendation = obj.optString("recommendation", "HOLD"),
+            fairValue = obj.optDouble("fairValue", 0.0),
+            strengths = swotObj?.optJSONArray("strengths")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+            weaknesses = swotObj?.optJSONArray("weaknesses")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+            opportunities = swotObj?.optJSONArray("opportunities")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+            risks = swotObj?.optJSONArray("risks")?.let { arr -> List(arr.length()) { i -> arr.getString(i) } } ?: emptyList(),
+            shortTermOutlook = outlookObj?.optString("shortTerm", "") ?: "",
+            longTermOutlook = outlookObj?.optString("longTerm", "") ?: "",
+            investmentThesis = obj.optString("investmentThesis", "")
+        )
+    }
+
+    suspend fun getOrakulStream(prompt: String): Flow<String> {
+        val apiKey = settingsManager?.getGeminiApiKey()?.takeIf { it.isNotBlank() }
+            ?: throw Exception("Gemini API anahtarı bulunamadı")
+        val service = GeminiService(apiKey)
+        return service.getOrakulStream(prompt)
+    }
 }

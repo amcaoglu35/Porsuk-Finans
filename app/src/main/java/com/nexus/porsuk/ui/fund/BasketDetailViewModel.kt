@@ -21,6 +21,15 @@ data class HoldingUiModel(
     val allocationPercent: Float
 )
 
+data class RebalanceSuggestion(
+    val symbol: String,
+    val currentPercent: Float,
+    val targetPercent: Float,
+    val diffPercent: Float,
+    val isOverweight: Boolean,
+    val description: String
+)
+
 data class BasketDetailUiState(
     val basketName: String = "",
     val market: String = "",
@@ -29,6 +38,7 @@ data class BasketDetailUiState(
     val profitLossAmount: Double = 0.0,
     val profitLossPercent: Double = 0.0,
     val holdings: List<HoldingUiModel> = emptyList(),
+    val rebalanceSuggestions: List<RebalanceSuggestion> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
@@ -248,6 +258,42 @@ class BasketDetailViewModel(
 
         val profitLoss = totalValue - totalCost
 
+        // Calculate Rebalance Suggestions
+        val targetMap = mutableMapOf<String, Float>()
+        try {
+            val targetJson = settingsManager.targetAllocationJson.first()
+            if (targetJson.isNotBlank()) {
+                val obj = org.json.JSONObject(targetJson)
+                obj.keys().forEach { key -> targetMap[key] = obj.getDouble(key).toFloat() }
+            }
+        } catch (_: Exception) {}
+
+        val rebalanceSuggestions = mutableListOf<RebalanceSuggestion>()
+        if (finalHoldings.size >= 2) {
+            val defaultEqualTarget = 100.0f / finalHoldings.size
+            finalHoldings.forEach { holding ->
+                val targetPct = targetMap[holding.symbol] ?: defaultEqualTarget
+                val currentPct = holding.allocationPercent * 100f
+                val diff = currentPct - targetPct
+                if (kotlin.math.abs(diff) >= 5.0f) {
+                    val isOver = diff > 0
+                    val sign = if (isOver) "+" else ""
+                    val actionText = if (isOver) "fazla ağırlıklı" else "düşük ağırlıklı"
+                    val desc = "${holding.symbol}: Hedef %${String.format(java.util.Locale.US, "%.1f", targetPct)}, Şu an %${String.format(java.util.Locale.US, "%.1f", currentPct)} ($sign${String.format(java.util.Locale.US, "%.1f", diff)}% $actionText)"
+                    rebalanceSuggestions.add(
+                        RebalanceSuggestion(
+                            symbol = holding.symbol,
+                            currentPercent = currentPct,
+                            targetPercent = targetPct,
+                            diffPercent = diff,
+                            isOverweight = isOver,
+                            description = desc
+                        )
+                    )
+                }
+            }
+        }
+
         BasketDetailUiState(
             basketName = basket.name,
             market = basket.market,
@@ -256,6 +302,7 @@ class BasketDetailViewModel(
             profitLossAmount = profitLoss,
             profitLossPercent = if (totalCost > 0) (profitLoss / totalCost) * 100 else 0.0,
             holdings = finalHoldings,
+            rebalanceSuggestions = rebalanceSuggestions,
             isLoading = false,
             errorMessage = errorMsg
         )
