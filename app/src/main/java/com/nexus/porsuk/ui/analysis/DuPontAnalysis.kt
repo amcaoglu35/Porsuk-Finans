@@ -30,9 +30,9 @@ object DuPontAnalysis {
         totalAssets: Double,
         equity: Double
     ): DuPontBreakdown {
-        val margin = if (revenue > 0) (netProfit / revenue) * 100.0 else 0.0
+        val margin = if (revenue != 0.0) (netProfit / revenue) * 100.0 else 0.0
         val turnover = if (totalAssets > 0) revenue / totalAssets else 0.0
-        val leverage = if (equity > 0) totalAssets / equity else 0.0
+        val leverage = if (equity != 0.0) totalAssets / equity else 0.0
         val roe = (margin / 100.0) * turnover * leverage * 100.0
 
         return DuPontBreakdown(

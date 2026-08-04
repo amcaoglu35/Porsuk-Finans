@@ -123,6 +123,11 @@ dependencies {
     debugImplementation(libs.leakcanary)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.arch.core.testing)
+    testImplementation(libs.truth)
     androidTestImplementation(libs.test.runner)
     androidTestImplementation(libs.espresso.core)
 }
