@@ -28,6 +28,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import com.nexus.porsuk.core.ui.component.EmptyStateView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -229,7 +230,7 @@ fun SampleListScreen(
 
             if (stocks.isEmpty()) {
                 item {
-                    com.nexus.porsuk.core.ui.component.EmptyStateView(
+                    EmptyStateView(
                         title = "Hisse Bulunamadı",
                         subtitle = "Aradığınız '$searchQuery' sembolü veya seçtiğiniz '$selectedSector' sektörüne ait hisse senedi kaydı bulunamadı."
                     )

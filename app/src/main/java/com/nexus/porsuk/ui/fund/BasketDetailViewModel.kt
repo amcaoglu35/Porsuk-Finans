@@ -1,15 +1,18 @@
 package com.nexus.porsuk.ui.fund
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.data.local.entity.Basket
 import com.nexus.porsuk.data.local.entity.BasketItem
 import com.nexus.porsuk.data.local.entity.PriceSnapshot
 import com.nexus.porsuk.data.repository.FinanceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import com.nexus.porsuk.data.local.SettingsManager
 
 data class HoldingUiModel(
     val id: Int,
@@ -49,9 +52,7 @@ data class BacktestResult(
     val bistReturnPercent: Double,
     val usdReturnPercent: Double,
     val description: String
-import androidx.lifecycle.SavedStateHandle
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class BasketDetailViewModel @Inject constructor(
