@@ -22,4 +22,5 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation("org.jsoup:jsoup:1.17.2")
 }

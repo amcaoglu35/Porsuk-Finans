@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
@@ -60,14 +61,17 @@ private data class PredictionHistoryItem(
     val selfEvaluation: String
 )
 
-private data class ModuleAccuracyItem(val moduleName: String, val accuracyPct: Double, val totalCount: Int, val icon: String)
+import com.ramcosta.composedestinations.annotation.Destination
 
+@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiPerformanceCenterScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: AiPerformanceViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     val tabs = remember {

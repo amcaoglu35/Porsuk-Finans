@@ -23,13 +23,17 @@ import com.nexus.porsuk.data.local.entity.PriceSnapshot
 import com.nexus.porsuk.data.local.entity.WatchlistItem
 import com.nexus.porsuk.ui.common.CurrencyFormatter
 import com.nexus.porsuk.ui.common.Sparkline
+import com.nexus.porsuk.ui.dashboard.DashboardNewsUiModel
 import com.nexus.porsuk.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun DashboardWatchlistSection(
     watchlist: List<WatchlistItem>,
     prices: Map<String, PriceSnapshot>,
-    onStockClick: (String, String) -> Unit
+    numberFormat: String = "TR",
+    onStockClick: (String, String) -> Unit,
+    onToggleWatchlist: (String) -> Unit = {}
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -53,8 +57,17 @@ fun DashboardWatchlistSection(
                 Text("Henüz izleme listene hisse eklemedin.", style = MaterialTheme.typography.bodySmall, color = onSurfaceVariant)
             } else {
                 watchlist.take(5).forEach { item ->
-                    val price = prices[item.symbol]?.price ?: 0.0
-                    WatchlistRowItem(item = item, price = price, onClick = { onStockClick(item.symbol, "BIST") })
+                    val snap = prices[item.symbol]
+                    val price = snap?.price ?: 0.0
+                    val changePct = snap?.changePercent ?: 0.0
+                    WatchlistRowItem(
+                        item = item,
+                        price = price,
+                        changePct = changePct,
+                        numberFormat = numberFormat,
+                        onClick = { onStockClick(item.symbol, "BIST") },
+                        onToggleWatchlist = { onToggleWatchlist(item.symbol) }
+                    )
                     HorizontalDivider(color = outlineColor.copy(alpha = 0.4f))
                 }
             }
@@ -66,12 +79,21 @@ fun DashboardWatchlistSection(
 private fun WatchlistRowItem(
     item: WatchlistItem,
     price: Double,
-    onClick: () -> Unit
+    changePct: Double,
+    numberFormat: String,
+    onClick: () -> Unit,
+    onToggleWatchlist: () -> Unit
 ) {
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val isPos = changePct >= 0
+    val changeColor = if (isPos) PozitifGreen else NegatifRed
+    val changeText = if (isPos) "^ %${String.format(Locale.US, "%.2f", changePct)}"
+    else "v %${String.format(Locale.US, "%.2f", Math.abs(changePct))}"
 
-    var isFav by remember { mutableStateOf(true) }
+    val sparkValues = remember(isPos) {
+        if (isPos) listOf(40f, 42f, 45f, 48f, 50f) else listOf(50f, 48f, 45f, 42f, 40f)
+    }
 
     Row(
         modifier = Modifier
@@ -87,8 +109,8 @@ private fun WatchlistRowItem(
         }
 
         Sparkline(
-            values = listOf(40f, 42f, 45f, 48f, 50f),
-            color = PozitifGreen,
+            values = sparkValues,
+            color = changeColor,
             modifier = Modifier
                 .width(60.dp)
                 .height(24.dp),
@@ -98,33 +120,35 @@ private fun WatchlistRowItem(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(horizontalAlignment = Alignment.End) {
-            Text(CurrencyFormatter.formatTRY(price, "TR"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = onSurfaceColor)
-            Text("^ %1,45", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.5.sp, fontFamily = IBMPlexMono), color = PozitifGreen)
+            Text(CurrencyFormatter.formatTRY(price, numberFormat), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = onSurfaceColor)
+            Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.5.sp, fontFamily = IBMPlexMono), color = changeColor)
         }
 
         Spacer(modifier = Modifier.width(8.dp))
 
         Icon(
-            imageVector = if (isFav) Icons.Default.Star else Icons.Outlined.StarBorder,
+            imageVector = Icons.Default.Star,
             contentDescription = "Favori",
-            tint = if (isFav) Color(0xFFFFB800) else onSurfaceVariant,
+            tint = Color(0xFFFFB800),
             modifier = Modifier
-                .size(16.dp)
-                .clickable { isFav = !isFav }
+                .size(18.dp)
+                .clickable { onToggleWatchlist() }
         )
     }
 }
 
 @Composable
-fun DashboardNewsSection() {
+fun DashboardNewsSection(
+    newsList: List<DashboardNewsUiModel> = emptyList()
+) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val outlineColor = MaterialTheme.colorScheme.outline
 
-    val newsList = remember {
-        listOf(
-            NewsItem("BIST 100 rekor tazeledi: Bankacılık öncülüğünde yükseliş", "Piyasalar", "Yüksek Olumlu", "%89 Güven", "3 dk okuma"),
-            NewsItem("Merkez Bankası faiz kararı metninde enflasyon vurgusu", "Makro", "Nötr Etki", "%92 Güven", "4 dk okuma")
+    val displayNews = remember(newsList) {
+        if (newsList.isNotEmpty()) newsList else listOf(
+            DashboardNewsUiModel("BIST 100 rekor tazeledi: Bankacılık öncülüğünde yükseliş", "Piyasalar", "Yüksek Olumlu", "%89 Güven", "3 dk okuma"),
+            DashboardNewsUiModel("Merkez Bankası faiz kararı metninde enflasyon vurgusu", "Makro", "Nötr Etki", "%92 Güven", "4 dk okuma")
         )
     }
 
@@ -141,7 +165,7 @@ fun DashboardNewsSection() {
             Text("📰 Son Haberler & AI Etki Analizi", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = onSurfaceColor)
             Spacer(modifier = Modifier.height(12.dp))
 
-            newsList.forEach { item ->
+            displayNews.forEach { item ->
                 NewsRowItem(item = item)
                 HorizontalDivider(color = outlineColor.copy(alpha = 0.4f))
             }
@@ -149,16 +173,8 @@ fun DashboardNewsSection() {
     }
 }
 
-private data class NewsItem(
-    val title: String,
-    val category: String,
-    val impact: String,
-    val aiConfidence: String,
-    val readTime: String
-)
-
 @Composable
-private fun NewsRowItem(item: NewsItem) {
+private fun NewsRowItem(item: DashboardNewsUiModel) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val primaryContainer = MaterialTheme.colorScheme.primaryContainer
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface

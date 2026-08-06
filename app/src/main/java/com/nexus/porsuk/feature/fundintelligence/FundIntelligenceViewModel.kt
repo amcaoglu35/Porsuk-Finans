@@ -16,6 +16,9 @@ data class FundIntelligenceUiState(
     val error: String? = null
 )
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+
+@HiltViewModel
 class FundIntelligenceViewModel @Inject constructor(
     private val getFundIntelligenceUseCase: GetFundIntelligenceUseCase
 ) : ViewModel() {

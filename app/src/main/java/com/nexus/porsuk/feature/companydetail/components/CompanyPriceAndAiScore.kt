@@ -51,10 +51,11 @@ fun CompanyPriceAndAiScore(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val formattedChangePct = com.nexus.porsuk.ui.common.PercentFormatter.formatChangePercent(changePct)
                 Text(
-                    text = String.format(Locale.US, "%s%.2f (%%%s%.2f)", 
+                    text = String.format(Locale.US, "%s%.2f (%s)", 
                         if (isPositive) "+" else "", change,
-                        if (isPositive) "+" else "", changePct),
+                        formattedChangePct),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isPositive) mainGreen else Color.Red
@@ -67,7 +68,15 @@ fun CompanyPriceAndAiScore(
             Row {
                 PriceSubMetric("Gün", String.format(Locale.US, "%.1f - %.1f", quote?.low ?: 0.0, quote?.high ?: 0.0))
                 Spacer(modifier = Modifier.width(12.dp))
-                PriceSubMetric("Hacim", "45.2M")
+                val vol = quote?.volume?.toDouble() ?: 0.0
+                val formattedVol = when {
+                    vol >= 1_000_000_000.0 -> String.format(Locale.US, "%.1fB", vol / 1_000_000_000.0)
+                    vol >= 1_000_000.0 -> String.format(Locale.US, "%.1fM", vol / 1_000_000.0)
+                    vol >= 1_000.0 -> String.format(Locale.US, "%.1fK", vol / 1_000.0)
+                    vol > 0.0 -> String.format(Locale.US, "%.0f", vol)
+                    else -> "-"
+                }
+                PriceSubMetric("Hacim", formattedVol)
             }
         }
 

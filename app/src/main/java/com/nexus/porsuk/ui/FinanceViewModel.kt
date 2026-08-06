@@ -16,6 +16,9 @@ import com.nexus.porsuk.data.remote.PortfolioDoctorEngine
 import com.nexus.porsuk.data.remote.PortfolioDoctorMetrics
 import com.nexus.porsuk.domain.model.PortfolioAsset
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
 data class BasketWithStats(
     val basket: Basket,
     val totalValue: Double,
@@ -24,7 +27,8 @@ data class BasketWithStats(
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-class FinanceViewModel(
+@HiltViewModel
+class FinanceViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager,
     private val ipoRepository: com.nexus.porsuk.domain.repository.IpoRepository? = null,

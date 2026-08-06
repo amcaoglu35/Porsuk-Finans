@@ -7,7 +7,7 @@ import androidx.work.*
 import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.data.repository.KaziRepository
 import com.nexus.porsuk.worker.KaziAnalysisWorker
-import com.nexus.porsuk.ui.FinanceViewModelFactory
+
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -28,9 +28,16 @@ data class KaziUiState(
     val minQualityScore: Int = 0
 )
 
-class KaziViewModel(
+import com.nexus.porsuk.data.repository.FinanceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+
+@HiltViewModel
+class KaziViewModel @Inject constructor(
     private val repository: KaziRepository,
-    private val context: Context
+    private val financeRepository: FinanceRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(KaziUiState())
@@ -38,8 +45,7 @@ class KaziViewModel(
 
     init {
         viewModelScope.launch {
-            val financeRepo = FinanceViewModelFactory.getRepository(context)
-            financeRepo.allCompanies.collect { list ->
+            financeRepository.allCompanies.collect { list ->
                 _uiState.update { it.copy(companies = list) }
             }
         }

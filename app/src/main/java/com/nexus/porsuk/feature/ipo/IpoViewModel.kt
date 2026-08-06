@@ -16,6 +16,9 @@ data class IpoUiState(
     val error: String? = null
 )
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+
+@HiltViewModel
 class IpoViewModel @Inject constructor(
     private val repository: IpoRepository
 ) : ViewModel() {

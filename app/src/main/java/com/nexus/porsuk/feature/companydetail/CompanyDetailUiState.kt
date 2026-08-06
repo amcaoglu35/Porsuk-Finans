@@ -2,6 +2,10 @@ package com.nexus.porsuk.feature.companydetail
 
 import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.domain.model.MarketQuote
+import com.nexus.porsuk.ui.analysis.DuPontBreakdown
+import com.nexus.porsuk.ui.analysis.PiotroskiResult
+import com.nexus.porsuk.ui.analysis.FinancialHealthFlags
+import com.nexus.porsuk.ui.analysis.CashFlowAnalysisSummary
 
 /**
  * Porsuk Company Detail Module — 5 Premium Sekme Tanımları
@@ -83,6 +87,12 @@ data class CompanyDetailUiState(
     val aiScenarios: List<AiScenarioData> = emptyList(),
     val analystConsensus: Double = 0.0,
     val aiConfidenceScore: Double = 0.0,
+
+    // Structured Analysis Results (from ui/analysis calculators)
+    val duPontBreakdown: DuPontBreakdown? = null,
+    val piotroskiResult: PiotroskiResult? = null,
+    val financialHealthFlags: FinancialHealthFlags? = null,
+    val cashFlowSummary: CashFlowAnalysisSummary? = null,
 
     // Redesign - Corporate Data
     val boardMembers: List<BoardMember> = emptyList(),

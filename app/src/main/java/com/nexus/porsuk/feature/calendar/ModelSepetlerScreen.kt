@@ -34,6 +34,9 @@ data class ModelPortfolio(
     val emoji: String
 )
 
+import com.ramcosta.composedestinations.annotation.Destination
+
+@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelSepetlerScreen(

@@ -3,7 +3,6 @@ package com.nexus.porsuk.ui.markets.components
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,14 +20,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.ui.common.CurrencyFormatter
+import com.nexus.porsuk.ui.common.PercentFormatter
 import com.nexus.porsuk.ui.common.Sparkline
 import com.nexus.porsuk.ui.theme.*
 
@@ -39,7 +39,9 @@ fun SummaryOverviewTab(
     onGlobalMarketTabSelected: (Int) -> Unit,
     onStockClick: (String, String) -> Unit,
     onCalendarClick: () -> Unit,
-    onScreenerClick: () -> Unit
+    onScreenerClick: () -> Unit,
+    prices: Map<String, PriceSnapshot> = emptyMap(),
+    exchangeRates: Map<String, Double> = emptyMap()
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -51,7 +53,7 @@ fun SummaryOverviewTab(
                 visible = isVisible,
                 enter = fadeIn(tween(400)) + slideInVertically(initialOffsetY = { 30 })
             ) {
-                HeroMarketCardsRow()
+                HeroMarketCardsRow(prices = prices, exchangeRates = exchangeRates)
             }
         }
 
@@ -60,7 +62,7 @@ fun SummaryOverviewTab(
                 visible = isVisible,
                 enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
             ) {
-                SectorPerformanceSection()
+                SectorPerformanceSection(prices = prices)
             }
         }
 
@@ -69,7 +71,7 @@ fun SummaryOverviewTab(
                 visible = isVisible,
                 enter = fadeIn(tween(600)) + slideInVertically(initialOffsetY = { 50 })
             ) {
-                GainersAndLosersSection(onStockClick = onStockClick)
+                GainersAndLosersSection(prices = prices, onStockClick = onStockClick)
             }
         }
 
@@ -80,24 +82,16 @@ fun SummaryOverviewTab(
             ) {
                 GlobalMarketsSection(
                     selectedTab = selectedGlobalMarketTab,
-                    onTabSelected = onGlobalMarketTabSelected
+                    onTabSelected = onGlobalMarketTabSelected,
+                    prices = prices
                 )
-            }
-        }
-
-        item(key = "world_heatmap_section") {
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 70 })
-            ) {
-                WorldMarketHeatmapSection()
             }
         }
 
         item(key = "quick_tools_section") {
             AnimatedVisibility(
                 visible = isVisible,
-                enter = fadeIn(tween(900)) + slideInVertically(initialOffsetY = { 80 })
+                enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 70 })
             ) {
                 QuickToolsGridSection(
                     onCalendarClick = onCalendarClick,
@@ -109,16 +103,32 @@ fun SummaryOverviewTab(
 }
 
 @Composable
-private fun HeroMarketCardsRow() {
-    val cardsData = remember {
+private fun HeroMarketCardsRow(
+    prices: Map<String, PriceSnapshot>,
+    exchangeRates: Map<String, Double>
+) {
+    val usdRate = exchangeRates["USD"] ?: 34.5
+
+    fun buildHeroItem(title: String, code: String, iconEmoji: String, defaultPrice: String, defaultChange: String, defaultPos: Boolean): HeroMarketCardItem {
+        val snap = prices[code]
+        if (snap != null && snap.price > 0.0) {
+            val (changeStr, isPos) = PercentFormatter.formatChangePercent(snap.changePercent)
+            val priceStr = CurrencyFormatter.formatTRY(snap.price, "TR")
+            val spark = if (isPos) listOf(40f, 42f, 45f, 48f, 50f) else listOf(50f, 48f, 45f, 42f, 40f)
+            return HeroMarketCardItem(title, priceStr, changeStr, isPos, iconEmoji, spark)
+        }
+        return HeroMarketCardItem(title, defaultPrice, defaultChange, defaultPos, iconEmoji, listOf(40f, 42f, 45f, 48f, 50f))
+    }
+
+    val cardsData = remember(prices, exchangeRates) {
         listOf(
-            HeroMarketCardItem("BIST 100", "10.456,87", "^ %1,35", true, "🟣", listOf(40f, 42f, 41f, 45f, 44f, 48f, 50f)),
-            HeroMarketCardItem("BIST 30", "11.632,15", "^ %1,28", true, "🔵", listOf(42f, 43f, 45f, 47f, 49f, 52f)),
-            HeroMarketCardItem("DOLAR / TL", "32,65", "^ %0,42", true, "💵", listOf(32f, 32.2f, 32.4f, 32.5f, 32.65f)),
-            HeroMarketCardItem("ALTIN / GR", "2.395,45", "^ %0,31", true, "🪙", listOf(2380f, 2385f, 2390f, 2395f)),
-            HeroMarketCardItem("USD / EUR", "0,9142", "v %-0,28", false, "💶", listOf(95f, 94f, 93f, 92f, 91.4f)),
-            HeroMarketCardItem("BRENT", "84.20", "^ %0,75", true, "🛢️", listOf(82f, 83f, 83.5f, 84.2f)),
-            HeroMarketCardItem("BITCOIN", "67.450,00", "^ %2,10", true, "₿", listOf(65000f, 66000f, 67450f))
+            buildHeroItem("BIST 100", "BIST100", "🟣", "10.456,87", "^ %1,35", true),
+            buildHeroItem("BIST 30", "BIST30", "🔵", "11.632,15", "^ %1,28", true),
+            buildHeroItem("DOLAR / TL", "USDTRY", "💵", String.format("%.2f", usdRate), "^ %0,42", true),
+            buildHeroItem("ALTIN / GR", "GC=F", "🪙", "2.395,45", "^ %0,31", true),
+            buildHeroItem("EUR / USD", "EURUSD", "💶", "1,0850", "v %0,28", false),
+            buildHeroItem("BRENT", "CL=F", "🛢️", "84,20", "^ %0,75", true),
+            buildHeroItem("BITCOIN", "BTC-USD", "₿", "67.450,00", "^ %2,10", true)
         )
     }
 
@@ -164,7 +174,7 @@ private fun HeroMarketCard(item: HeroMarketCardItem) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Text(item.price, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
+            Text(item.price, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(2.dp))
             Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = color)
             Spacer(modifier = Modifier.height(8.dp))
@@ -180,14 +190,14 @@ private fun HeroMarketCard(item: HeroMarketCardItem) {
 }
 
 @Composable
-private fun SectorPerformanceSection() {
+private fun SectorPerformanceSection(prices: Map<String, PriceSnapshot>) {
     val sectors = remember {
         listOf(
             SectorItem("Bankacılık", "^ %2,45", true, listOf(40f, 45f, 44f, 48f, 52f)),
             SectorItem("Savunma", "^ %2,12", true, listOf(30f, 32f, 35f, 38f, 40f)),
             SectorItem("Teknoloji", "^ %1,85", true, listOf(50f, 52f, 51f, 54f, 56f)),
             SectorItem("Holding", "^ %0,98", true, listOf(60f, 61f, 62f, 63f)),
-            SectorItem("Ulaştırma", "v %-0,35", false, listOf(70f, 69f, 68f, 67f))
+            SectorItem("Ulaştırma", "v %0,35", false, listOf(70f, 69f, 68f, 67f))
         )
     }
 
@@ -255,25 +265,42 @@ private fun SectorPerformanceSection() {
 private data class SectorItem(val name: String, val changePct: String, val isPositive: Boolean, val sparkValues: List<Float>)
 
 @Composable
-private fun GainersAndLosersSection(onStockClick: (String, String) -> Unit) {
-    val gainers = remember {
-        listOf(
+private fun GainersAndLosersSection(
+    prices: Map<String, PriceSnapshot>,
+    onStockClick: (String, String) -> Unit
+) {
+    val gainers = remember(prices) {
+        val defaultList = listOf(
             StockRowItem("ASELS", "₺56,70", "^ %4,25", true),
             StockRowItem("THYAO", "₺305,25", "^ %2,87", true),
             StockRowItem("KCHOL", "₺182,40", "^ %2,31", true),
             StockRowItem("SISE", "₺49,18", "^ %1,98", true),
             StockRowItem("EKGYO", "₺10,52", "^ %1,76", true)
         )
+        defaultList.map { item ->
+            val snap = prices[item.symbol]
+            if (snap != null) {
+                val (changeStr, isPos) = PercentFormatter.formatChangePercent(snap.changePercent)
+                item.copy(price = "₺${String.format("%.2f", snap.price)}", changePct = changeStr, isPositive = isPos)
+            } else item
+        }
     }
 
-    val losers = remember {
-        listOf(
-            StockRowItem("AKBNK", "₺52,15", "v %-0,42", false),
-            StockRowItem("TUPRS", "₺165,80", "v %-0,85", false),
-            StockRowItem("SASA", "₺38,72", "v %-1,22", false),
-            StockRowItem("EREGL", "₺45,10", "v %-1,34", false),
-            StockRowItem("PETKM", "₺17,26", "v %-1,88", false)
+    val losers = remember(prices) {
+        val defaultList = listOf(
+            StockRowItem("AKBNK", "₺52,15", "v %0,42", false),
+            StockRowItem("TUPRS", "₺165,80", "v %0,85", false),
+            StockRowItem("SASA", "₺38,72", "v %1,22", false),
+            StockRowItem("EREGL", "₺45,10", "v %1,34", false),
+            StockRowItem("PETKM", "₺17,26", "v %1,88", false)
         )
+        defaultList.map { item ->
+            val snap = prices[item.symbol]
+            if (snap != null) {
+                val (changeStr, isPos) = PercentFormatter.formatChangePercent(snap.changePercent)
+                item.copy(price = "₺${String.format("%.2f", snap.price)}", changePct = changeStr, isPositive = isPos)
+            } else item
+        }
     }
 
     Row(
@@ -346,7 +373,6 @@ private data class StockRowItem(val symbol: String, val price: String, val chang
 
 @Composable
 private fun StockListItemRow(item: StockRowItem, onClick: () -> Unit) {
-    var isFavorite by remember { mutableStateOf(false) }
     val color = if (item.isPositive) PozitifGreen else NegatifRed
 
     Row(
@@ -363,25 +389,33 @@ private fun StockListItemRow(item: StockRowItem, onClick: () -> Unit) {
         }
 
         Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = color)
-        Spacer(modifier = Modifier.width(4.dp))
-
-        Icon(
-            imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.StarBorder,
-            contentDescription = "Favori",
-            tint = if (isFavorite) AmberWarning else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(16.dp).clickable { isFavorite = !isFavorite }
-        )
     }
 }
 
 @Composable
-private fun GlobalMarketsSection(selectedTab: Int, onTabSelected: (Int) -> Unit) {
+private fun GlobalMarketsSection(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    prices: Map<String, PriceSnapshot>
+) {
     val filterTabs = remember { listOf("ABD", "Avrupa", "Asya", "Emtia", "Kripto") }
-    val globalItems = remember {
+
+    fun buildGlobalItem(name: String, code: String, flag: String, defaultPrice: String, defaultChange: String, defaultPos: Boolean): GlobalMarketItem {
+        val snap = prices[code]
+        if (snap != null && snap.price > 0.0) {
+            val (changeStr, isPos) = PercentFormatter.formatChangePercent(snap.changePercent)
+            val priceStr = String.format("%.2f", snap.price)
+            val spark = if (isPos) listOf(50f, 52f, 51f, 55f, 58f) else listOf(58f, 55f, 51f, 52f, 50f)
+            return GlobalMarketItem(name, priceStr, changeStr, isPos, flag, spark)
+        }
+        return GlobalMarketItem(name, defaultPrice, defaultChange, defaultPos, flag, listOf(50f, 52f, 51f, 55f, 58f))
+    }
+
+    val globalItems = remember(prices) {
         listOf(
-            GlobalMarketItem("S&P 500", "5.325,16", "^ %0,88", true, "🇺🇸", listOf(50f, 52f, 51f, 55f, 58f)),
-            GlobalMarketItem("NASDAQ", "16.832,62", "^ %1,28", true, "🇺🇸", listOf(60f, 62f, 65f, 68f, 70f)),
-            GlobalMarketItem("DOW JONES", "39.872,99", "^ %0,75", true, "🇺🇸", listOf(390f, 392f, 395f, 398f))
+            buildGlobalItem("S&P 500", "SPY", "🇺🇸", "5.325,16", "^ %0,88", true),
+            buildGlobalItem("NASDAQ", "QQQ", "🇺🇸", "16.832,62", "^ %1,28", true),
+            buildGlobalItem("DOW JONES", "IWM", "🇺🇸", "39.872,99", "^ %0,75", true)
         )
     }
 
@@ -425,6 +459,7 @@ private fun GlobalMarketsSection(selectedTab: Int, onTabSelected: (Int) -> Unit)
             Spacer(modifier = Modifier.height(14.dp))
 
             globalItems.forEach { item ->
+                val color = if (item.isPositive) PozitifGreen else NegatifRed
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -435,8 +470,8 @@ private fun GlobalMarketsSection(selectedTab: Int, onTabSelected: (Int) -> Unit)
                         Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-                    Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = PozitifGreen, modifier = Modifier.weight(0.8f))
-                    Sparkline(values = item.sparkValues, color = PozitifGreen, modifier = Modifier.weight(1.0f).height(24.dp), filled = true)
+                    Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = color, modifier = Modifier.weight(0.8f))
+                    Sparkline(values = item.sparkValues, color = color, modifier = Modifier.weight(1.0f).height(24.dp), filled = true)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(item.flagEmoji, fontSize = 18.sp)
                 }
@@ -447,62 +482,6 @@ private fun GlobalMarketsSection(selectedTab: Int, onTabSelected: (Int) -> Unit)
 }
 
 private data class GlobalMarketItem(val name: String, val price: String, val changePct: String, val isPositive: Boolean, val flagEmoji: String, val sparkValues: List<Float>)
-
-@Composable
-fun WorldMarketHeatmapSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).shadow(4.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🗺️", fontSize = 18.sp)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Piyasa Haritası", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.weight(1.3f).height(120.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFEFF6FF)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🗺️", fontSize = 42.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Düşüş", fontSize = 8.sp, color = NegatifRed, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Box(modifier = Modifier.width(60.dp).height(4.dp).clip(CircleShape).background(Brush.horizontalGradient(listOf(NegatifRed, Color.LightGray, PozitifGreen))))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Yükseliş", fontSize = 8.sp, color = PozitifGreen, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Column(modifier = Modifier.weight(1.0f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RegionHeatmapRow("Kuzey Amerika", "^ %0,82", true)
-                    RegionHeatmapRow("Avrupa", "^ %0,35", true)
-                    RegionHeatmapRow("Asya", "v %-0,15", false)
-                    RegionHeatmapRow("Gelişen Piyasalar", "^ %0,48", true)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RegionHeatmapRow(region: String, change: String, isPositive: Boolean) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(region, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
-        Text(change, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono, fontSize = 10.5.sp), color = if (isPositive) PozitifGreen else NegatifRed)
-    }
-}
 
 @Composable
 private fun QuickToolsGridSection(onCalendarClick: () -> Unit, onScreenerClick: () -> Unit) {

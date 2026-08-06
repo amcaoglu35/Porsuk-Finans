@@ -29,7 +29,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.nexus.porsuk.ui.FinanceViewModel
-import com.nexus.porsuk.ui.FinanceViewModelFactory
 import com.nexus.porsuk.ui.dashboard.DashboardScreen
 import com.nexus.porsuk.ui.fund.BasketDetailScreen
 import com.nexus.porsuk.ui.fund.BasketDetailViewModel
@@ -65,13 +64,8 @@ import androidx.compose.ui.graphics.Color
 fun PorsukApp(
     navController: NavHostController = rememberNavController()
 ) {
-    val context = LocalContext.current
-    val financeViewModel: FinanceViewModel = viewModel(
-        factory = FinanceViewModelFactory(context)
-    )
-    val settingsViewModel: SettingsViewModel = viewModel(
-        factory = FinanceViewModelFactory(context)
-    )
+    val financeViewModel: FinanceViewModel = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
     val settingsUiState by settingsViewModel.uiState.collectAsState()
     
     var hasNotificationPermission by remember { mutableStateOf(false) }
@@ -289,6 +283,12 @@ fun PorsukApp(
                             onSettingsClick = {
                                 navController.navigate(Screen.Ayarlar.route)
                             },
+                            onNotificationsClick = {
+                                navController.navigate(Screen.NotificationsCenter.route)
+                            },
+                            onSearchClick = {
+                                navController.navigate(Screen.GlobalSearch.route)
+                            },
                             onCalendarClick = {
                                 navController.navigate(Screen.Calendar.route)
                             },
@@ -343,7 +343,7 @@ fun PorsukApp(
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
                             onNavigateToSettings = {
-                                navController.navigate(Screen.Ayarlar.route)
+                                navController.navigate(Screen.NotificationsCenter.route)
                             },
                             onLedgerClick = {
                                 navController.navigate(Screen.IslemDefteri.route)
@@ -355,9 +355,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.Piyasalar.route) {
-                        val analysisViewModel: AnalysisViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val analysisViewModel: AnalysisViewModel = hiltViewModel()
                         com.nexus.porsuk.ui.markets.MarketsScreen(
                             viewModel = analysisViewModel,
                             financeViewModel = financeViewModel,
@@ -365,7 +363,7 @@ fun PorsukApp(
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
                             onNavigateToSettings = {
-                                navController.navigate(Screen.Ayarlar.route)
+                                navController.navigate(Screen.NotificationsCenter.route)
                             },
                             onCalendarClick = {
                                 navController.navigate(Screen.Calendar.route)
@@ -377,16 +375,14 @@ fun PorsukApp(
                     }
 
                     composable(Screen.Analiz.route) {
-                        val analysisViewModel: AnalysisViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val analysisViewModel: AnalysisViewModel = hiltViewModel()
                         AnalysisScreen(
                             viewModel = analysisViewModel,
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
                             onNavigateToSettings = {
-                                navController.navigate(Screen.Ayarlar.route)
+                                navController.navigate(Screen.NotificationsCenter.route)
                             },
                             onCreateBasket = {
                                 navController.navigate(Screen.BasketCreate.route)
@@ -408,16 +404,12 @@ fun PorsukApp(
                         )
                     ) { backStackEntry ->
                         val initialPrompt = backStackEntry.arguments?.getString("initialPrompt")
-                        val chatViewModel: com.nexus.porsuk.ui.chat.ChatViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
-                        val labViewModel: com.nexus.porsuk.ui.ailab.AiLabViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val chatViewModel: com.nexus.porsuk.ui.chat.ChatViewModel = hiltViewModel()
+                        val labViewModel: com.nexus.porsuk.ui.ailab.AiLabViewModel = hiltViewModel()
                         com.nexus.porsuk.ui.ailab.AiLabScreen(
                             viewModel = chatViewModel,
                             labViewModel = labViewModel,
-                            onNavigateToSettings = { navController.navigate(Screen.Ayarlar.route) },
+                            onNavigateToSettings = { navController.navigate(Screen.NotificationsCenter.route) },
                             initialPrompt = initialPrompt,
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
@@ -523,9 +515,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.KaziConfig.route) {
-                        val kaziViewModel: KaziViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val kaziViewModel: KaziViewModel = hiltViewModel()
                         KaziConfigScreen(
                             viewModel = kaziViewModel,
                             onBack = { navController.popBackStack() },
@@ -536,9 +526,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.KaziAnalysis.route) {
-                        val kaziViewModel: KaziViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val kaziViewModel: KaziViewModel = hiltViewModel()
                         KaziAnalysisScreen(
                             viewModel = kaziViewModel,
                             onBack = { navController.popBackStack() },
@@ -551,9 +539,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.KaziResult.route) {
-                        val kaziViewModel: KaziViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val kaziViewModel: KaziViewModel = hiltViewModel()
                         KaziResultScreen(
                             viewModel = kaziViewModel,
                             onBack = { 
@@ -608,9 +594,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.IslemDefteri.route) {
-                        val ledgerViewModel: com.nexus.porsuk.ui.ledger.TransactionLedgerViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val ledgerViewModel: com.nexus.porsuk.ui.ledger.TransactionLedgerViewModel = hiltViewModel()
                         com.nexus.porsuk.ui.ledger.TransactionLedgerScreen(
                             viewModel = ledgerViewModel,
                             onBack = { navController.popBackStack() }
@@ -618,9 +602,7 @@ fun PorsukApp(
                     }
 
                     composable(Screen.BasketCreate.route) {
-                        val createBasketViewModel: CreateBasketViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context)
-                        )
+                        val createBasketViewModel: CreateBasketViewModel = hiltViewModel()
                         CreateBasketScreen(
                             viewModel = createBasketViewModel,
                             onBack = { navController.popBackStack() }
@@ -631,10 +613,7 @@ fun PorsukApp(
                         route = Screen.BasketDetail.route,
                         arguments = listOf(navArgument("basketId") { type = NavType.IntType })
                     ) { backStackEntry ->
-                        val basketId = backStackEntry.arguments?.getInt("basketId") ?: 0
-                        val basketDetailViewModel: BasketDetailViewModel = viewModel(
-                            factory = FinanceViewModelFactory(context, basketId)
-                        )
+                        val basketDetailViewModel: BasketDetailViewModel = hiltViewModel()
                         BasketDetailScreen(
                             viewModel = basketDetailViewModel,
                             onBack = { navController.popBackStack() },

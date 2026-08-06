@@ -45,6 +45,126 @@ class FinanceRepository @Inject constructor(
                 fmpService = FinancialModelingPrepService(fmpKey)
             }
         }
+        tefasFundDao?.let { dao ->
+            runBlocking {
+                if (dao.getActiveFundCount() == 0) {
+                    dao.insertOrUpdateFunds(getInitialTefasFunds())
+                }
+            }
+        }
+    }
+
+    private fun getInitialTefasFunds(): List<com.nexus.porsuk.data.local.entity.TefasFundEntity> {
+        return listOf(
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "TCD",
+                name = "Tacirler Portföy Değişken Fon",
+                founder = "Tacirler Portföy",
+                manager = "Tacirler Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Değişken Şemsiye Fonu",
+                fundType = "Değişken Fon",
+                riskLevel = 7,
+                price = 14.8520,
+                totalAssets = 2450000000.0,
+                managementFee = 2.5
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "AFT",
+                name = "Ak Portföy Yeni Teknolojiler Yabancı Hisse Senedi Fonu",
+                founder = "Ak Portföy",
+                manager = "Ak Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Hisse Senedi Şemsiye Fonu",
+                fundType = "Hisse Senedi Fonu",
+                riskLevel = 6,
+                price = 0.4285,
+                totalAssets = 8120000000.0,
+                managementFee = 2.9
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "MAC",
+                name = "Marmara Kapital Portföy Hisse Senedi Fonu",
+                founder = "Marmara Kapital Portföy",
+                manager = "Marmara Kapital Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Hisse Senedi Şemsiye Fonu",
+                fundType = "Hisse Senedi Fonu",
+                riskLevel = 6,
+                price = 0.1850,
+                totalAssets = 3600000000.0,
+                managementFee = 2.0
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "TI2",
+                name = "İş Portföy Para Piyasası Fonu",
+                founder = "İş Portföy",
+                manager = "İş Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Para Piyasası Şemsiye Fonu",
+                fundType = "Para Piyasası Fonu",
+                riskLevel = 1,
+                price = 185.4200,
+                totalAssets = 45000000000.0,
+                managementFee = 1.2
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "GTA",
+                name = "Garanti Portföy Altın Fonu",
+                founder = "Garanti Portföy",
+                manager = "Garanti Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Kıymetli Madenler Şemsiye Fonu",
+                fundType = "Kıymetli Madenler Fonu",
+                riskLevel = 5,
+                price = 0.1420,
+                totalAssets = 12300000000.0,
+                managementFee = 1.8
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "YAY",
+                name = "Yapı Kredi Portföy Yabancı Teknoloji Sektörü Hisse Senedi Fonu",
+                founder = "Yapı Kredi Portföy",
+                manager = "Yapı Kredi Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Hisse Senedi Şemsiye Fonu",
+                fundType = "Hisse Senedi Fonu",
+                riskLevel = 6,
+                price = 0.6120,
+                totalAssets = 9800000000.0,
+                managementFee = 2.7
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "BIO",
+                name = "İstanbul Portföy Bioteknoloji Yabancı Serbest Fon",
+                founder = "İstanbul Portföy",
+                manager = "İstanbul Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Serbest Şemsiye Fonu",
+                fundType = "Serbest Fon",
+                riskLevel = 6,
+                price = 3.4500,
+                totalAssets = 1400000000.0,
+                managementFee = 2.0
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "IPB",
+                name = "İstanbul Portföy Birinci Değişken Fon",
+                founder = "İstanbul Portföy",
+                manager = "İstanbul Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Değişken Şemsiye Fonu",
+                fundType = "Değişken Fon",
+                riskLevel = 5,
+                price = 0.8950,
+                totalAssets = 4100000000.0,
+                managementFee = 2.2
+            ),
+            com.nexus.porsuk.data.local.entity.TefasFundEntity(
+                code = "TTE",
+                name = "İş Portföy Teknoloji Ağırlıklı Sınırlamalı Hisse Senedi Fonu",
+                founder = "İş Portföy",
+                manager = "İş Portföy Yönetimi A.Ş.",
+                umbrellaFund = "Hisse Senedi Şemsiye Fonu",
+                fundType = "Hisse Senedi Fonu",
+                riskLevel = 6,
+                price = 0.5480,
+                totalAssets = 6500000000.0,
+                managementFee = 2.5
+            )
+        )
     }
 
     fun getConsolidatedAssetsFlow(): Flow<List<PortfolioAsset>> = combine(

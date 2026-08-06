@@ -8,7 +8,11 @@ import com.nexus.porsuk.feature.ailab.AiLabUiState
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-class AiLabViewModel(
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
+@HiltViewModel
+class AiLabViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager
 ) : ViewModel() {

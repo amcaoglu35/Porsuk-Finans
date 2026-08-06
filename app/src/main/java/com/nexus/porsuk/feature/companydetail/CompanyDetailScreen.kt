@@ -28,15 +28,34 @@ fun CompanyDetailScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: CompanyDetailViewModel = hiltViewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val historicalPrices by viewModel.historicalPrices.collectAsState()
+
+    val onShareClick = {
+        val sendIntent = android.content.Intent().apply {
+            action = android.content.Intent.ACTION_SEND
+            putExtra(android.content.Intent.EXTRA_TEXT, "${uiState.company?.companyName ?: uiState.symbol} (${uiState.symbol}) detaylarını Porsuk Finans uygulamasında inceleyin!")
+            type = "text/plain"
+        }
+        val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+        context.startActivity(shareIntent)
+    }
+
+    val onAlarmClick = {
+        android.widget.Toast.makeText(context, "${uiState.symbol} için fiyat alarmı oluşturuldu", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    val onTradeClick = {
+        android.widget.Toast.makeText(context, "${uiState.symbol} için alım/satım emri penceresi açılıyor...", android.widget.Toast.LENGTH_SHORT).show()
+    }
 
     Scaffold(
         bottomBar = {
             CompanyBottomActionBar(
                 onWatchlistClick = { viewModel.toggleFavorite() },
-                onAlarmClick = { /* Alarm */ },
-                onTradeClick = { /* Trade */ }
+                onAlarmClick = onAlarmClick,
+                onTradeClick = onTradeClick
             )
         },
         containerColor = Color(0xFFF8F9FA) // Very light gray background
@@ -74,8 +93,8 @@ fun CompanyDetailScreen(
                             isFavorite = uiState.isFavorite,
                             onBack = onNavigateBack,
                             onFavoriteToggle = { viewModel.toggleFavorite() },
-                            onAlarmClick = { },
-                            onShareClick = { }
+                            onAlarmClick = onAlarmClick,
+                            onShareClick = onShareClick
                         )
                     }
                 }

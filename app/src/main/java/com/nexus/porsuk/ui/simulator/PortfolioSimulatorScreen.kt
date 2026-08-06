@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
@@ -47,14 +48,17 @@ private val BorderColor = Color(0xFFF1F5F9)
 private val SuccessGreen = Color(0xFF00C48C)
 private val WarningOrange = Color(0xFFFF9800)
 
-private data class SimAssetItem(val symbol: String, val name: String, var weightPct: Float, val category: String)
+import com.ramcosta.composedestinations.annotation.Destination
 
+@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioSimulatorScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: PortfolioSimulatorViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var selectedBacktestPeriod by rememberSaveable { mutableIntStateOf(0) } // 0: 1 Yıl, 1: 3 Yıl, 2: 5 Yıl
 

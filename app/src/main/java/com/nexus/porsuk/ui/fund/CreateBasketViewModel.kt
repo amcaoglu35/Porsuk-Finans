@@ -33,9 +33,11 @@ data class CreateBasketUiState(
     val isBottomSheetVisible: Boolean = false,
     val isSaving: Boolean = false,
     val errorMessage: String? = null
-)
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class CreateBasketViewModel(
+@HiltViewModel
+class CreateBasketViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val basketRepository: BasketRepository? = null
 ) : ViewModel() {

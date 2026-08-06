@@ -17,11 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.common.CurrencyFormatter
 import com.nexus.porsuk.ui.common.Sparkline
 import com.nexus.porsuk.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun DashboardPortfolioCard(
@@ -30,7 +32,13 @@ fun DashboardPortfolioCard(
     isBalanceVisible: Boolean,
     onToggleBalance: () -> Unit,
     numberFormat: String,
-    onLedgerClick: () -> Unit
+    onLedgerClick: () -> Unit,
+    totalGainValue: Double = 0.0,
+    totalGainPercent: Double = 0.0,
+    annualGainValue: Double = 0.0,
+    annualGainPercent: Double = 0.0,
+    riskScore: Int = 68,
+    aiHealthScore: Int = 85
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val primaryContainer = MaterialTheme.colorScheme.primaryContainer
@@ -39,9 +47,21 @@ fun DashboardPortfolioCard(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val outlineColor = MaterialTheme.colorScheme.outline
 
-    val displayValue = remember(totalBalance, isBalanceVisible) {
+    val displayValue = remember(totalBalance, isBalanceVisible, numberFormat) {
         if (isBalanceVisible) CurrencyFormatter.formatTRY(totalBalance, numberFormat) else "₺••••••••"
     }
+
+    val changeTL = remember(totalBalance, totalChange) {
+        if (totalChange != 0.0) totalBalance - (totalBalance / (1.0 + totalChange / 100.0)) else 0.0
+    }
+    val isChangePos = totalChange >= 0
+    val changeFormattedTL = CurrencyFormatter.formatTRY(Math.abs(changeTL), numberFormat)
+    val changeText = if (isChangePos) {
+        "^ %${String.format(Locale.US, "%.2f", totalChange)} ($changeFormattedTL) Bugün"
+    } else {
+        "v %${String.format(Locale.US, "%.2f", Math.abs(totalChange))} ($changeFormattedTL) Bugün"
+    }
+    val changeColor = if (isChangePos) PozitifGreen else NegatifRed
 
     Card(
         modifier = Modifier
@@ -100,26 +120,35 @@ fun DashboardPortfolioCard(
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.ExtraBold,
                             fontFamily = IBMPlexMono,
-                            fontSize = 28.sp
+                            fontSize = if (displayValue.length > 12) 22.sp else 26.sp
                         ),
-                        color = onSurfaceColor
+                        color = onSurfaceColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "^ %2,35 (₺28.750,45) Bugün",
+                        text = changeText,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono),
-                        color = PozitifGreen
+                        color = changeColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 // Gradient Area Line Chart
-                val sparkValues = remember { listOf(40f, 42f, 41f, 45f, 44f, 48f, 50f, 55f, 53f, 60f) }
+                val sparkValues = remember(totalChange) {
+                    if (totalChange >= 0) listOf(40f, 42f, 41f, 45f, 44f, 48f, 50f, 55f, 53f, 60f)
+                    else listOf(60f, 55f, 53f, 50f, 48f, 44f, 45f, 41f, 42f, 40f)
+                }
                 Sparkline(
                     values = sparkValues,
-                    color = PozitifGreen,
+                    color = changeColor,
                     modifier = Modifier
-                        .width(110.dp)
-                        .height(46.dp),
+                        .width(80.dp)
+                        .height(44.dp),
                     filled = true
                 )
             }
@@ -133,10 +162,23 @@ fun DashboardPortfolioCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                PortfolioMetricItem(title = "Toplam Getiri", value = "₺245.750,45", pct = "^ %24,36", isPos = true)
-                PortfolioMetricItem(title = "Getiri (Yıl)", value = "₺325.420,15", pct = "^ %32,68", isPos = true)
-                EnlargedRingItem(title = "Risk Skoru", score = "72", label = "Orta", color = AmberWarning)
-                EnlargedRingItem(title = "AI Sağlık", score = "85", label = "İyi", color = PozitifGreen)
+                val totalGainFormatted = CurrencyFormatter.formatTRY(totalGainValue, numberFormat)
+                val totalGainPctStr = if (totalGainPercent >= 0) "^ %${String.format(Locale.US, "%.2f", totalGainPercent)}"
+                else "v %${String.format(Locale.US, "%.2f", Math.abs(totalGainPercent))}"
+                PortfolioMetricItem(title = "Toplam Getiri", value = totalGainFormatted, pct = totalGainPctStr, isPos = totalGainPercent >= 0)
+
+                val annualGainFormatted = CurrencyFormatter.formatTRY(annualGainValue, numberFormat)
+                val annualGainPctStr = if (annualGainPercent >= 0) "^ %${String.format(Locale.US, "%.2f", annualGainPercent)}"
+                else "v %${String.format(Locale.US, "%.2f", Math.abs(annualGainPercent))}"
+                PortfolioMetricItem(title = "Getiri (Yıl)", value = annualGainFormatted, pct = annualGainPctStr, isPos = annualGainPercent >= 0)
+
+                val riskLabel = if (riskScore > 75) "Yüksek" else if (riskScore > 40) "Orta" else "Düşük"
+                val riskColor = if (riskScore > 75) NegatifRed else if (riskScore > 40) AmberWarning else PozitifGreen
+                EnlargedRingItem(title = "Risk Skoru", score = "$riskScore", label = riskLabel, color = riskColor)
+
+                val healthLabel = if (aiHealthScore > 75) "İyi" else if (aiHealthScore > 40) "Orta" else "Zayıf"
+                val healthColor = if (aiHealthScore > 75) PozitifGreen else if (aiHealthScore > 40) AmberWarning else NegatifRed
+                EnlargedRingItem(title = "AI Sağlık", score = "$aiHealthScore", label = healthLabel, color = healthColor)
             }
         }
     }
@@ -150,7 +192,7 @@ private fun PortfolioMetricItem(title: String, value: String, pct: String, isPos
     Column {
         Text(title, style = MaterialTheme.typography.labelSmall, color = onSurfaceVariant, fontFamily = Manrope)
         Spacer(modifier = Modifier.height(2.dp))
-        Text(value, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = onSurfaceColor)
+        Text(value, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = onSurfaceColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(pct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)
     }
 }

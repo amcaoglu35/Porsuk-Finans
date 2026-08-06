@@ -23,6 +23,9 @@ import com.nexus.porsuk.feature.alerts.components.*
  *
  * 9 Farklı alarm kategorisinde fiyat, hacim, haber, temettü ve Orakul AI alarmlarını yöneten ana ekran.
  */
+import com.ramcosta.composedestinations.annotation.Destination
+
+@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertsScreen(

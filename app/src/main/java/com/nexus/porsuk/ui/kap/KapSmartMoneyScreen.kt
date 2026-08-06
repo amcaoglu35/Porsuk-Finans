@@ -87,18 +87,58 @@ object KapSmartMoneyProvider {
             timeStr = "Dün"
         )
     )
-}
+import com.nexus.porsuk.core.domain.repository.KapCategory
+import com.nexus.porsuk.core.domain.repository.KapNotice
+import com.nexus.porsuk.core.domain.repository.KapScraperService
+
+// UYARI: Web scraping bağımlılığı. kap.org.tr HTML/DOM yapısı değişirse scraper güncellenmelidir.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KapSmartMoneyScreen(
     onBack: () -> Unit,
-    onStockClick: (String, String) -> Unit
+    onStockClick: (String, String) -> Unit,
+    scraperService: KapScraperService = remember { KapScraperService() }
 ) {
-    val disclosures = remember { KapSmartMoneyProvider.getDisclosures() }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var rawNotices by remember { mutableStateOf<List<KapNotice>>(emptyList()) }
     var selectedCategory by remember { mutableStateOf("Tümü") }
 
-    val filtered = remember(selectedCategory) {
+    LaunchedEffect(Unit) {
+        isLoading = true
+        val result = scraperService.fetchLatestKapNotices()
+        if (result.isSuccess) {
+            rawNotices = result.getOrDefault(emptyList())
+            errorMessage = null
+        } else {
+            errorMessage = result.exceptionOrNull()?.message ?: "KAP duyuruları çekilemedi. kap.org.tr HTML yapısı değişmiş veya erişim kısıtlanmış olabilir."
+        }
+        isLoading = false
+    }
+
+    val disclosures = remember(rawNotices) {
+        rawNotices.mapIndexed { idx, n ->
+            KapDisclosureItem(
+                id = idx + 1,
+                symbol = n.symbol,
+                companyName = n.companyName,
+                category = when (n.category) {
+                    KapCategory.BILANCO -> "BİLANÇO"
+                    KapCategory.PAY_ALIM_SATIM -> "PATRON / ALIM"
+                    KapCategory.SERMAYE_ARTRIMI -> "SERMAYE"
+                    KapCategory.TEMETTU -> "TEMETTÜ"
+                    else -> "ÖZEL DURUM"
+                },
+                summary = n.summary.ifBlank { n.title },
+                impactRating = if (n.isImportant) "ÇOK OLUMLU (+)" else "OLUMLU (+)",
+                impactColorHex = 0xFF00A878,
+                timeStr = n.publishTime
+            )
+        }
+    }
+
+    val filtered = remember(disclosures, selectedCategory) {
         if (selectedCategory == "Tümü") disclosures
         else disclosures.filter { it.category == selectedCategory }
     }
@@ -178,8 +218,28 @@ fun KapSmartMoneyScreen(
                                     fontSize = 11.sp,
                                     color = Color.White.copy(alpha = 0.8f),
                                     fontFamily = Manrope
-                                )
-                            }
+            // Loading indicator item
+            if (isLoading) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PrimaryTeal)
+                    }
+                }
+            }
+
+            // Error Message item (no fake fallback!)
+            if (errorMessage != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF1F0)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFA39E)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("⚠️ KAP Duyuruları Alınamadı", fontWeight = FontWeight.Bold, color = Color(0xFFCF1322), fontSize = 14.sp, fontFamily = Manrope)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(errorMessage!!, fontSize = 12.sp, color = Color(0xFF595959), fontFamily = Manrope)
                         }
                     }
                 }

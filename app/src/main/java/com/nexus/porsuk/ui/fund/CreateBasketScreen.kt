@@ -43,6 +43,9 @@ fun getCurrencySymbolForRegion(region: Region): String {
     }
 }
 
+import com.ramcosta.composedestinations.annotation.Destination
+
+@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateBasketScreen(

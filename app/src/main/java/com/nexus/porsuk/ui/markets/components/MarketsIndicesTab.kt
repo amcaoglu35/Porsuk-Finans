@@ -1,6 +1,7 @@
 package com.nexus.porsuk.ui.markets.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,34 +15,48 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.ui.common.CurrencyFormatter
+import com.nexus.porsuk.ui.common.PercentFormatter
 import com.nexus.porsuk.ui.common.Sparkline
 import com.nexus.porsuk.ui.theme.*
 
 @Composable
-fun IndicesTab(onStockClick: (String, String) -> Unit) {
-    val indices = remember {
-        listOf(
-            IndexItem("BIST 100", "🇹🇷 Türkiye", "10.456,87", "^ %1,35", "₺14.2B Hacim", true, listOf(40f, 42f, 45f, 48f, 50f)),
-            IndexItem("BIST 30", "🇹🇷 Türkiye", "11.632,15", "^ %1,28", "₺11.8B Hacim", true, listOf(42f, 43f, 46f, 49f, 52f)),
-            IndexItem("NASDAQ", "🇺🇸 ABD", "16.832,62", "^ %1,28", "$42.5B Hacim", true, listOf(60f, 62f, 65f, 68f, 70f)),
-            IndexItem("S&P 500", "🇺🇸 ABD", "5.325,16", "^ %0,88", "$38.1B Hacim", true, listOf(50f, 52f, 51f, 55f, 58f)),
-            IndexItem("DAX 40", "🇩🇪 Almanya", "18.720,40", "v %-0,25", "€6.4B Hacim", false, listOf(188f, 187f, 187.2f)),
-            IndexItem("FTSE 100", "🇬🇧 İngiltere", "8.245,10", "^ %0,42", "£4.2B Hacim", true, listOf(81f, 82f, 82.45f)),
-            IndexItem("Nikkei 225", "🇯🇵 Japonya", "38.650,00", "^ %0,75", "¥2.8T Hacim", true, listOf(380f, 383f, 386.5f)),
-            IndexItem("Hang Seng", "🇭🇰 Hong Kong", "17.920,80", "v %-0,65", "HK$18.5B", false, listOf(181f, 180f, 179.2f))
-        )
-    }
+fun IndicesTab(
+    prices: Map<String, PriceSnapshot> = emptyMap(),
+    onStockClick: (String, String) -> Unit
+) {
+    val indexConfigs = listOf(
+        IndexConfig("BIST 100", "BIST100", "🇹🇷 Türkiye", "₺14.2B Hacim", "10.456,87", 1.35),
+        IndexConfig("BIST 30", "BIST30", "🇹🇷 Türkiye", "₺11.8B Hacim", "11.632,15", 1.28),
+        IndexConfig("NASDAQ", "QQQ", "🇺🇸 ABD", "$42.5B Hacim", "16.832,62", 1.28),
+        IndexConfig("S&P 500", "SPY", "🇺🇸 ABD", "$38.1B Hacim", "5.325,16", 0.88),
+        IndexConfig("DAX 40", "DAX", "🇩🇪 Almanya", "€6.4B Hacim", "18.720,40", -0.25),
+        IndexConfig("FTSE 100", "FTSE", "🇬🇧 İngiltere", "£4.2B Hacim", "8.245,10", 0.42),
+        IndexConfig("Nikkei 225", "N225", "🇯🇵 Japonya", "¥2.8T Hacim", "38.650,00", 0.75),
+        IndexConfig("Hang Seng", "HSI", "🇭🇰 Hong Kong", "HK$18.5B", "17.920,80", -0.65)
+    )
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(indices, key = { it.name }) { item ->
+        items(indexConfigs, key = { it.name }) { item ->
+            val snapshot = prices[item.symbol] ?: prices[item.name.replace(" ", "")]
+            val priceStr = if (snapshot != null && snapshot.price > 0.0) CurrencyFormatter.formatTRY(snapshot.price, "TR") else item.defaultPrice
+            val changeVal = snapshot?.changePercent ?: item.defaultChange
+            val (changeText, isPos) = PercentFormatter.formatChangePercent(changeVal)
+
+            val sparkValues = remember(isPos) {
+                if (isPos) listOf(40f, 42f, 45f, 48f, 50f) else listOf(50f, 48f, 45f, 42f, 40f)
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(3.dp, RoundedCornerShape(20.dp)),
+                    .shadow(3.dp, RoundedCornerShape(20.dp))
+                    .clickable { onStockClick(item.symbol, "INDEX") },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -60,19 +75,19 @@ fun IndicesTab(onStockClick: (String, String) -> Unit) {
                             Text(item.countryFlag, fontSize = 14.sp)
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(item.volume, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(item.volumeInfo, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
-                        Text(item.price, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
-                        Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (item.isPos) PozitifGreen else NegatifRed)
+                        Text(priceStr, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
+                        Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Sparkline(
-                        values = item.sparkValues,
-                        color = if (item.isPos) PozitifGreen else NegatifRed,
+                        values = sparkValues,
+                        color = if (isPos) PozitifGreen else NegatifRed,
                         modifier = Modifier.width(65.dp).height(28.dp),
                         filled = true
                     )
@@ -82,4 +97,11 @@ fun IndicesTab(onStockClick: (String, String) -> Unit) {
     }
 }
 
-private data class IndexItem(val name: String, val countryFlag: String, val price: String, val changePct: String, val volume: String, val isPos: Boolean, val sparkValues: List<Float>)
+private data class IndexConfig(
+    val name: String,
+    val symbol: String,
+    val countryFlag: String,
+    val volumeInfo: String,
+    val defaultPrice: String,
+    val defaultChange: Double
+)

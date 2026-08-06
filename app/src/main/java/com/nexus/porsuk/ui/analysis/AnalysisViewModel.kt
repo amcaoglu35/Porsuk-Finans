@@ -77,9 +77,11 @@ data class AnalysisUiState(
     val realizedPnL: Double = 0.0,
     val unrealizedPnL: Double = 0.0,
     val vixValue: Double? = null
-)
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class AnalysisViewModel(
+@HiltViewModel
+class AnalysisViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager
 ) : ViewModel() {
@@ -303,8 +305,22 @@ class AnalysisViewModel(
 
         val geminiKey = settingsManager.getGeminiApiKey()
 
-        // NO Random simulation: use real database portfolio history
-        val realHistory = historyEntries.map { it.totalValue.toFloat() }
+        // Real portfolio history calculation: snapshots first, or transaction ledger reconstruction
+        val realHistory = when {
+            historyEntries.isNotEmpty() -> historyEntries.map { it.totalValue.toFloat() }
+            transactions.isNotEmpty() -> {
+                val sortedTx = transactions.sortedBy { it.timestamp }
+                var runningTotal = 0.0
+                val points = mutableListOf<Float>()
+                sortedTx.forEach { tx ->
+                    val txValue = tx.quantity * tx.price
+                    if (tx.isBuy) runningTotal += txValue else runningTotal -= txValue
+                    points.add(runningTotal.coerceAtLeast(0.0).toFloat())
+                }
+                points
+            }
+            else -> emptyList()
+        }
         val calculatedRiskMetrics = calculateRiskMetrics(realHistory)
 
         val realizedPnL = transactions.filter { !it.isBuy }.sumOf { it.realizedPnL }

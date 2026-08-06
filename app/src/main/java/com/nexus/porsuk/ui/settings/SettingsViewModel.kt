@@ -18,12 +18,15 @@ data class SettingsUiState(
     val dailySummaryEnabled: Boolean = false,
     val updateFrequencyMinutes: Int = 2,
     val hasGeminiApiKey: Boolean = false,
+    val hasFmpApiKey: Boolean = false,
     val activeAlerts: List<PriceAlert> = emptyList(),
     val isOnboardingCompleted: Boolean = false,
     val isLoaded: Boolean = false
-)
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class SettingsViewModel(
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
     private val settingsManager: SettingsManager,
     private val repository: FinanceRepository
 ) : ViewModel() {
@@ -37,6 +40,7 @@ class SettingsViewModel(
         settingsManager.dailySummary,
         settingsManager.updateFrequency,
         settingsManager.geminiApiKeyFlow,
+        settingsManager.fmpApiKeyFlow,
         repository.getAllPriceAlertsFlow(),
         settingsManager.isOnboardingCompleted
     ) { args ->
@@ -48,9 +52,10 @@ class SettingsViewModel(
         val summary = args[5] as Boolean
         val freq = args[6] as Int
         val apiKey = args[7] as String?
+        val fmpKey = args[8] as String?
         @Suppress("UNCHECKED_CAST")
-        val activeAlarms = args[8] as List<PriceAlert>
-        val onboarding = args[9] as Boolean
+        val activeAlarms = args[9] as List<PriceAlert>
+        val onboarding = args[10] as Boolean
 
         SettingsUiState(
             baseCurrency = currency,
@@ -61,6 +66,7 @@ class SettingsViewModel(
             dailySummaryEnabled = summary,
             updateFrequencyMinutes = freq,
             hasGeminiApiKey = !apiKey.isNullOrBlank(),
+            hasFmpApiKey = !fmpKey.isNullOrBlank(),
             activeAlerts = activeAlarms,
             isOnboardingCompleted = onboarding,
             isLoaded = true
@@ -79,6 +85,10 @@ class SettingsViewModel(
 
     fun saveApiKey(key: String) {
         settingsManager.saveGeminiApiKey(key)
+    }
+
+    fun saveFmpApiKey(key: String) {
+        settingsManager.saveFmpApiKey(key)
     }
 
 

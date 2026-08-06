@@ -29,6 +29,8 @@ fun DashboardScreen(
     onBasketClick: (Int) -> Unit,
     onLedgerClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onNotificationsClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
     onCalendarClick: () -> Unit,
     onAnalysisClick: () -> Unit,
     onMarketsClick: () -> Unit = {},
@@ -49,11 +51,20 @@ fun DashboardScreen(
     val prices by viewModel.prices.collectAsState()
     val totalBalance by viewModel.totalBalanceTry.collectAsState()
     val totalChange by viewModel.totalChangePercent.collectAsState()
+    val totalGainValue by viewModel.totalGainValue.collectAsState()
+    val totalGainPercent by viewModel.totalGainPercent.collectAsState()
+    val riskScore by viewModel.riskScore.collectAsState()
+    val aiHealthScore by viewModel.aiHealthScore.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val numberFormat by viewModel.numberFormat.collectAsState()
     val activeAlertCount by viewModel.allPriceAlerts.collectAsState(initial = emptyList())
+    val insights by viewModel.insights.collectAsState()
+    val aiMarketSummary by viewModel.aiMarketSummary.collectAsState()
+    val oracleGlow by viewModel.oracleGlow.collectAsState()
+    val opportunities by viewModel.opportunities.collectAsState()
+    val liveMarkets by viewModel.liveMarkets.collectAsState()
+    val newsList by viewModel.newsList.collectAsState()
 
-    var showSearchDialog by remember { mutableStateOf(false) }
     var isBalanceVisible by remember { mutableStateOf(true) }
     var selectedInsightForDetail by remember { mutableStateOf<SmartInsightItem?>(null) }
 
@@ -83,8 +94,9 @@ fun DashboardScreen(
         topBar = {
             DashboardTopBar(
                 alertCount = activeAlertCount.size,
-                onSearchClick = { showSearchDialog = true },
-                onNotificationClick = onSettingsClick
+                onSearchClick = onSearchClick,
+                onNotificationClick = onNotificationsClick,
+                onSettingsClick = onSettingsClick
             )
         },
         // FLOATING ACTION BUTTON (AI ASSISTANT) IN BOTTOM RIGHT
@@ -130,7 +142,7 @@ fun DashboardScreen(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 // PORTFÖY KARTI (Hero Portfolio Card)
@@ -145,7 +157,13 @@ fun DashboardScreen(
                             isBalanceVisible = isBalanceVisible,
                             onToggleBalance = { isBalanceVisible = !isBalanceVisible },
                             numberFormat = numberFormat,
-                            onLedgerClick = onLedgerClick
+                            onLedgerClick = onLedgerClick,
+                            totalGainValue = totalGainValue,
+                            totalGainPercent = totalGainPercent,
+                            annualGainValue = totalGainValue,
+                            annualGainPercent = totalGainPercent,
+                            riskScore = riskScore,
+                            aiHealthScore = aiHealthScore
                         )
                     }
                 }
@@ -157,6 +175,7 @@ fun DashboardScreen(
                         enter = fadeIn(tween(450)) + slideInVertically(initialOffsetY = { 35 })
                     ) {
                         AiCopilotHeroCard(
+                            insights = insights,
                             onInsightClick = { insightItem ->
                                 selectedInsightForDetail = insightItem
                             }
@@ -171,7 +190,13 @@ fun DashboardScreen(
                         enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
                     ) {
                         AiMarketSummaryProminentCard(
-                            onDetailClick = onMarketsClick
+                            onDetailClick = onMarketsClick,
+                            commentText = aiMarketSummary.comment,
+                            marketScore = aiMarketSummary.marketScore,
+                            confidence = aiMarketSummary.confidence,
+                            riskLevel = aiMarketSummary.riskLevel,
+                            fearGreedIndex = aiMarketSummary.fearGreedIndex,
+                            marketPulse = aiMarketSummary.marketPulse
                         )
                     }
                 }
@@ -203,7 +228,10 @@ fun DashboardScreen(
                         enter = fadeIn(tween(600)) + slideInVertically(initialOffsetY = { 50 })
                     ) {
                         OracleGlowHighlightCard(
-                            onOracleClick = { onChatClick("Oracle bugünkü tahminlerini açıkla") }
+                            onOracleClick = { onChatClick("Oracle bugünkü tahminlerini açıkla") },
+                            titleText = oracleGlow.title,
+                            predictionText = oracleGlow.prediction,
+                            confidenceScore = oracleGlow.confidenceScore
                         )
                     }
                 }
@@ -214,7 +242,10 @@ fun DashboardScreen(
                         visible = isVisible,
                         enter = fadeIn(tween(700)) + slideInVertically(initialOffsetY = { 60 })
                     ) {
-                        DailyOpportunitiesSection(onStockClick = onStockClick)
+                        DailyOpportunitiesSection(
+                            opportunities = opportunities,
+                            onStockClick = onStockClick
+                        )
                     }
                 }
 
@@ -224,7 +255,10 @@ fun DashboardScreen(
                         visible = isVisible,
                         enter = fadeIn(tween(800)) + slideInVertically(initialOffsetY = { 70 })
                     ) {
-                        LiveMarketsOverviewSection(onMarketsClick = onMarketsClick)
+                        LiveMarketsOverviewSection(
+                            liveMarkets = liveMarkets,
+                            onMarketsClick = onMarketsClick
+                        )
                     }
                 }
 
@@ -237,7 +271,9 @@ fun DashboardScreen(
                         DashboardWatchlistSection(
                             watchlist = watchlist,
                             prices = prices,
-                            onStockClick = onStockClick
+                            numberFormat = numberFormat,
+                            onStockClick = onStockClick,
+                            onToggleWatchlist = { symbol -> viewModel.toggleWatchlist(symbol) }
                         )
                     }
                 }
@@ -248,7 +284,9 @@ fun DashboardScreen(
                         visible = isVisible,
                         enter = fadeIn(tween(1000)) + slideInVertically(initialOffsetY = { 90 })
                     ) {
-                        DashboardNewsSection()
+                        DashboardNewsSection(
+                            newsList = newsList
+                        )
                     }
                 }
             }

@@ -18,21 +18,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.common.Sparkline
+import com.nexus.porsuk.ui.dashboard.LiveMarketUiModel
+import com.nexus.porsuk.ui.dashboard.OpportunityUiModel
 import com.nexus.porsuk.ui.theme.*
 
 @Composable
-fun DailyOpportunitiesSection(onStockClick: (String, String) -> Unit) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+fun DailyOpportunitiesSection(
+    opportunities: List<OpportunityUiModel> = emptyList(),
+    onStockClick: (String, String) -> Unit
+) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val outlineColor = MaterialTheme.colorScheme.outline
 
-    val opportunities = remember {
-        listOf(
-            OpportunityItem("ASELS", "Aselsan", "₺56,70", "^ %4,25", "Güçlü Alım", PozitifGreen, true),
-            OpportunityItem("THYAO", "Türk Hava Yolları", "₺305,25", "^ %2,87", "Alım Sinyali", PozitifGreen, true),
-            OpportunityItem("KCHOL", "Koç Holding", "₺182,40", "^ %0,31", "Nötr", AmberWarning, true),
-            OpportunityItem("AKBNK", "Akbank", "₺52,15", "v %-0,42", "Dikkat", NegatifRed, false)
+    val displayOpportunities = remember(opportunities) {
+        if (opportunities.isNotEmpty()) opportunities else listOf(
+            OpportunityUiModel("ASELS", "Aselsan", "₺56,70", "%4,25", "Güçlü Alım", true),
+            OpportunityUiModel("THYAO", "Türk Hava Yolları", "₺305,25", "%2,87", "Alım Sinyali", true),
+            OpportunityUiModel("KCHOL", "Koç Holding", "₺182,40", "%0,31", "Nötr", true),
+            OpportunityUiModel("AKBNK", "Akbank", "₺52,15", "-%0,42", "Dikkat", false)
         )
     }
 
@@ -49,26 +53,29 @@ fun DailyOpportunitiesSection(onStockClick: (String, String) -> Unit) {
             Text("🔥 Günün Fırsatları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = onSurfaceColor)
             Spacer(modifier = Modifier.height(12.dp))
 
-            opportunities.forEach { item ->
-                OpportunityRowItem(item = item, onClick = { onStockClick(item.code, "BIST") })
+            displayOpportunities.forEach { item ->
+                val signalColor = when {
+                    item.signal.contains("Alım") -> PozitifGreen
+                    item.signal.contains("Dikkat") -> NegatifRed
+                    else -> AmberWarning
+                }
+                OpportunityRowItem(
+                    item = item,
+                    signalColor = signalColor,
+                    onClick = { onStockClick(item.code, "BIST") }
+                )
                 HorizontalDivider(color = outlineColor.copy(alpha = 0.4f))
             }
         }
     }
 }
 
-private data class OpportunityItem(
-    val code: String,
-    val name: String,
-    val price: String,
-    val changePct: String,
-    val signal: String,
-    val signalColor: Color,
-    val isPositive: Boolean
-)
-
 @Composable
-private fun OpportunityRowItem(item: OpportunityItem, onClick: () -> Unit) {
+private fun OpportunityRowItem(
+    item: OpportunityUiModel,
+    signalColor: Color,
+    onClick: () -> Unit
+) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val primaryContainer = MaterialTheme.colorScheme.primaryContainer
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -109,12 +116,12 @@ private fun OpportunityRowItem(item: OpportunityItem, onClick: () -> Unit) {
         // AI Signal Tag Badge
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = item.signalColor.copy(alpha = 0.12f)
+            color = signalColor.copy(alpha = 0.12f)
         ) {
             Text(
                 item.signal,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
-                color = item.signalColor,
+                color = signalColor,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
@@ -122,7 +129,10 @@ private fun OpportunityRowItem(item: OpportunityItem, onClick: () -> Unit) {
 }
 
 @Composable
-fun LiveMarketsOverviewSection(onMarketsClick: () -> Unit) {
+fun LiveMarketsOverviewSection(
+    liveMarkets: List<LiveMarketUiModel> = emptyList(),
+    onMarketsClick: () -> Unit
+) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceColor = MaterialTheme.colorScheme.surface
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -130,14 +140,14 @@ fun LiveMarketsOverviewSection(onMarketsClick: () -> Unit) {
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val outlineColor = MaterialTheme.colorScheme.outline
 
-    val markets = remember {
-        listOf(
-            MarketItem("BIST 100", "10.456,87", "^ %1,35", true, listOf(40f, 42f, 45f, 48f, 50f)),
-            MarketItem("USD/TRY", "32,65", "^ %0,42", true, listOf(32f, 32.2f, 32.4f, 32.65f)),
-            MarketItem("EUR/USD", "1,0850", "v %-0,15", false, listOf(1.09f, 1.088f, 1.085f)),
-            MarketItem("ALTIN/GR", "2.395,45", "^ %0,31", true, listOf(2380f, 2390f, 2395f)),
-            MarketItem("BRENT", "84.20", "^ %0,75", true, listOf(82f, 83f, 84.2f)),
-            MarketItem("BITCOIN", "67.450,00", "^ %2,10", true, listOf(65000f, 66000f, 67450f))
+    val displayMarkets = remember(liveMarkets) {
+        if (liveMarkets.isNotEmpty()) liveMarkets else listOf(
+            LiveMarketUiModel("BIST 100", "10.456,87", "%1,35", true, listOf(40f, 42f, 45f, 48f, 50f)),
+            LiveMarketUiModel("USD/TRY", "32,65", "%0,42", true, listOf(32f, 32.2f, 32.4f, 32.65f)),
+            LiveMarketUiModel("EUR/USD", "1,0850", "-%0,15", false, listOf(1.09f, 1.088f, 1.085f)),
+            LiveMarketUiModel("ALTIN/GR", "2.395,45", "%0,31", true, listOf(2380f, 2390f, 2395f)),
+            LiveMarketUiModel("BRENT", "84,20", "%0,75", true, listOf(82f, 83f, 84.2f)),
+            LiveMarketUiModel("BITCOIN", "67.450,00", "%2,10", true, listOf(65000f, 66000f, 67450f))
         )
     }
 
@@ -164,16 +174,17 @@ fun LiveMarketsOverviewSection(onMarketsClick: () -> Unit) {
 
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(end = 12.dp)
             ) {
-                items(markets, key = { it.title }) { item ->
+                items(displayMarkets, key = { it.title }) { item ->
                     val color = if (item.isPos) PozitifGreen else NegatifRed
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = backgroundColor,
                         border = BorderStroke(1.dp, outlineColor),
                         modifier = Modifier
-                            .width(115.dp)
+                            .width(118.dp)
                             .clickable(onClick = onMarketsClick)
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
@@ -197,11 +208,3 @@ fun LiveMarketsOverviewSection(onMarketsClick: () -> Unit) {
         }
     }
 }
-
-private data class MarketItem(
-    val title: String,
-    val price: String,
-    val change: String,
-    val isPos: Boolean,
-    val sparkValues: List<Float>
-)

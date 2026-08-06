@@ -36,6 +36,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 
     var showCurrencyDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
+    var showFmpApiKeyDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showAlarmsSheet by remember { mutableStateOf(false) }
@@ -146,6 +147,14 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         value = if (uiState.hasGeminiApiKey) "Tanımlı" else "Eksik",
                         colorIndex = 1,
                         onClick = { showApiKeyDialog = true }
+                    )
+                    HorizontalDivider(color = LineBorder, thickness = 0.5.dp)
+                    SettingsRow(
+                        icon = Icons.Default.Lock,
+                        title = "FMP API Anahtarı (Şifreli)",
+                        value = if (uiState.hasFmpApiKey) "Tanımlı" else "Eksik",
+                        colorIndex = 2,
+                        onClick = { showFmpApiKeyDialog = true }
                     )
                 }
             }
@@ -324,6 +333,100 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             },
             dismissButton = {
                 TextButton(onClick = { showApiKeyDialog = false }) {
+                    Text("İptal", color = SubText, fontFamily = Manrope)
+                }
+            }
+        )
+    }
+
+    if (showFmpApiKeyDialog) {
+        var tempFmpKey by remember { mutableStateOf("") }
+        var isFmpVisible by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { showFmpApiKeyDialog = false },
+            containerColor = CardNew,
+            shape = RoundedCornerShape(16.dp),
+            title = {
+                Text(
+                    "FMP API Anahtarı (Financial Modeling Prep)",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = InkText,
+                    fontFamily = Manrope
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = if (uiState.hasFmpApiKey) "Anahtar Durumu: Kayıtlı (Encrypted)" else "Anahtar Durumu: Kayıtlı değil",
+                        color = if (uiState.hasFmpApiKey) PrimaryTeal else NegatifRed,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Manrope
+                    )
+                    Text(
+                        "Canlı piyasa ve borsa verileri için FMP API anahtarınızı girin.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SubText,
+                        fontFamily = Manrope
+                    )
+                    OutlinedTextField(
+                        value = tempFmpKey,
+                        onValueChange = { tempFmpKey = it },
+                        label = { Text("FMP API Key", fontFamily = Manrope) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        visualTransformation = if (isFmpVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { isFmpVisible = !isFmpVisible }) {
+                                Icon(
+                                    if (isFmpVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null,
+                                    tint = SubText
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryTeal,
+                            unfocusedBorderColor = LineBorder,
+                            focusedTextColor = InkText,
+                            unfocusedTextColor = InkText,
+                            focusedContainerColor = CardNew,
+                            unfocusedContainerColor = CardNew
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (uiState.hasFmpApiKey) {
+                        TextButton(
+                            onClick = {
+                                viewModel.saveFmpApiKey("")
+                                showFmpApiKeyDialog = false
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = NegatifRed)
+                        ) {
+                            Text("Sil", fontFamily = Manrope, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            if (tempFmpKey.isNotBlank()) {
+                                viewModel.saveFmpApiKey(tempFmpKey)
+                            }
+                            showFmpApiKeyDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
+                        shape = RoundedCornerShape(10.dp),
+                        enabled = tempFmpKey.isNotBlank()
+                    ) {
+                        Text("Kaydet", color = Color.White, fontFamily = Manrope, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFmpApiKeyDialog = false }) {
                     Text("İptal", color = SubText, fontFamily = Manrope)
                 }
             }

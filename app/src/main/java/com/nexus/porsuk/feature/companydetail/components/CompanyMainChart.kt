@@ -147,7 +147,11 @@ private fun LineChartView(data: List<Double>, mainGreen: Color) {
 
     if (dataPoints.isEmpty()) {
         Box(modifier = Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = mainGreen)
+            Text(
+                text = "Grafik verisi henüz hazırlanıyor veya mevcut değil",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF94A3B8)
+            )
         }
     } else {
         Canvas(
@@ -213,7 +217,11 @@ private fun CandlestickChartView(
 ) {
     if (candles.isEmpty()) {
         Box(modifier = Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = mainGreen)
+            Text(
+                text = "Grafik verisi henüz hazırlanıyor veya mevcut değil",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF94A3B8)
+            )
         }
         return
     }

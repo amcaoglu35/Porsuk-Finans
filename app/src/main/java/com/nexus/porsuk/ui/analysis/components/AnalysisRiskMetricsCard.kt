@@ -69,16 +69,17 @@ fun TripleGaugesGridSection(vixValue: Double? = null) {
                     Text("Piyasa Kapalı", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-                val vixValues = remember { listOf(22f, 20f, 19f, 18.45f) }
-                Sparkline(
-                    values = vixValues,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp),
-                    filled = true
-                )
+                if (vixValue != null && vixValue > 0.0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Sparkline(
+                        values = listOf(vixValue.toFloat(), vixValue.toFloat()),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(24.dp),
+                        filled = true
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(

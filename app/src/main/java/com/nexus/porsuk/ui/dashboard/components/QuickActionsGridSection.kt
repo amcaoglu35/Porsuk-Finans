@@ -187,7 +187,7 @@ fun PremiumQuickActionCard(
 
     Card(
         modifier = modifier
-            .height(82.dp)
+            .height(92.dp)
             .graphicsLayer(
                 scaleX = cardScale,
                 scaleY = cardScale
@@ -217,9 +217,9 @@ fun PremiumQuickActionCard(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -234,14 +234,19 @@ fun PremiumQuickActionCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         item.title,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            lineHeight = 14.sp
+                        ),
                         color = onSurfaceColor,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         item.subtitle,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
                         color = onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

@@ -13,9 +13,11 @@ import kotlinx.coroutines.launch
 data class LedgerUiState(
     val transactions: List<PortfolioTransaction> = emptyList(),
     val totalRealizedPnL: Double = 0.0
-)
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class TransactionLedgerViewModel(
+@HiltViewModel
+class TransactionLedgerViewModel @Inject constructor(
     private val repository: FinanceRepository
 ) : ViewModel() {
 

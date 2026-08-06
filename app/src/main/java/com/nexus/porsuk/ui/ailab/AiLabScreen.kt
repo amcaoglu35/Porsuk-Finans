@@ -45,14 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.chat.ChatViewModel
 import com.nexus.porsuk.ui.theme.*
 
-// Design System Tokens (Light Theme Aesthetic with Purple #6C4CF1 Accent)
-private val PurpleAccent = Color(0xFF6C4CF1)
-private val PurpleSoftBg = Color(0xFFF3F0FF)
-private val LightSurfaceBg = Color(0xFFF8F9FD)
-private val CardBg = Color(0xFFFFFFFF)
-private val TextDark = Color(0xFF1E293B)
-private val TextSecondary = Color(0xFF64748B)
-private val BorderColor = Color(0xFFE2E8F0)
+// Semantic colors
 private val BullishGreen = Color(0xFF10B981)
 private val SuccessGreen = Color(0xFF10B981)
 private val BearishRed = Color(0xFFEF4444)
@@ -108,7 +101,7 @@ fun AiLabScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = LightSurfaceBg,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AiLabTopBar(
                 onSearchClick = { Toast.makeText(context, "AI Lab arama moduna geçildi", Toast.LENGTH_SHORT).show() },
@@ -258,10 +251,10 @@ fun PlaceholderScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = LightSurfaceBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = LightSurfaceBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(
             modifier = Modifier
@@ -275,8 +268,8 @@ fun PlaceholderScreen(
                     .fillMaxWidth()
                     .shadow(6.dp, RoundedCornerShape(26.dp)),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(
                     modifier = Modifier.padding(32.dp),
@@ -284,7 +277,7 @@ fun PlaceholderScreen(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = PurpleSoftBg,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier.size(80.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -296,7 +289,7 @@ fun PlaceholderScreen(
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = PurpleAccent
+                        color = MaterialTheme.colorScheme.primary
                     ) {
                         Text(
                             "YAKINDA",
@@ -311,7 +304,7 @@ fun PlaceholderScreen(
                     Text(
                         "Yakında",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope),
-                        color = TextDark,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center
                     )
 
@@ -320,7 +313,7 @@ fun PlaceholderScreen(
                     Text(
                         title,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
-                        color = PurpleAccent,
+                        color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center
                     )
 
@@ -328,7 +321,7 @@ fun PlaceholderScreen(
 
                     Text(
                         "Bu özellik geliştirilmektedir.",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 18.sp, color = TextSecondary),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant),
                         textAlign = TextAlign.Center
                     )
 
@@ -337,7 +330,7 @@ fun PlaceholderScreen(
                     Button(
                         onClick = onBack,
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth().height(48.dp)
                     ) {
                         Text(
@@ -361,7 +354,7 @@ fun PlaceholderScreen(
                         Text(
                             if (isNotified) "✓ Bildirimler Açık" else "🔔 Beni Haberdar Et",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
-                            color = PurpleAccent
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -379,7 +372,7 @@ private fun AiLabTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LightSurfaceBg)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -391,12 +384,12 @@ private fun AiLabTopBar(
                 Text(
                     "PORSUK",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
-                    color = TextDark
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     "F İ N A N S",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 2.5.sp),
-                    color = PurpleAccent
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -404,15 +397,15 @@ private fun AiLabTopBar(
         Text(
             "🤖 AI Lab",
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
-            color = TextDark
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             IconButton(onClick = onSearchClick) {
-                Icon(Icons.Outlined.Search, contentDescription = "Ara", tint = TextDark)
+                Icon(Icons.Outlined.Search, contentDescription = "Ara", tint = MaterialTheme.colorScheme.onSurface)
             }
             IconButton(onClick = onNotificationClick) {
-                Icon(Icons.Outlined.Notifications, contentDescription = "Bildirimler", tint = PurpleAccent)
+                Icon(Icons.Outlined.Notifications, contentDescription = "Bildirimler", tint = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -507,8 +500,8 @@ private fun AiChatCardSection(
             .padding(horizontal = 20.dp)
             .shadow(4.dp, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, BorderColor)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -519,15 +512,15 @@ private fun AiChatCardSection(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("💬", fontSize = 18.sp)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI Asistan Sohbeti", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+                    Text("AI Asistan Sohbeti", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
                 }
 
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = PurpleSoftBg,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.clickable(onClick = onNewChat)
                 ) {
-                    Text("✨ Yeni Sohbet", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = PurpleAccent, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    Text("✨ Yeni Sohbet", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
             }
 
@@ -537,23 +530,23 @@ private fun AiChatCardSection(
                 value = textInput,
                 onValueChange = onTextInputChange,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("AI Asistana bir soru sorun (Örn: THYAO hedef fiyatı?)...", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = TextSecondary) },
+                placeholder = { Text("AI Asistana bir soru sorun (Örn: THYAO hedef fiyatı?)...", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onVoiceInput) {
-                            Icon(Icons.Outlined.Mic, contentDescription = "Sesli Giriş", tint = PurpleAccent)
+                            Icon(Icons.Outlined.Mic, contentDescription = "Sesli Giriş", tint = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = onSendMessage) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Gönder", tint = PurpleAccent)
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Gönder", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 },
                 shape = RoundedCornerShape(18.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = LightSurfaceBg,
-                    unfocusedContainerColor = LightSurfaceBg,
-                    focusedBorderColor = PurpleAccent,
-                    unfocusedBorderColor = BorderColor
+                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
             )
         }
@@ -563,21 +556,22 @@ private fun AiChatCardSection(
 // ── 3. AI ARAÇLARI (15 Interactive Cards Grid) ──
 @Composable
 private fun AiToolsGridSection(onToolClick: (String) -> Unit) {
-    val tools = remember {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val tools = remember(primaryColor) {
         listOf(
             AiToolItem("Portfolio Health Check", "🩺", BullishGreen),
-            AiToolItem("Stock Compare", "⚖️", PurpleAccent),
+            AiToolItem("Stock Compare", "⚖️", primaryColor),
             AiToolItem("Sector Compare", "🏢", Color(0xFF3B82F6)),
             AiToolItem("AI Screener", "🔍", RiskOrange),
             AiToolItem("Dividend Finder", "💰", BullishGreen),
             AiToolItem("Growth Finder", "🚀", Color(0xFFEC4899)),
             AiToolItem("Value Finder", "💎", RiskOrange),
-            AiToolItem("Momentum Finder", "⚡", PurpleAccent),
+            AiToolItem("Momentum Finder", "⚡", primaryColor),
             AiToolItem("Risk Scanner", "📡", BearishRed),
             AiToolItem("Portfolio Diversification", "🧩", Color(0xFF8B5CF6)),
             AiToolItem("AI Opportunity Finder", "🌟", SuccessGreen),
             AiToolItem("AI Watchlist Analyzer", "👁️", Color(0xFF06B6D4)),
-            AiToolItem("AI Earnings Summary", "📊", PurpleAccent),
+            AiToolItem("AI Earnings Summary", "📊", primaryColor),
             AiToolItem("AI News Summary", "📰", Color(0xFF64748B)),
             AiToolItem("Economic Impact Analyzer", "🌐", Color(0xFFF59E0B))
         )
@@ -589,11 +583,11 @@ private fun AiToolsGridSection(onToolClick: (String) -> Unit) {
             .padding(horizontal = 20.dp)
             .shadow(4.dp, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, BorderColor)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text("🛠️ AI Uzman Araçları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+            Text("🛠️ AI Uzman Araçları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(14.dp))
 
             LazyRow(
@@ -622,36 +616,36 @@ private fun ToolReportCard(
             .padding(horizontal = 20.dp)
             .shadow(6.dp, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, PurpleAccent.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(toolName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PurpleAccent)
+                Text(toolName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = TextSecondary)
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
 
             if (isLoading) {
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = PurpleAccent)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("AI Uzmanı analiz yapıyor...", fontSize = 12.sp, color = TextSecondary)
+                    Text("AI Uzmanı analiz yapıyor...", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else if (error != null) {
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Hata: $error", color = BearishRed, fontSize = 13.sp, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent)) {
+                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                         Text("Tekrar Dene")
                     }
                 }
             } else if (report != null) {
                 dev.jeziellago.compose.markdowntext.MarkdownText(
                     markdown = report,
-                    style = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, color = TextDark, lineHeight = 20.sp)
+                    style = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp)
                 )
             }
         }
@@ -693,7 +687,7 @@ private fun AnimatedAiToolCard(tool: AiToolItem, onClick: () -> Unit) {
             Text(
                 tool.title,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp, fontFamily = Manrope),
-                color = TextDark,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -717,17 +711,17 @@ private fun TripleAiModulesGridSection(
         Card(
             modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(22.dp)).clickable(onClick = onOracleClick),
             shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBg),
-            border = BorderStroke(1.dp, BorderColor)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🔮", fontSize = 26.sp)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Oracle Kehaneti", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("Piyasa yön tahminleri ve AI sinyalleri", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSecondary)
+                    Text("Oracle Kehaneti", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    Text("Piyasa yön tahminleri ve AI sinyalleri", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Button(onClick = onOracleClick, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent)) {
+                Button(onClick = onOracleClick, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                     Text("Oracle'ı Aç", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
             }
@@ -737,15 +731,15 @@ private fun TripleAiModulesGridSection(
         Card(
             modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(22.dp)).clickable(onClick = onDoctorClick),
             shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBg),
-            border = BorderStroke(1.dp, BorderColor)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🩺", fontSize = 26.sp)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Portföy Doktoru", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("Portföy risk ve sağlık puanlaması", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSecondary)
+                    Text("Portföy Doktoru", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    Text("Portföy risk ve sağlık puanlaması", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Button(onClick = onDoctorClick, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = BullishGreen)) {
                     Text("Portföyü Tara", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
@@ -757,18 +751,18 @@ private fun TripleAiModulesGridSection(
         Card(
             modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(22.dp)).clickable(onClick = onLearningClick),
             shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBg),
-            border = BorderStroke(1.dp, BorderColor)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🧠", fontSize = 26.sp)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("AI Öğrenme Modeli", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("Kişisel yatırım stilinizi öğrenen AI modeli", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = TextSecondary)
+                    Text("AI Öğrenme Modeli", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    Text("Kişisel yatırım stilinizi öğrenen AI modeli", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 OutlinedButton(onClick = onLearningClick, shape = RoundedCornerShape(12.dp)) {
-                    Text("Detaylı Rapor", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PurpleAccent)
+                    Text("Detaylı Rapor", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -795,14 +789,14 @@ private fun TripleNotificationsAndReportsGridSection(
         Card(
             modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBg),
-            border = BorderStroke(1.dp, BorderColor)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("⚡", fontSize = 18.sp)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI Otomasyonları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = TextDark)
+                    Text("AI Otomasyonları", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -821,28 +815,28 @@ private fun TripleNotificationsAndReportsGridSection(
             Card(
                 modifier = Modifier.weight(1f).shadow(4.dp, RoundedCornerShape(22.dp)).clickable(onClick = onNotificationCenterClick),
                 shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("🔔", fontSize = 22.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Akıllı Bildirimler", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("Bildirim merkezine git", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = TextSecondary)
+                    Text("Akıllı Bildirimler", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    Text("Bildirim merkezine git", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             Card(
                 modifier = Modifier.weight(1f).shadow(4.dp, RoundedCornerShape(22.dp)).clickable(onClick = onPdfReportsClick),
                 shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("📄", fontSize = 22.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Son AI Raporları", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("PDF rapor görüntüleyici", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = TextSecondary)
+                    Text("Son AI Raporları", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    Text("PDF rapor görüntüleyici", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -856,11 +850,11 @@ private fun AutomationSwitchRow(title: String, isChecked: Boolean, onCheckedChan
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = TextDark)
+        Text(title, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = MaterialTheme.colorScheme.onSurface)
         Switch(
             checked = isChecked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = PurpleAccent)
+            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = MaterialTheme.colorScheme.primary)
         )
     }
 }
@@ -874,7 +868,7 @@ private fun QuickActionsGridSection(
     onNewAnalysis: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-        Text("⚡ Hızlı Eylemler", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = TextDark)
+        Text("⚡ Hızlı Eylemler", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
         Spacer(modifier = Modifier.height(12.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -907,20 +901,20 @@ private fun QuickActionTile(title: String, iconEmoji: String, onClick: () -> Uni
                 onClick = onClick
             ),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        border = BorderStroke(1.dp, BorderColor)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier.padding(vertical = 14.dp, horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(shape = CircleShape, color = PurpleSoftBg, modifier = Modifier.size(36.dp)) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(36.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(iconEmoji, fontSize = 16.sp)
                 }
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Text(title, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = TextDark, textAlign = TextAlign.Center, maxLines = 2)
+            Text(title, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, maxLines = 2)
         }
     }
 }

@@ -21,9 +21,11 @@ data class NewsUiState(
     val readNewsIds: Set<Int> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null
-)
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class NewsViewModel(
+@HiltViewModel
+class NewsViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager
 ) : ViewModel() {

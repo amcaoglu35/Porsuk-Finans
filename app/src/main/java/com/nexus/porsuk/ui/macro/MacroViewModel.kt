@@ -21,9 +21,11 @@ data class MacroUiState(
     val indicators: List<MacroIndicatorItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
-)
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class MacroViewModel(
+@HiltViewModel
+class MacroViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager
 ) : ViewModel() {

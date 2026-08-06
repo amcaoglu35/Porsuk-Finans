@@ -79,7 +79,7 @@ class SettingsManager(private val context: Context) {
     val lastEveningNotifTime: Flow<Long> = context.dataStore.data.map { it[LAST_EVENING_NOTIF_TIME] ?: 0L }
     val targetAllocationJson: Flow<String> = context.dataStore.data.map { it[TARGET_ALLOCATION] ?: "" }
     val activeIpoAlarms: Flow<Set<String>> = context.dataStore.data.map { it[ACTIVE_IPO_ALARMS] ?: emptySet() }
-    val fmpApiKey: Flow<String?> = context.dataStore.data.map { it[FMP_API_KEY] }
+
 
     suspend fun setLatestOrakulTip(tip: String) {
         context.dataStore.edit { it[LATEST_ORAKUL_TIP] = tip }
@@ -120,12 +120,29 @@ class SettingsManager(private val context: Context) {
     private val _geminiApiKey = MutableStateFlow<String?>(null)
     val geminiApiKeyFlow: Flow<String?> = _geminiApiKey
 
+    private val _fmpApiKey = MutableStateFlow<String?>(null)
+    val fmpApiKeyFlow: Flow<String?> = _fmpApiKey
+    val fmpApiKey: Flow<String?> = _fmpApiKey
+
     init {
         try {
             val prefs = encryptedPrefs ?: backupPrefs
             _geminiApiKey.value = prefs.getString("gemini_api_key", null)?.trim()
+            
+            var fmpKey = prefs.getString("fmp_api_key", null)?.trim()
+            if (fmpKey.isNullOrBlank()) {
+                val legacyKey = backupPrefs.getString("fmp_api_key", null)?.trim()
+                if (!legacyKey.isNullOrBlank()) {
+                    fmpKey = legacyKey
+                    try {
+                        prefs.edit().putString("fmp_api_key", legacyKey).apply()
+                    } catch (_: Exception) {}
+                }
+            }
+            _fmpApiKey.value = fmpKey
         } catch (e: Exception) {
             _geminiApiKey.value = null
+            _fmpApiKey.value = null
         }
     }
 
@@ -167,12 +184,22 @@ class SettingsManager(private val context: Context) {
         _geminiApiKey.value = key.trim()
     }
 
-    suspend fun saveFmpApiKey(key: String) {
-        context.dataStore.edit { it[FMP_API_KEY] = key }
+    fun saveFmpApiKey(key: String) {
+        try {
+            val prefs = encryptedPrefs ?: backupPrefs
+            prefs.edit().putString("fmp_api_key", key).apply()
+        } catch (e: Exception) {
+            backupPrefs.edit().putString("fmp_api_key", key).apply()
+        }
+        _fmpApiKey.value = key.trim()
     }
 
     fun getGeminiApiKey(): String? {
         return _geminiApiKey.value
+    }
+
+    fun getFmpApiKey(): String? {
+        return _fmpApiKey.value
     }
 
 

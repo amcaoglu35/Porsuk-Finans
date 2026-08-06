@@ -27,9 +27,9 @@ class ConfigProviderImpl @Inject constructor() : ConfigProvider {
             val field = BuildConfig::class.java.getField(key)
             val value = field.get(null) as? String
             value?.takeIf { it.isNotBlank() }
-                ?: error("Missing $key — check local.properties")
+                ?: throw IllegalStateException("Missing $key — check local.properties")
         } catch (e: NoSuchFieldException) {
-            error("BuildConfig field $key not found — check build.gradle.kts")
+            throw IllegalStateException("BuildConfig field $key not found — check build.gradle.kts", e)
         }
     }
 }

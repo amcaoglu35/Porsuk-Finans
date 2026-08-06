@@ -31,6 +31,14 @@ class MainActivity : ComponentActivity() {
                 ExistingPeriodicWorkPolicy.KEEP,
                 workRequest
             )
+            val tefasWorkRequest = PeriodicWorkRequestBuilder<com.nexus.porsuk.data.sync.TefasSyncWorker>(24, TimeUnit.HOURS)
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build()
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "TefasBackgroundSync",
+                ExistingPeriodicWorkPolicy.KEEP,
+                tefasWorkRequest
+            )
             com.nexus.porsuk.worker.PriceAlertWorker.schedule(this)
         } catch (e: Exception) {
             e.printStackTrace()

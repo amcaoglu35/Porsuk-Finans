@@ -26,7 +26,15 @@ import com.nexus.porsuk.ui.theme.Manrope
 import com.nexus.porsuk.ui.theme.PozitifGreen
 
 @Composable
-fun AiMarketSummaryProminentCard(onDetailClick: () -> Unit) {
+fun AiMarketSummaryProminentCard(
+    onDetailClick: () -> Unit,
+    commentText: String = "\"Bankacılık ve savunma sektöründe pozitif görünüm devam ediyor. Portföy dengesi olumlu.\"",
+    marketScore: String = "78",
+    confidence: String = "%85",
+    riskLevel: String = "Düşük",
+    fearGreedIndex: String = "55 Nötr",
+    marketPulse: String = "68 Pozitif"
+) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -72,7 +80,7 @@ fun AiMarketSummaryProminentCard(onDetailClick: () -> Unit) {
 
             // AI Short Comment
             Text(
-                "\"Bankacılık ve savunma sektöründe pozitif görünüm devam ediyor. Portföy dengesi olumlu.\"",
+                commentText,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 16.sp),
                 color = onSurfaceColor
             )
@@ -84,11 +92,11 @@ fun AiMarketSummaryProminentCard(onDetailClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                SummaryPillItem("Market Score", "78", PozitifGreen, modifier = Modifier.weight(1f))
-                SummaryPillItem("Confidence", "%85", PozitifGreen, modifier = Modifier.weight(1f))
-                SummaryPillItem("Risk", "Düşük", PozitifGreen, modifier = Modifier.weight(1f))
-                SummaryPillItem("Korku/Açgöz.", "55 Nötr", AmberWarning, modifier = Modifier.weight(1f))
-                SummaryPillItem("Piyasa Nabzı", "68 Pozitif", PozitifGreen, modifier = Modifier.weight(1f))
+                SummaryPillItem("Market Score", marketScore, PozitifGreen, modifier = Modifier.weight(1f))
+                SummaryPillItem("Confidence", confidence, PozitifGreen, modifier = Modifier.weight(1f))
+                SummaryPillItem("Risk", riskLevel, PozitifGreen, modifier = Modifier.weight(1f))
+                SummaryPillItem("Korku/Açgöz.", fearGreedIndex, AmberWarning, modifier = Modifier.weight(1f))
+                SummaryPillItem("Piyasa Nabzı", marketPulse, PozitifGreen, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -117,7 +125,12 @@ private fun SummaryPillItem(label: String, value: String, color: Color, modifier
 }
 
 @Composable
-fun OracleGlowHighlightCard(onOracleClick: () -> Unit) {
+fun OracleGlowHighlightCard(
+    onOracleClick: () -> Unit,
+    titleText: String = "Oracle Bugün Ne Diyor?",
+    predictionText: String = "Piyasalarda pozitif momentum devam ediyor. 3 gün içinde yukarı yönlü hareket beklentisi %62.",
+    confidenceScore: String = "%87"
+) {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Card(
@@ -153,10 +166,10 @@ fun OracleGlowHighlightCard(onOracleClick: () -> Unit) {
                 Spacer(modifier = Modifier.width(14.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Oracle Bugün Ne Diyor?", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = Color.White)
+                    Text(titleText, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = Color.White)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "Piyasalarda pozitif momentum devam ediyor. 3 gün içinde yukarı yönlü hareket beklentisi %62.",
+                        predictionText,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, lineHeight = 14.sp),
                         color = Color.White.copy(alpha = 0.85f),
                         maxLines = 2,
@@ -167,7 +180,7 @@ fun OracleGlowHighlightCard(onOracleClick: () -> Unit) {
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("%87", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = Color(0xFFC084FC))
+                    Text(confidenceScore, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = Color(0xFFC084FC))
                     Text("Güven", style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp), color = Color.White.copy(alpha = 0.8f))
                 }
             }

@@ -49,13 +49,17 @@ data class BacktestResult(
     val bistReturnPercent: Double,
     val usdReturnPercent: Double,
     val description: String
-)
+import androidx.lifecycle.SavedStateHandle
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class BasketDetailViewModel(
-    private val basketId: Int,
+@HiltViewModel
+class BasketDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager
 ) : ViewModel() {
+    private val basketId: Int = savedStateHandle.get<Int>("basketId") ?: savedStateHandle.get<String>("basketId")?.toIntOrNull() ?: -1
 
     private val _isBacktesting = MutableStateFlow(false)
     val isBacktesting: StateFlow<Boolean> = _isBacktesting
