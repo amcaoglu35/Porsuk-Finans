@@ -22,9 +22,8 @@ import com.nexus.porsuk.feature.globalmarkets.components.*
  *
  * 8 Küresel bölgeyi, 5 borsa durumunu, 10 sektörü ve dünya ısı haritası verilerini sunan ana ekran.
  */
-import com.ramcosta.composedestinations.annotation.Destination
+import com.nexus.porsuk.ui.theme.*
 
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalMarketsScreen(

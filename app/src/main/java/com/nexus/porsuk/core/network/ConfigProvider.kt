@@ -15,21 +15,15 @@ interface ConfigProvider {
 
 @Singleton
 class ConfigProviderImpl @Inject constructor() : ConfigProvider {
-    override fun getFinnhubKey(): String = requireConfig("FINNHUB_API_KEY")
-    override fun getFmpKey(): String = requireConfig("FMP_API_KEY")
-    override fun getNewsApiKey(): String = requireConfig("NEWS_API_KEY")
-    override fun getFredKey(): String = requireConfig("FRED_API_KEY")
-    override fun getExchangeRateKey(): String = requireConfig("EXCHANGE_RATE_API_KEY")
-    override fun getYahooRapidApiKey(): String = requireConfig("YAHOO_RAPIDAPI_KEY")
+    override fun getFinnhubKey(): String = validate(BuildConfig.FINNHUB_API_KEY, "FINNHUB_API_KEY")
+    override fun getFmpKey(): String = validate(BuildConfig.FMP_API_KEY, "FMP_API_KEY")
+    override fun getNewsApiKey(): String = validate(BuildConfig.NEWS_API_KEY, "NEWS_API_KEY")
+    override fun getFredKey(): String = validate(BuildConfig.FRED_API_KEY, "FRED_API_KEY")
+    override fun getExchangeRateKey(): String = validate(BuildConfig.EXCHANGE_RATE_API_KEY, "EXCHANGE_RATE_API_KEY")
+    override fun getYahooRapidApiKey(): String = validate(BuildConfig.YAHOO_RAPIDAPI_KEY, "YAHOO_RAPIDAPI_KEY")
 
-    private fun requireConfig(key: String): String {
-        return try {
-            val field = BuildConfig::class.java.getField(key)
-            val value = field.get(null) as? String
-            value?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("Missing $key — check local.properties")
-        } catch (e: NoSuchFieldException) {
-            throw IllegalStateException("BuildConfig field $key not found — check build.gradle.kts", e)
-        }
+    private fun validate(value: String?, key: String): String {
+        return value?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Missing $key — check local.properties and build.gradle.kts")
     }
 }

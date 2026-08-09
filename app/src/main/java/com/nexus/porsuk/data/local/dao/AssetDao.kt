@@ -150,6 +150,9 @@ interface AssetDao {
     @Update
     suspend fun updateTransaction(transaction: PortfolioTransaction)
 
+    @Query("SELECT * FROM transactions WHERE basketId = :basketId AND symbol = :symbol ORDER BY timestamp ASC")
+    suspend fun getAllTransactionsForStockDirect(basketId: Int, symbol: String): List<PortfolioTransaction>
+
     @Query("DELETE FROM transactions")
     suspend fun clearTransactions()
 

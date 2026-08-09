@@ -7,20 +7,14 @@ android {
     namespace = "com.nexus.porsuk.core.domain"
 }
 
-ksp {
-    arg("room.generateKotlin", "true")
-}
-
 dependencies {
     implementation(libs.java.inject)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.kotlinx.serialization)
-    implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.kotlinx.serialization)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.work.runtime.ktx)
     implementation("org.jsoup:jsoup:1.17.2")
+    implementation("org.ta4j:ta4j-core:0.18")
+
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

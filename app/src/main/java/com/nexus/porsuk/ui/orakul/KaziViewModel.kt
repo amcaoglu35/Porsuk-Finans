@@ -7,9 +7,12 @@ import androidx.work.*
 import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.data.repository.KaziRepository
 import com.nexus.porsuk.worker.KaziAnalysisWorker
-
+import com.nexus.porsuk.data.repository.FinanceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class KaziUiState(
     val latestRun: KaziRun? = null,
@@ -27,11 +30,6 @@ data class KaziUiState(
     val cashBufferPct: Double = 10.0,
     val minQualityScore: Int = 0
 )
-
-import com.nexus.porsuk.data.repository.FinanceRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 
 @HiltViewModel
 class KaziViewModel @Inject constructor(

@@ -9,14 +9,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class IpoUiState(
     val ipos: List<IpoIntelligence> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
-
-import dagger.hilt.android.lifecycle.HiltViewModel
 
 @HiltViewModel
 class IpoViewModel @Inject constructor(

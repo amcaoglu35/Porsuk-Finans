@@ -34,9 +34,6 @@ data class ModelPortfolio(
     val emoji: String
 )
 
-import com.ramcosta.composedestinations.annotation.Destination
-
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelSepetlerScreen(
@@ -88,7 +85,7 @@ fun ModelSepetlerScreen(
             emoji = "🦁"
         ),
         ModelPortfolio(
-            name = "🇺🇸 Global Temettü Kralları (US)",
+            name = "👑 Global Temettü Kralları (US)",
             market = "NASDAQ",
             yield = "%2.8 Yıllık Verim",
             description = "Dolar bazlı pasif gelir üretmek için ABD borsalarındaki kesintisiz temettü artış geçmişine (Dividend Aristocrats) sahip 5 dev şirketten oluşan küresel sepet.",
@@ -291,6 +288,11 @@ fun ModelSepetlerScreen(
                                 viewModel.cloneModelPortfolio(
                                     name = portfolio.name
                                         .replace("🎯 ", "")
+                                        .replace("👑 ", "")
+                                        .replace("📈 ", "")
+                                        .replace("🛡️ ", "")
+                                        .replace("🏛️ ", "")
+                                        .replace("🦁 ", "")
                                         .replace("🇺🇸 ", "")
                                         .replace("⚡ ", "")
                                         .replace("🌍 ", "")

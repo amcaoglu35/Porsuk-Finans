@@ -22,9 +22,8 @@ import com.nexus.porsuk.feature.strategybuilder.components.*
  *
  * 12 Strateji türünü, 10 şablonu, Plugin Architecture düğümlerini ve kural doğrulamasını sunar.
  */
-import com.ramcosta.composedestinations.annotation.Destination
+import com.nexus.porsuk.ui.theme.*
 
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrategyBuilderScreen(

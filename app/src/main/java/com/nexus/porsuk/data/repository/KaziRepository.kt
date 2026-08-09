@@ -4,8 +4,11 @@ import com.nexus.porsuk.data.local.dao.AssetDao
 import com.nexus.porsuk.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class KaziRepository(private val assetDao: AssetDao) {
+@Singleton
+class KaziRepository @Inject constructor(private val assetDao: AssetDao) {
 
     fun getLatestKaziRun(): Flow<KaziRun?> = assetDao.getLatestKaziRun()
     

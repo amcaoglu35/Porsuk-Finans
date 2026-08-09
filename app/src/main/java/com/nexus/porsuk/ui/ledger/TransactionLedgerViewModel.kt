@@ -9,12 +9,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 data class LedgerUiState(
     val transactions: List<PortfolioTransaction> = emptyList(),
     val totalRealizedPnL: Double = 0.0
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class TransactionLedgerViewModel @Inject constructor(

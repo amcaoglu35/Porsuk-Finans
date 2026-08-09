@@ -11,9 +11,10 @@ import com.nexus.porsuk.data.local.db.FundConverters
 import com.nexus.porsuk.data.local.db.IpoCorporateConverters
 
 /**
- * Porsuk Finans — Ana Room Veritabanı (PorsukDatabase - Version 40)
+ * Porsuk Finans — Ana Room Veritabanı (PorsukDatabase - Version 47)
  *
- * Security & Privacy Center `SecurityAuditEntity`, `SecuritySessionEntity` ve `SecurityAuditDao` güncellemelerini içerir.
+ * v43 -> v47 geçişindeki `cloud_sync_queue`, `automation_rules`, `broker_accounts` ve `engine_security_*`
+ * tablolarını içeren şema güncellemelerini yönetir.
  */
 @Database(
     entities = [
@@ -158,7 +159,8 @@ abstract class PorsukDatabase : RoomDatabase() {
                     PorsukDatabase::class.java,
                     "porsuk_database"
                 )
-                .fallbackToDestructiveMigration()
+                .addMigrations(*com.nexus.porsuk.data.local.db.DatabaseMigrations.ALL_MIGRATIONS)
+                .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance
                 instance

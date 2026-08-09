@@ -24,9 +24,8 @@ import com.nexus.porsuk.feature.scanner.components.ScanResultItemRow
  *
  * 10 Piyasada 11 hazır tarama stratejisini, Master Score ve gelişmiş filtrelerle tarama sonuçlarını sunan ana ekran.
  */
-import com.ramcosta.composedestinations.annotation.Destination
+import com.nexus.porsuk.ui.theme.*
 
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScannerScreen(

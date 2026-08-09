@@ -46,6 +46,8 @@ object AppDatabaseModule {
     @Provides fun provideAiEngineDao(db: PorsukDatabase): AiEngineDao = db.aiEngineDao()
     @Provides fun providePluginDao(db: PorsukDatabase): PluginDao = db.pluginDao()
     @Provides fun provideExchangeRateDao(db: PorsukDatabase): ExchangeRateDao = db.exchangeRateDao()
+    @Provides fun provideTefasFundDao(db: PorsukDatabase): TefasFundDao = db.tefasFundDao()
+    @Provides fun provideFundIntelligenceDao(db: PorsukDatabase): FundIntelligenceDao = db.fundIntelligenceDao()
 
     @Provides
     @Singleton
@@ -55,28 +57,6 @@ object AppDatabaseModule {
     @Singleton
     fun provideSettingsManager(@ApplicationContext context: Context): SettingsManager {
         return SettingsManager(context)
-    }
-
-    @Provides
-    @Singleton
-    fun provideFinanceRepository(
-        assetDao: AssetDao,
-        settingsManager: SettingsManager,
-        eventBus: com.nexus.porsuk.core.common.PorsukEventBus,
-        newsApi: com.nexus.porsuk.data.remote.api.NewsApi,
-        fredRemoteDataSource: com.nexus.porsuk.data.remote.datasource.FredRemoteDataSource,
-        configProvider: com.nexus.porsuk.core.network.ConfigProvider
-    ): FinanceRepository {
-        return FinanceRepository(
-            assetDao,
-            com.nexus.porsuk.data.remote.GoogleFinanceScraper(),
-            eventBus,
-            com.nexus.porsuk.data.remote.FinnhubService(configProvider.getFinnhubKey()),
-            com.nexus.porsuk.data.remote.YahooFinanceService(configProvider.getYahooRapidApiKey()),
-            settingsManager,
-            newsApi,
-            fredRemoteDataSource
-        )
     }
 }
 

@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.data.local.entity.NewsItemEntity
 import com.nexus.porsuk.data.repository.FinanceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class NewsUiState(
     val categories: List<String> = listOf(
@@ -21,8 +23,7 @@ data class NewsUiState(
     val readNewsIds: Set<Int> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class NewsViewModel @Inject constructor(
@@ -98,7 +99,6 @@ class NewsViewModel @Inject constructor(
 
         if (state.selectedCategory != "Son Haberler") {
             result = result.filter { news ->
-                val summaryText = news.summary ?: ""
                 when (state.selectedCategory) {
                     "Şirket Haberleri" -> news.symbol.isNotBlank()
                     "Ekonomi Haberleri" -> news.title.contains("Ekonomi", ignoreCase = true) || news.title.contains("Faiz", ignoreCase = true)

@@ -79,8 +79,6 @@ android {
 dependencies {
     implementation(projects.core.common)
     implementation(projects.core.domain)
-    implementation(projects.core.ui)
-    implementation(projects.feature.sample)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -90,8 +88,6 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation("org.ta4j:ta4j-core:0.18")
     implementation("org.jsoup:jsoup:1.17.2")
-    implementation("io.github.raamcosta.compose-destinations:core:1.10.2")
-    ksp("io.github.raamcosta.compose-destinations:ksp:1.10.2")
     implementation("com.patrykandpatrick.vico:compose:1.13.1")
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation(libs.androidx.hilt.work)
@@ -135,5 +131,8 @@ dependencies {
     testImplementation(libs.arch.core.testing)
     testImplementation(libs.truth)
     androidTestImplementation(libs.test.runner)
+    androidTestImplementation(libs.test.ext.junit)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.espresso.core)
 }

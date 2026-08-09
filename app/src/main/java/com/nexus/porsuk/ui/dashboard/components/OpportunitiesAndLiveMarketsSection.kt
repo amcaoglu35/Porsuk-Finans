@@ -187,20 +187,34 @@ fun LiveMarketsOverviewSection(
                             .width(118.dp)
                             .clickable(onClick = onMarketsClick)
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(item.title, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = onSurfaceColor)
-                            Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = onSurfaceVariant)
-                            Text(item.change, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono, fontSize = 9.sp), color = color)
+                            
+                            if (!item.isDataAvailable) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Veri Yok", 
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                    color = onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            } else {
+                                Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = onSurfaceVariant)
+                                Text(item.change, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono, fontSize = 9.sp), color = color)
 
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Sparkline(
-                                values = item.sparkValues,
-                                color = color,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(20.dp),
-                                filled = true
-                            )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Sparkline(
+                                    values = item.sparkValues,
+                                    color = color,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(20.dp),
+                                    filled = true
+                                )
+                            }
                         }
                     }
                 }

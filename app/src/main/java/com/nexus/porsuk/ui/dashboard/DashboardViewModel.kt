@@ -30,7 +30,8 @@ data class LiveMarketUiModel(
     val price: String,
     val change: String,
     val isPos: Boolean,
-    val sparkValues: List<Float>
+    val sparkValues: List<Float>,
+    val isDataAvailable: Boolean = true
 )
 
 data class AiMarketSummaryUiModel(
@@ -56,11 +57,21 @@ data class DashboardNewsUiModel(
     val readTime: String
 )
 
+data class BasketSummaryUiModel(
+    val id: Int,
+    val name: String,
+    val itemCount: Int,
+    val totalValue: Double,
+    val market: String
+)
+
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val repository: FinanceRepository,
     private val settingsManager: SettingsManager,
-    private val getPortfolioSummaryUseCase: GetPortfolioSummaryUseCase
+    private val getPortfolioSummaryUseCase: GetPortfolioSummaryUseCase,
+    private val opportunityEngine: com.nexus.porsuk.data.engine.OpportunitySignalEngine,
+    private val fearGreedRepository: com.nexus.porsuk.data.repository.FearGreedRepository
 ) : ViewModel() {
 
     val watchlist: Flow<List<WatchlistItem>> = repository.watchlist
@@ -72,6 +83,38 @@ class DashboardViewModel @Inject constructor(
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    val myBaskets: StateFlow<List<BasketSummaryUiModel>> = combine(
+        repository.allBaskets,
+        repository.allBasketItems,
+        prices
+    ) { baskets, allItems, priceMap ->
+        baskets.map { basket ->
+            val items = allItems.filter { it.basketId == basket.id }
+            val totalValue = items.sumOf { item ->
+                val currentPrice = priceMap[item.symbol]?.price ?: item.buyPrice
+                item.quantity * currentPrice
+            }
+            BasketSummaryUiModel(
+                id = basket.id,
+                name = basket.name,
+                itemCount = items.size,
+                totalValue = totalValue,
+                market = basket.market
+            )
+        }.take(5)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val fearGreedFlow: StateFlow<com.nexus.porsuk.domain.model.FearGreedModel?> = combine(
+        prices,
+        allCompanies
+    ) { priceMap, companies ->
+        try {
+            fearGreedRepository.calculateFearGreed(priceMap, companies)
+        } catch (_: Exception) {
+            null
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val portfolioSummary: StateFlow<PortfolioSummary> = getPortfolioSummaryUseCase()
         .stateIn(
@@ -215,8 +258,9 @@ class DashboardViewModel @Inject constructor(
 
     val aiMarketSummary: StateFlow<AiMarketSummaryUiModel> = combine(
         prices,
-        portfolioSummary
-    ) { priceMap, summary ->
+        portfolioSummary,
+        fearGreedFlow
+    ) { priceMap, summary, fearGreed ->
         val bistSnap = priceMap["BIST100"] ?: priceMap["XU100"]
         val bistChange = bistSnap?.changePercent ?: 0.0
         val isBistPos = bistChange >= 0
@@ -226,7 +270,11 @@ class DashboardViewModel @Inject constructor(
         val score = (70 + (bistChange * 2).toInt()).coerceIn(30, 95)
         val confidenceVal = if (summary.totalBalance > 0) 85 else 60
         val riskText = if (gainPct < -5) "Yüksek" else if (gainPct < 0) "Orta" else "Düşük"
-        val fearGreedText = if (bistChange > 1.0) "65 Açgözlü" else if (bistChange < -1.0) "35 Korku" else "50 Nötr"
+        
+        val fearGreedText = fearGreed?.let {
+            "${it.score} ${it.label}"
+        } ?: (if (bistChange > 1.0) "65 Açgözlü" else if (bistChange < -1.0) "35 Korku" else "50 Nötr")
+
         val marketPulseText = if (isBistPos) "${(60 + bistChange * 5).toInt().coerceIn(40, 90)} Pozitif" else "${(40 + bistChange * 5).toInt().coerceIn(10, 50)} Negatif"
 
         val comment = if (isBistPos) {
@@ -264,27 +312,36 @@ class DashboardViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OracleGlowUiModel())
 
-    val opportunities: StateFlow<List<OpportunityUiModel>> = prices.map { priceMap ->
-        val defaults = listOf(
-            OpportunityUiModel("ASELS", "Aselsan", "₺56,70", "%4,25", "Güçlü Alım", true),
-            OpportunityUiModel("THYAO", "Türk Hava Yolları", "₺305,25", "%2,87", "Alım Sinyali", true),
-            OpportunityUiModel("KCHOL", "Koç Holding", "₺182,40", "%0,31", "Nötr", true),
-            OpportunityUiModel("AKBNK", "Akbank", "₺52,15", "-%0,42", "Dikkat", false)
-        )
-        defaults.map { item ->
-            val snap = priceMap[item.code]
-            if (snap != null) {
-                val isPos = snap.changePercent >= 0
-                val formattedChange = if (isPos) "%${String.format(java.util.Locale.US, "%.2f", snap.changePercent)}"
-                else "-%${String.format(java.util.Locale.US, "%.2f", Math.abs(snap.changePercent))}"
-                item.copy(
-                    price = "₺${String.format(java.util.Locale.US, "%.2f", snap.price)}",
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val opportunities: StateFlow<List<OpportunityUiModel>> = prices
+        .mapLatest { priceMap ->
+            val stockList = listOf(
+                Triple("ASELS", "Aselsan", "BIST"),
+                Triple("THYAO", "Türk Hava Yolları", "BIST"),
+                Triple("KCHOL", "Koç Holding", "BIST"),
+                Triple("AKBNK", "Akbank", "BIST")
+            )
+            
+            stockList.map { (symbol, name, market) ->
+                val signal = opportunityEngine.getSignalForStock(symbol, market)
+                val snap = priceMap[symbol]
+                
+                val isPos = snap?.let { it.changePercent >= 0 } ?: signal.isPositive
+                val formattedChange = snap?.let {
+                    if (it.changePercent >= 0) "%${String.format(java.util.Locale.US, "%.2f", it.changePercent)}"
+                    else "-%${String.format(java.util.Locale.US, "%.2f", Math.abs(it.changePercent))}"
+                } ?: "%0.00"
+
+                OpportunityUiModel(
+                    code = symbol,
+                    name = name,
+                    price = if (snap != null) "₺${String.format(java.util.Locale.US, "%.2f", snap.price)}" else "₺0.00",
                     changePct = formattedChange,
+                    signal = signal.recommendation,
                     isPositive = isPos
                 )
-            } else item
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val liveMarkets: StateFlow<List<LiveMarketUiModel>> = prices.map { priceMap ->
         val bistSnap = priceMap["BIST100"] ?: priceMap["XU100"]
@@ -295,7 +352,7 @@ class DashboardViewModel @Inject constructor(
         val btcSnap = priceMap["BITCOIN"] ?: priceMap["BTCUSD"]
 
         fun formatMarket(title: String, defaultPrice: String, defaultChange: String, defaultPos: Boolean, snap: PriceSnapshot?): LiveMarketUiModel {
-            if (snap == null) return LiveMarketUiModel(title, defaultPrice, defaultChange, defaultPos, listOf(40f, 42f, 45f, 48f, 50f))
+            if (snap == null) return LiveMarketUiModel(title, defaultPrice, defaultChange, defaultPos, listOf(40f, 42f, 45f, 48f, 50f), isDataAvailable = false)
             val isPos = snap.changePercent >= 0
             val changeStr = if (isPos) "%${String.format(java.util.Locale.US, "%.2f", snap.changePercent)}"
             else "-%${String.format(java.util.Locale.US, "%.2f", Math.abs(snap.changePercent))}"
@@ -344,6 +401,10 @@ class DashboardViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    init {
+        refreshAllData()
+    }
+
     fun toggleWatchlist(symbol: String) {
         viewModelScope.launch {
             try {
@@ -364,6 +425,14 @@ class DashboardViewModel @Inject constructor(
             _isRefreshing.value = true
             try {
                 repository.refreshExchangeRates()
+                
+                // Fetch VIX for Fear & Greed
+                repository.refreshPrice("^VIX", "INDEX")
+
+                // Fetch Opportunities Stocks
+                listOf("ASELS", "THYAO", "KCHOL", "AKBNK").forEach {
+                    repository.refreshPrice(it, "BIST")
+                }
             } catch (_: Exception) {
             } finally {
                 _isRefreshing.value = false

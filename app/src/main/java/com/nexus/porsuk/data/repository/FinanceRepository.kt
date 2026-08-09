@@ -11,17 +11,18 @@ import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class FinanceRepository @Inject constructor(
     private val assetDao: AssetDao,
     private val scraper: GoogleFinanceScraper,
-    private val eventBus: com.nexus.porsuk.core.common.PorsukEventBus? = null,
-    private val finnhubService: FinnhubService? = null,
-    private val yahooService: YahooFinanceService? = null,
-    private val settingsManager: com.nexus.porsuk.data.local.SettingsManager? = null,
-    private val newsApi: NewsApi? = null,
-    private val fredRemoteDataSource: FredRemoteDataSource? = null,
-    private val tefasFundDao: com.nexus.porsuk.data.local.dao.TefasFundDao? = null
+    val eventBus: com.nexus.porsuk.core.common.PorsukEventBus,
+    private val finnhubService: FinnhubService,
+    private val yahooService: YahooFinanceService,
+    private val yahooPublicService: YahooFinancePublicService,
+    private val fmpService: FinancialModelingPrepService,
+    private val settingsManager: com.nexus.porsuk.data.local.SettingsManager,
+    private val newsApi: NewsApi,
+    private val fredRemoteDataSource: FredRemoteDataSource,
+    private val tefasFundDao: com.nexus.porsuk.data.local.dao.TefasFundDao
 ) {
     val allBaskets: Flow<List<Basket>> = assetDao.getAllBaskets()
     val allBasketItems: Flow<List<BasketItem>> = assetDao.getAllBasketItemsFlow()
@@ -30,22 +31,13 @@ class FinanceRepository @Inject constructor(
     val allDividends: Flow<List<DividendCalendarEntry>> = assetDao.getAllDividends()
     val allIpos: Flow<List<IpoCalendarEntry>> = assetDao.getAllIpos()
     val allEconomicEvents: Flow<List<EconomicEventEntry>> = assetDao.getAllEconomicEvents()
-    val allTefasFunds: Flow<List<com.nexus.porsuk.data.local.entity.TefasFundEntity>> = tefasFundDao?.getAllActiveFunds() ?: flowOf(emptyList())
+    val allTefasFunds: Flow<List<com.nexus.porsuk.data.local.entity.TefasFundEntity>> = tefasFundDao.getAllActiveFunds()
 
     val prices = MutableStateFlow<Map<String, PriceSnapshot>>(emptyMap())
     val exchangeRates = MutableStateFlow<Map<String, Double>>(mapOf("USD" to 34.5, "EUR" to 37.2))
-    
-    private val yahooPublicService = YahooFinancePublicService()
-    private var fmpService: FinancialModelingPrepService? = null
 
     init {
-        settingsManager?.let { sm ->
-            val fmpKey = runBlocking { sm.fmpApiKey.first() }
-            if (!fmpKey.isNullOrBlank()) {
-                fmpService = FinancialModelingPrepService(fmpKey)
-            }
-        }
-        tefasFundDao?.let { dao ->
+        tefasFundDao.let { dao ->
             runBlocking {
                 if (dao.getActiveFundCount() == 0) {
                     dao.insertOrUpdateFunds(getInitialTefasFunds())
@@ -233,33 +225,32 @@ class FinanceRepository @Inject constructor(
     }
 
     suspend fun refreshFullCompanyDetail(symbol: String) {
-        if (fmpService == null) return
-        val incRes = fmpService!!.fetchIncomeStatement(symbol)
+        val incRes = fmpService.fetchIncomeStatement(symbol)
         if (incRes is ScrapeResult.Success) {
             assetDao.insertIncomeStatements(incRes.data.map {
                 IncomeStatementEntity(it.symbol, it.date, it.revenue, it.grossProfit, it.ebitda, it.netIncome, it.eps)
             })
         }
-        val balRes = fmpService!!.fetchBalanceSheet(symbol)
+        val balRes = fmpService.fetchBalanceSheet(symbol)
         if (balRes is ScrapeResult.Success) {
             assetDao.insertBalanceSheets(balRes.data.map {
                 BalanceSheetEntity(it.symbol, it.date, it.totalAssets, it.totalLiabilities, it.totalStockholdersEquity, it.netDebt)
             })
         }
-        val cfRes = fmpService!!.fetchCashFlow(symbol)
+        val cfRes = fmpService.fetchCashFlow(symbol)
         if (cfRes is ScrapeResult.Success) {
             assetDao.insertCashFlows(cfRes.data.map {
                 CashFlowEntity(it.symbol, it.date, it.netCashProvidedByOperatingActivities, it.freeCashFlow)
             })
         }
-        val ratRes = fmpService!!.fetchRatios(symbol)
+        val ratRes = fmpService.fetchRatios(symbol)
         if (ratRes is ScrapeResult.Success) {
             assetDao.insertCompanyRatios(ratRes.data.map {
                 CompanyRatioEntity(it.symbol, it.date, it.returnOnEquity, it.returnOnAssets, it.priceEarningsRatio, it.priceToBookRatio, it.currentRatio, it.debtEquityRatio)
             })
         }
         try {
-            val newsRes = newsApi?.getNews(query = symbol)
+            val newsRes = newsApi.getNews(query = symbol)
             if (newsRes != null && newsRes.status == "ok") {
                 val entities = newsRes.articles.map {
                     NewsItemEntity(
@@ -292,8 +283,8 @@ class FinanceRepository @Inject constructor(
                 "Yapay Zeka" -> "artificial intelligence ai"
                 else -> "finance business news"
             }
-            val newsRes = newsApi?.getNews(query = query)
-            if (newsRes != null && newsRes.status == "ok") {
+            val newsRes = newsApi.getNews(query = query)
+            if (newsRes.status == "ok") {
                 val entities = newsRes.articles.map {
                     NewsItemEntity(
                         symbol = "GLOBAL_$category",
@@ -314,7 +305,6 @@ class FinanceRepository @Inject constructor(
     }
 
     suspend fun refreshMacroIndicators() {
-        if (fredRemoteDataSource == null) return
         val indicators = listOf("FEDFUNDS", "CPIAUCSL", "PPIACO", "GDP", "UNRATE", "GS10", "GS2", "VIXCLS", "DTWEXBGS", "M2SL", "UMCSENT")
         indicators.forEach { seriesId ->
             when (val res = fredRemoteDataSource.getObservations(seriesId)) {
@@ -377,21 +367,22 @@ class FinanceRepository @Inject constructor(
     }
 
     suspend fun refreshPrice(symbol: String, market: String): ScrapeResult<PriceSnapshot> {
-        if (fmpService != null) {
-            val fmpResult = fmpService!!.fetchPrice(symbol, market)
-            if (fmpResult is ScrapeResult.Success) {
-                prices.update { it + (symbol to fmpResult.data) }
-                return fmpResult
-            }
+        val fmpResult = fmpService.fetchPrice(symbol, market)
+        if (fmpResult is ScrapeResult.Success) {
+            prices.update { it + (symbol to fmpResult.data) }
+            eventBus.publish(com.nexus.porsuk.core.common.PorsukEvent.PriceUpdated(symbol, fmpResult.data.price, fmpResult.data.changePercent))
+            return fmpResult
         }
         val publicResult = yahooPublicService.fetchPrice(symbol, market)
         if (publicResult is ScrapeResult.Success) {
             prices.update { it + (symbol to publicResult.data) }
+            eventBus.publish(com.nexus.porsuk.core.common.PorsukEvent.PriceUpdated(symbol, publicResult.data.price, publicResult.data.changePercent))
             return publicResult
         }
         val finalResult = scraper.fetchPrice(symbol, market)
         if (finalResult is ScrapeResult.Success) {
-            eventBus?.publish(com.nexus.porsuk.core.common.PorsukEvent.PriceUpdated(symbol, finalResult.data.price, finalResult.data.changePercent))
+            prices.update { it + (symbol to finalResult.data) }
+            eventBus.publish(com.nexus.porsuk.core.common.PorsukEvent.PriceUpdated(symbol, finalResult.data.price, finalResult.data.changePercent))
         }
         return finalResult
     }
@@ -492,23 +483,77 @@ class FinanceRepository @Inject constructor(
         val items = assetDao.getItemsForBasket(basketId).first()
         val existingItem = items.find { it.symbol.equals(symbol, ignoreCase = true) }
         var realizedPnL = 0.0
+
         if (isBuy) {
             if (existingItem != null) {
                 val totalQty = existingItem.quantity + quantity
                 val totalCost = (existingItem.buyPrice * existingItem.quantity) + (price * quantity)
-                assetDao.insertBasketItem(existingItem.copy(quantity = totalQty, buyPrice = if (totalQty > 0) totalCost / totalQty else 0.0))
+                assetDao.insertBasketItem(existingItem.copy(
+                    quantity = totalQty, 
+                    buyPrice = if (totalQty > 0) totalCost / totalQty else 0.0
+                ))
             } else {
-                assetDao.insertBasketItem(BasketItem(basketId = basketId, symbol = symbol, quantity = quantity, buyPrice = price, buyDate = System.currentTimeMillis()))
+                assetDao.insertBasketItem(BasketItem(
+                    basketId = basketId, 
+                    symbol = symbol, 
+                    quantity = quantity, 
+                    buyPrice = price, 
+                    buyDate = System.currentTimeMillis()
+                ))
             }
         } else {
             if (existingItem != null) {
                 val sellQty = Math.min(existingItem.quantity, quantity)
-                realizedPnL = (price - existingItem.buyPrice) * sellQty
-                if (existingItem.quantity - sellQty <= 0) assetDao.deleteBasketItem(existingItem)
-                else assetDao.insertBasketItem(existingItem.copy(quantity = existingItem.quantity - sellQty))
+                
+                // --- FIFO (First-In, First-Out) Logic ---
+                val allTransactions = assetDao.getAllTransactionsForStockDirect(basketId, symbol)
+                
+                val buyTransactions = allTransactions.filter { it.isBuy }.sortedBy { it.timestamp }
+                val totalPreviousSold = allTransactions.filter { !it.isBuy }.sumOf { it.quantity }
+                
+                var unitsToSkip = totalPreviousSold
+                var remainingSellQty = sellQty
+                var currentSellPnL = 0.0
+                
+                for (buy in buyTransactions) {
+                    val availableInThisBuy = buy.quantity
+                    if (unitsToSkip >= availableInThisBuy) {
+                        unitsToSkip -= availableInThisBuy
+                        continue
+                    }
+                    
+                    val effectiveBuyQty = availableInThisBuy - unitsToSkip
+                    unitsToSkip = 0.0
+                    
+                    val qtyToTake = Math.min(effectiveBuyQty, remainingSellQty)
+                    currentSellPnL += (price - buy.price) * qtyToTake
+                    remainingSellQty -= qtyToTake
+                    
+                    if (remainingSellQty <= 0.0) break
+                }
+                
+                realizedPnL = currentSellPnL
+                
+                if (existingItem.quantity - sellQty <= 0) {
+                    assetDao.deleteBasketItem(existingItem)
+                } else {
+                    assetDao.insertBasketItem(existingItem.copy(quantity = existingItem.quantity - sellQty))
+                }
             }
         }
-        assetDao.insertTransaction(com.nexus.porsuk.data.local.entity.PortfolioTransaction(basketId = basketId, symbol = symbol, quantity = quantity, price = price, isBuy = isBuy, realizedPnL = realizedPnL))
+        
+        val transaction = com.nexus.porsuk.data.local.entity.PortfolioTransaction(
+            basketId = basketId, 
+            symbol = symbol, 
+            quantity = quantity, 
+            price = price, 
+            isBuy = isBuy, 
+            realizedPnL = realizedPnL
+        )
+        assetDao.insertTransaction(transaction)
+        
+        // Notify EventBus for UI/Logic refresh
+        eventBus.publish(com.nexus.porsuk.core.common.PorsukEvent.PortfolioChanged(0.0))
     }
 
     suspend fun getActivePriceAlerts(): List<com.nexus.porsuk.data.local.entity.PriceAlert> = assetDao.getActivePriceAlerts()
@@ -544,7 +589,7 @@ class FinanceRepository @Inject constructor(
         income: List<IncomeStatementEntity>,
         ratios: List<CompanyRatioEntity>
     ): com.nexus.porsuk.ui.orakul.OracleHisseReport {
-        val apiKey = settingsManager?.getGeminiApiKey()?.takeIf { it.isNotBlank() }
+        val apiKey = settingsManager.getGeminiApiKey()?.takeIf { it.isNotBlank() }
             ?: throw Exception("Gemini API anahtarı bulunamadı")
         val service = GeminiService(apiKey)
         val reportJson = service.getAiOracleReport(symbol, price, income, ratios)

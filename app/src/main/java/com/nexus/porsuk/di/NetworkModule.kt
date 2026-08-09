@@ -8,7 +8,7 @@ import com.nexus.porsuk.core.network.ErrorHandler
 import com.nexus.porsuk.core.network.RateLimitInterceptor
 import com.nexus.porsuk.core.network.RetryInterceptor
 import com.nexus.porsuk.core.network.createService
-import com.nexus.porsuk.data.remote.PorsukApiKeyProvider
+import com.nexus.porsuk.data.remote.*
 import com.nexus.porsuk.data.remote.api.*
 import dagger.Module
 import dagger.Provides
@@ -59,6 +59,32 @@ object NetworkModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGoogleFinanceScraper(): GoogleFinanceScraper = GoogleFinanceScraper()
+
+    @Provides
+    @Singleton
+    fun provideYahooFinancePublicService(): YahooFinancePublicService = YahooFinancePublicService()
+
+    @Provides
+    @Singleton
+    fun provideFinnhubService(configProvider: ConfigProvider): FinnhubService {
+        return FinnhubService(configProvider.getFinnhubKey())
+    }
+
+    @Provides
+    @Singleton
+    fun provideYahooFinanceService(configProvider: ConfigProvider): YahooFinanceService {
+        return YahooFinanceService(configProvider.getYahooRapidApiKey())
+    }
+
+    @Provides
+    @Singleton
+    fun provideFmpService(configProvider: ConfigProvider): FinancialModelingPrepService {
+        return FinancialModelingPrepService(configProvider.getFmpKey())
     }
 
     @Provides

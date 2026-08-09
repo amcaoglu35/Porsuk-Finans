@@ -1,6 +1,10 @@
 package com.nexus.porsuk.ui.ailab
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -42,7 +46,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.nexus.porsuk.ui.chat.ChatMessage
 import com.nexus.porsuk.ui.chat.ChatViewModel
+import com.nexus.porsuk.ui.common.VoiceInputManager
 import com.nexus.porsuk.ui.theme.*
 
 // Semantic colors
@@ -72,7 +79,26 @@ fun AiLabScreen(
     val context = LocalContext.current
     var textInput by remember { mutableStateOf("") }
     val labState by labViewModel.uiState.collectAsState()
+    val messages by viewModel.messages.collectAsState()
+    val toolHistory by labViewModel.toolHistory.collectAsState()
     var selectedToolForReport by remember { mutableStateOf<String?>(null) }
+
+    val voiceInputManager = remember { VoiceInputManager(context) }
+    var isListening by remember { mutableStateOf(false) }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            voiceInputManager.startListening(
+                onResult = { textInput = it },
+                onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+                onStateChange = { isListening = it }
+            )
+        } else {
+            Toast.makeText(context, "Sesli giriş için mikrofon izni gereklidir.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Persistent Switch States (DataStore / rememberSaveable)
     var autoRebalanceEnabled by rememberSaveable { mutableStateOf(true) }
@@ -133,6 +159,7 @@ fun AiLabScreen(
                     enter = fadeIn(tween(500)) + slideInVertically(initialOffsetY = { 40 })
                 ) {
                     AiChatCardSection(
+                        messages = messages,
                         textInput = textInput,
                         onTextInputChange = { textInput = it },
                         onSendMessage = {
@@ -142,8 +169,18 @@ fun AiLabScreen(
                             }
                         },
                         onVoiceInput = {
-                            Toast.makeText(context, "🎙️ Sesli dinleme başlatıldı...", Toast.LENGTH_SHORT).show()
+                            val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                            if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                                voiceInputManager.startListening(
+                                    onResult = { textInput = it },
+                                    onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+                                    onStateChange = { isListening = it }
+                                )
+                            } else {
+                                recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         },
+                        isListening = isListening,
                         onNewChat = {
                             textInput = ""
                             Toast.makeText(context, "✨ Yeni AI Sohbeti Başlatıldı", Toast.LENGTH_SHORT).show()
@@ -205,11 +242,27 @@ fun AiLabScreen(
                         onNotificationCenterClick = onNavigateToSettings,
                         onPdfReportsClick = { onNavigateToPlaceholder("AI PDF Raporları") },
                         autoRebalanceEnabled = autoRebalanceEnabled,
-                        onAutoRebalanceToggle = { autoRebalanceEnabled = it },
+                        onAutoRebalanceToggle = { enabled ->
+                            autoRebalanceEnabled = enabled
+                            if (enabled) {
+                                labViewModel.executeAutoRebalance()
+                                Toast.makeText(context, "Otomatik dengeleme başlatıldı.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         riskAlertsEnabled = riskAlertsEnabled,
-                        onRiskAlertsToggle = { riskAlertsEnabled = it },
+                        onRiskAlertsToggle = { enabled ->
+                            riskAlertsEnabled = enabled
+                            labViewModel.setRiskMonitoring(enabled, context)
+                            val msg = if (enabled) "Risk takibi aktif." else "Risk takibi kapatıldı."
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        },
                         nightSummaryEnabled = nightSummaryEnabled,
-                        onNightSummaryToggle = { nightSummaryEnabled = it }
+                        onNightSummaryToggle = { enabled ->
+                            nightSummaryEnabled = enabled
+                            labViewModel.setNightSummary(enabled, context)
+                            val msg = if (enabled) "Gece özeti planlandı (21:00)." else "Gece özeti iptal edildi."
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }
@@ -228,6 +281,64 @@ fun AiLabScreen(
                     )
                 }
             }
+
+            // 11. Tool History Section
+            if (toolHistory.isNotEmpty()) {
+                item(key = "tool_history_header") {
+                    Text(
+                        "📜 Son Analiz Geçmişi",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    )
+                }
+                
+                items(toolHistory.reversed(), key = { it.id }) { item ->
+                    ToolHistoryItem(item)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ToolHistoryItem(history: ToolReportHistory) {
+    val sdf = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
+    val dateString = remember(history.timestamp) { sdf.format(java.util.Date(history.timestamp)) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .shadow(2.dp, RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = history.toolName,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                )
+                Text(
+                    text = dateString,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = history.report.take(150).replace("\n", " ") + "...",
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -424,7 +535,11 @@ private fun AiGreetingHeroCard(pulseScale: Float) {
         Box(
             modifier = Modifier.background(
                 Brush.linearGradient(
-                    colors = listOf(Color(0xFF1E0A4C), Color(0xFF3B1578), Color(0xFF6C4CF1))
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.1f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        MaterialTheme.colorScheme.primary
+                    )
                 )
             )
         ) {
@@ -488,66 +603,132 @@ private fun AiGreetingHeroCard(pulseScale: Float) {
 // ── 2 & 6. AI SOHBETİ KARTI (Chat, Voice, New Chat) ──
 @Composable
 private fun AiChatCardSection(
+    messages: List<ChatMessage>,
     textInput: String,
     onTextInputChange: (String) -> Unit,
     onSendMessage: () -> Unit,
     onVoiceInput: () -> Unit,
+    isListening: Boolean,
     onNewChat: () -> Unit
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .shadow(4.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        // Chat History Scroll Area
+        if (messages.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                    .padding(horizontal = 12.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("💬", fontSize = 18.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI Asistan Sohbeti", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.clickable(onClick = onNewChat)
-                ) {
-                    Text("✨ Yeni Sohbet", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                items(messages.size) { index ->
+                    ChatMessageItem(messages[index])
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            OutlinedTextField(
-                value = textInput,
-                onValueChange = onTextInputChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("AI Asistana bir soru sorun (Örn: THYAO hedef fiyatı?)...", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                trailingIcon = {
+        // Chat Input Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onVoiceInput) {
-                            Icon(Icons.Outlined.Mic, contentDescription = "Sesli Giriş", tint = MaterialTheme.colorScheme.primary)
-                        }
-                        IconButton(onClick = onSendMessage) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Gönder", tint = MaterialTheme.colorScheme.primary)
-                        }
+                        Text("💬", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("AI Asistan Sohbeti", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
                     }
-                },
-                shape = RoundedCornerShape(18.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.background,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.clickable(onClick = onNewChat)
+                    ) {
+                        Text("✨ Yeni Sohbet", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = textInput,
+                    onValueChange = onTextInputChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("AI Asistana bir soru sorun (Örn: THYAO hedef fiyatı?)...", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailingIcon = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onVoiceInput) {
+                                Icon(
+                                    imageVector = if (isListening) Icons.Default.GraphicEq else Icons.Outlined.Mic,
+                                    contentDescription = "Sesli Giriş",
+                                    tint = if (isListening) BullishGreen else MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            IconButton(onClick = onSendMessage) {
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Gönder", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatMessageItem(message: ChatMessage) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
+    ) {
+        val bgColor = if (message.isUser) 
+            MaterialTheme.colorScheme.primary
+        else 
+            MaterialTheme.colorScheme.surfaceVariant
+        
+        Card(
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (message.isUser) 16.dp else 2.dp,
+                bottomEnd = if (message.isUser) 2.dp else 16.dp
+            ),
+            colors = CardDefaults.cardColors(containerColor = bgColor),
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Text(
+                text = message.text,
+                color = if (message.isUser) 
+                    MaterialTheme.colorScheme.onPrimary 
+                else 
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp)
             )
         }
     }
@@ -848,8 +1029,7 @@ private fun AutomationSwitchRow(title: String, isChecked: Boolean, onCheckedChan
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = MaterialTheme.colorScheme.onSurface)
         Switch(
             checked = isChecked,

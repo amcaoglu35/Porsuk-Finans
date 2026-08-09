@@ -23,10 +23,9 @@ import com.nexus.porsuk.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FundsTab(
-    funds: List<TefasFundEntity>
+    funds: List<TefasFundEntity>,
+    onFundClick: (String) -> Unit
 ) {
-    var selectedFundForDetail by remember { mutableStateOf<TefasFundEntity?>(null) }
-
     if (funds.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -67,7 +66,7 @@ fun FundsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .shadow(3.dp, RoundedCornerShape(20.dp))
-                        .clickable { selectedFundForDetail = item },
+                        .clickable { onFundClick(item.code) },
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -100,51 +99,6 @@ fun FundsTab(
                         }
                     }
                 }
-            }
-        }
-    }
-
-    selectedFundForDetail?.let { fund ->
-        ModalBottomSheet(
-            onDismissRequest = { selectedFundForDetail = null },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(fund.code.take(3), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(fund.code, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
-                        Text(fund.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                FundDetailItemRow("Şemsiye Fon Türü", fund.umbrellaFund.ifBlank { "-" })
-                FundDetailItemRow("Kurucu Şirket", fund.founder.ifBlank { "-" })
-                FundDetailItemRow("Yönetici Şirket", fund.manager.ifBlank { "-" })
-                FundDetailItemRow("Güncel Pay Fiyatı", "₺${String.format("%.4f", fund.price)}")
-                FundDetailItemRow("Risk Seviyesi", "${fund.riskLevel} / 7")
-                FundDetailItemRow("Yıllık Yönetim Ücreti", "%${String.format("%.2f", fund.managementFee)}")
-                FundDetailItemRow("Toplam Portföy Büyüklüğü", "₺${String.format("%.0f", fund.totalAssets)}")
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

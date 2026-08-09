@@ -67,7 +67,8 @@ fun PorsukApp(
     val financeViewModel: FinanceViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val settingsUiState by settingsViewModel.uiState.collectAsState()
-    
+    val context = LocalContext.current
+
     var hasNotificationPermission by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -277,6 +278,9 @@ fun PorsukApp(
                             onBasketClick = { basketId ->
                                 navController.navigate(Screen.BasketDetail.createRoute(basketId))
                             },
+                            onPortfolioClick = {
+                                navController.navigate(Screen.PortfolioOverview.route)
+                            },
                             onLedgerClick = {
                                 navController.navigate(Screen.IslemDefteri.route)
                             },
@@ -297,6 +301,12 @@ fun PorsukApp(
                             },
                             onMarketsClick = {
                                 navController.navigate(Screen.Piyasalar.route)
+                            },
+                            onSeeAllBasketsClick = {
+                                navController.navigate(Screen.Sepetler.route)
+                            },
+                            onCreateBasketClick = {
+                                navController.navigate(Screen.BasketCreate.route)
                             },
                             onModelSepetlerClick = {
                                 navController.navigate(Screen.ModelSepetler.route)
@@ -338,6 +348,21 @@ fun PorsukApp(
                     }
 
                     composable(Screen.Sepetler.route) {
+                        com.nexus.porsuk.ui.fund.FundScreen(
+                            viewModel = hiltViewModel(),
+                            onFundClick = { basketId, _ ->
+                                navController.navigate(Screen.BasketDetail.createRoute(basketId))
+                            },
+                            onKaziNavigate = {
+                                navController.navigate(Screen.KaziConfig.route)
+                            },
+                            onNavigateToSettings = {
+                                navController.navigate(Screen.Ayarlar.route)
+                            }
+                        )
+                    }
+
+                    composable(Screen.PortfolioOverview.route) {
                         com.nexus.porsuk.ui.portfolio.PortfolioScreen(
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
@@ -361,6 +386,9 @@ fun PorsukApp(
                             financeViewModel = financeViewModel,
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
+                            },
+                            onFundClick = { fundCode ->
+                                navController.navigate(Screen.FundIntelligence.createRoute(fundCode))
                             },
                             onNavigateToSettings = {
                                 navController.navigate(Screen.NotificationsCenter.route)
@@ -893,6 +921,28 @@ fun PorsukApp(
                     composable(Screen.GlobalMarkets.route) {
                         com.nexus.porsuk.feature.globalmarkets.GlobalMarketsScreen(
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = Screen.FundIntelligence.route,
+                        arguments = listOf(navArgument("fundCode") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val fundCode = backStackEntry.arguments?.getString("fundCode") ?: ""
+                        com.nexus.porsuk.feature.fundintelligence.FundIntelligenceScreen(
+                            fundCode = fundCode,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = Screen.FundDetail.route,
+                        arguments = listOf(navArgument("fundCode") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val fundCode = backStackEntry.arguments?.getString("fundCode") ?: ""
+                        com.nexus.porsuk.feature.fundintelligence.FundIntelligenceScreen(
+                            fundCode = fundCode,
+                            onBack = { navController.popBackStack() }
                         )
                     }
 

@@ -14,7 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class FundIntelligenceRepositoryImpl @Inject constructor(
     private val fundDao: FundIntelligenceDao,
-    private val providers: List<FundIntelligenceProvider>
+    private val providers: List<@JvmSuppressWildcards FundIntelligenceProvider>
 ) : FundIntelligenceRepository {
 
     override fun getFundIntelligence(code: String): Flow<FundIntelligence?> {

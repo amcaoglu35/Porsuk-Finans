@@ -55,7 +55,8 @@ fun AllToolsScreen(
         ToolItemData("Backtest Engine", "Geçmiş Veri ile Strateji Performans Testi", "🧪", "backtest", "Risk, Temettü & Strateji"),
         ToolItemData("Temettü Analizi", "Temettü Verimi, Büyüme ve Ödeme Takvimi", "💵", "dividend", "Risk, Temettü & Strateji"),
         ToolItemData("Risk Engine", "Volatilite, Riske Maruz Değer (VaR) ve Stres Testi", "⚠️", "risk", "Risk, Temettü & Strateji"),
-        ToolItemData("Master Skor", "Temel ve Teknik Analiz Puanlama Sistemi", "🏆", "master_score", "Risk, Temettü & Strateji")
+        ToolItemData("Master Skor", "Temel ve Teknik Analiz Puanlama Sistemi", "🏆", "master_score", "Risk, Temettü & Strateji"),
+        ToolItemData("Fon Zekası", "TEFAS Yatırım Fonları için Yapay Zeka Analizi", "🤖", "fund_intelligence/TTE", "Risk, Temettü & Strateji")
     )
 
     val groupedTools = tools.groupBy { it.category }

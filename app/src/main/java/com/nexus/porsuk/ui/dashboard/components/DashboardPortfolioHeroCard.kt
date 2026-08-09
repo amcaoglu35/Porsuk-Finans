@@ -33,6 +33,7 @@ fun DashboardPortfolioCard(
     onToggleBalance: () -> Unit,
     numberFormat: String,
     onLedgerClick: () -> Unit,
+    onPortfolioClick: () -> Unit = {},
     totalGainValue: Double = 0.0,
     totalGainPercent: Double = 0.0,
     annualGainValue: Double = 0.0,
@@ -67,7 +68,8 @@ fun DashboardPortfolioCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = primaryColor.copy(alpha = 0.2f)),
+            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = primaryColor.copy(alpha = 0.2f))
+            .clickable(onClick = onPortfolioClick),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = surfaceColor),
         border = BorderStroke(1.dp, outlineColor)

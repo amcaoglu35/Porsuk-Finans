@@ -2,7 +2,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:name="com.nexus.porsuk.PorsukApplication"
@@ -33,6 +35,51 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Glance Widgets Receivers -->
+        <receiver
+            android:name="com.nexus.porsuk.widget.PorsukWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/porsuk_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.nexus.porsuk.widget.PorsukWatchlistWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/porsuk_watchlist_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.nexus.porsuk.widget.PorsukMarketRadarWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/porsuk_market_radar_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.nexus.porsuk.widget.PorsukDividendWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/porsuk_dividend_widget_info" />
+        </receiver>
 
     </application>
 

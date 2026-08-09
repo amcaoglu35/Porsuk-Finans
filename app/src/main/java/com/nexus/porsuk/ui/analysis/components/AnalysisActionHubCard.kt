@@ -84,7 +84,8 @@ fun AiAccuracyCardSection() {
 @Composable
 fun AiActionAndScenarioHubCard(
     onRunAnalysis: () -> Unit,
-    onRunOracle: () -> Unit
+    onRunOracle: () -> Unit,
+    onCreateBasket: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -129,13 +130,13 @@ fun AiActionAndScenarioHubCard(
                     Text("Oracle Çalıştır", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = Manrope)
                 }
                 Button(
-                    onClick = onRunAnalysis,
+                    onClick = onCreateBasket,
                     modifier = Modifier.weight(1f).height(38.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PozitifGreen),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Text("Portföyü Tara", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = Manrope)
+                    Text("Sepet Oluştur", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = Manrope)
                 }
             }
 

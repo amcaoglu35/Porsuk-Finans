@@ -14,7 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,9 +43,6 @@ fun getCurrencySymbolForRegion(region: Region): String {
     }
 }
 
-import com.ramcosta.composedestinations.annotation.Destination
-
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateBasketScreen(

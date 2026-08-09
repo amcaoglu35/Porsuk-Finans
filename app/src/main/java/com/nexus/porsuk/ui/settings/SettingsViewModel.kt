@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.data.local.entity.PriceAlert
 import com.nexus.porsuk.data.repository.FinanceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class SettingsUiState(
     val userName: String = "Yerel Kullanıcı",
@@ -22,8 +24,7 @@ data class SettingsUiState(
     val activeAlerts: List<PriceAlert> = emptyList(),
     val isOnboardingCompleted: Boolean = false,
     val isLoaded: Boolean = false
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -90,8 +91,6 @@ class SettingsViewModel @Inject constructor(
     fun saveFmpApiKey(key: String) {
         settingsManager.saveFmpApiKey(key)
     }
-
-
 
     fun deletePriceAlert(alertId: Int) {
         viewModelScope.launch {

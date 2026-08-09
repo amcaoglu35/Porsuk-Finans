@@ -107,4 +107,11 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object MasterScore : Screen("master_score", "Master Skor", Icons.Outlined.Psychology)
     object GlobalMarkets : Screen("global_markets", "Global Piyasalar", Icons.AutoMirrored.Outlined.TrendingUp)
     object AllTools : Screen("all_tools", "Tüm Araçlar", Icons.Outlined.Settings)
+    object PortfolioOverview : Screen("portfolio_overview", "Portföy Özeti", Icons.Outlined.AccountBalanceWallet)
+    object FundDetail : Screen("fund_detail/{fundCode}", "Fon Detayı", Icons.AutoMirrored.Outlined.List) {
+        fun createRoute(fundCode: String) = "fund_detail/$fundCode"
+    }
+    object FundIntelligence : Screen("fund_intelligence/{fundCode}", "Fon Zekası", Icons.Outlined.Psychology) {
+        fun createRoute(fundCode: String) = "fund_intelligence/$fundCode"
+    }
 }

@@ -50,6 +50,13 @@ private val SuccessGreen = Color(0xFF00C48C)
 private val WarningOrange = Color(0xFFFF9800)
 private val CriticalRed = Color(0xFFF44336)
 
+private data class ModuleAccuracyItem(
+    val moduleName: String,
+    val accuracyPct: Double,
+    val totalCount: Int,
+    val icon: String
+)
+
 private data class PredictionHistoryItem(
     val id: String,
     val symbol: String,
@@ -61,9 +68,6 @@ private data class PredictionHistoryItem(
     val selfEvaluation: String
 )
 
-import com.ramcosta.composedestinations.annotation.Destination
-
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiPerformanceCenterScreen(

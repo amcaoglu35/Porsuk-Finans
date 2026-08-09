@@ -41,7 +41,7 @@ fun PortfolioHistoryChart(
     val lineSpec = remember(lineColor) {
         LineChart.LineSpec(
             lineColor = lineColor.hashCode(),
-            backgroundShader = DynamicShaders.fromBrush(
+            lineBackgroundShader = DynamicShaders.fromBrush(
                 Brush.verticalGradient(
                     listOf(
                         lineColor.copy(alpha = 0.3f),

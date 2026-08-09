@@ -22,30 +22,54 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.data.local.entity.PriceSnapshot
+import com.nexus.porsuk.ui.common.CurrencyFormatter
+import com.nexus.porsuk.ui.common.PercentFormatter
 import com.nexus.porsuk.ui.theme.*
 
 @Composable
-fun StocksTab(onStockClick: (String, String) -> Unit) {
+fun StocksTab(
+    prices: Map<String, PriceSnapshot>,
+    watchlistSymbols: List<String> = emptyList(),
+    onStockClick: (String, String) -> Unit
+) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedFilter by rememberSaveable { mutableIntStateOf(0) }
     var favoriteSet by remember { mutableStateOf(setOf("THYAO", "ASELS", "NVDA")) }
 
-    val allStocks = remember {
+    val stockConfigs = remember {
         listOf(
-            StockItem("THYAO", "Türk Hava Yolları", "₺305,25", "^ %2,87", "₺8.2B Hacim", "BIST", true),
-            StockItem("ASELS", "Aselsan", "₺56,70", "^ %4,25", "₺4.5B Hacim", "BIST", true),
-            StockItem("NVDA", "NVIDIA Corporation", "$128,20", "^ %3,45", "$32.4B Hacim", "NASDAQ", true),
-            StockItem("AAPL", "Apple Inc.", "$224,30", "^ %1,12", "$21.8B Hacim", "NASDAQ", true),
-            StockItem("KCHOL", "Koç Holding", "₺182,40", "^ %0,31", "₺1.8B Hacim", "BIST", true),
-            StockItem("AKBNK", "Akbank", "₺52,15", "v %-0,42", "₺2.4B Hacim", "BIST", false),
-            StockItem("TSLA", "Tesla Inc.", "$248,50", "v %-1,85", "$18.6B Hacim", "NASDAQ", false),
-            StockItem("MSFT", "Microsoft Corp.", "$447,20", "^ %0,95", "$14.2B Hacim", "NASDAQ", true),
-            StockItem("SISE", "Şişecam", "₺49,18", "^ %1,98", "₺950M Hacim", "BIST", true),
-            StockItem("AMZN", "Amazon.com Inc.", "$186,10", "^ %1,45", "$12.9B Hacim", "NASDAQ", true)
+            StockItem("THYAO", "Türk Hava Yolları", "₺305,25", "^ %2,87", "BIST", true),
+            StockItem("ASELS", "Aselsan", "₺56,70", "^ %4,25", "BIST", true),
+            StockItem("NVDA", "NVIDIA Corporation", "$128,20", "^ %3,45", "NASDAQ", true),
+            StockItem("AAPL", "Apple Inc.", "$224,30", "^ %1,12", "NASDAQ", true),
+            StockItem("KCHOL", "Koç Holding", "₺182,40", "^ %0,31", "BIST", true),
+            StockItem("AKBNK", "Akbank", "₺52,15", "v %-0,42", "BIST", false),
+            StockItem("TSLA", "Tesla Inc.", "$248,50", "v %-1,85", "NASDAQ", false),
+            StockItem("MSFT", "Microsoft Corp.", "$447,20", "^ %0,95", "NASDAQ", true),
+            StockItem("SISE", "Şişecam", "₺49,18", "^ %1,98", "BIST", true),
+            StockItem("AMZN", "Amazon.com Inc.", "$186,10", "^ %1,45", "NASDAQ", true)
         )
     }
 
-    val filteredStocks = remember(searchQuery, selectedFilter, favoriteSet) {
+    val allStocks = remember(prices) {
+        stockConfigs.map { config ->
+            val snap = prices[config.symbol]
+            if (snap != null && snap.price > 0.0) {
+                val symbol = CurrencyFormatter.getCurrencySymbol(config.market)
+                val (formattedChange, isPositive) = PercentFormatter.formatChangePercent(snap.changePercent)
+                config.copy(
+                    price = CurrencyFormatter.formatWithSymbol(snap.price, symbol),
+                    changePct = formattedChange,
+                    isPos = isPositive
+                )
+            } else {
+                config
+            }
+        }
+    }
+
+    val filteredStocks = remember(searchQuery, selectedFilter, favoriteSet, allStocks) {
         allStocks.filter { stock ->
             val matchesSearch = stock.symbol.contains(searchQuery, ignoreCase = true) || stock.name.contains(searchQuery, ignoreCase = true)
             val matchesFilter = when (selectedFilter) {
@@ -172,4 +196,4 @@ fun StocksTab(onStockClick: (String, String) -> Unit) {
     }
 }
 
-private data class StockItem(val symbol: String, val name: String, val price: String, val changePct: String, val volume: String, val market: String, val isPos: Boolean)
+private data class StockItem(val symbol: String, val name: String, val price: String, val changePct: String, val market: String, val isPos: Boolean)

@@ -2,17 +2,18 @@ package com.nexus.porsuk.data.engine
 
 import org.ta4j.core.BarSeries
 import org.ta4j.core.BaseBarSeriesBuilder
+import org.ta4j.core.BaseBar
 import org.ta4j.core.indicators.ATRIndicator
 import org.ta4j.core.indicators.MACDIndicator
 import org.ta4j.core.indicators.RSIIndicator
-import org.ta4j.core.indicators.SMAIndicator
-import org.ta4j.core.indicators.EMAIndicator
+import org.ta4j.core.indicators.averages.SMAIndicator
+import org.ta4j.core.indicators.averages.EMAIndicator
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator
 import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator
 import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator
 import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator
-import org.ta4j.core.num.DecimalNum
+import org.ta4j.core.num.Num
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -34,10 +35,6 @@ data class Ta4jIndicatorResults(
 
 object Ta4jTechnicalCalculator {
 
-    /**
-     * Map a list of price/OHLCV data into a ta4j BarSeries.
-     * Minimum required bars for reliable indicator calculations is 14.
-     */
     fun createBarSeries(
         name: String,
         prices: List<Double>,
@@ -49,10 +46,11 @@ object Ta4jTechnicalCalculator {
 
         val now = System.currentTimeMillis()
         val duration = Duration.ofDays(1)
+        val numFactory = series.numFactory()
 
         prices.forEachIndexed { index, closePrice ->
             val ts = if (index < timestamps.size) timestamps[index] else now - ((prices.size - 1 - index) * 86400000L)
-            val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneId.systemDefault())
+            val instant = Instant.ofEpochMilli(ts)
             
             val openPrice = if (index > 0) prices[index - 1] else closePrice
             val highPrice = maxOf(openPrice, closePrice) * 1.002
@@ -60,71 +58,53 @@ object Ta4jTechnicalCalculator {
             val volume = if (index < volumes.size) volumes[index] else 1000.0
 
             try {
-                series.addBar(
+                val bar = BaseBar(
                     duration,
-                    zdt,
-                    DecimalNum.valueOf(openPrice),
-                    DecimalNum.valueOf(highPrice),
-                    DecimalNum.valueOf(lowPrice),
-                    DecimalNum.valueOf(closePrice),
-                    DecimalNum.valueOf(volume)
+                    instant,
+                    numFactory.numOf(openPrice),
+                    numFactory.numOf(highPrice),
+                    numFactory.numOf(lowPrice),
+                    numFactory.numOf(closePrice),
+                    numFactory.numOf(volume),
+                    numFactory.numOf(0), // amount
+                    0L // trades
                 )
-            } catch (_: Exception) {
-                // Ignore bar addition errors if timestamp order clashes
-            }
+                series.addBar(bar)
+            } catch (_: Exception) {}
         }
         return series
     }
 
-    /**
-     * Calculate RSI, MACD, Bollinger Bands, ATR, SMA and EMA using ta4j core indicators.
-     */
     fun calculateIndicators(series: BarSeries): Ta4jIndicatorResults {
         if (series.barCount < 14) {
-            return Ta4jIndicatorResults(
-                rsi = null,
-                macdValue = null,
-                macdSignal = null,
-                macdHist = null,
-                bollingerUpper = null,
-                bollingerMiddle = null,
-                bollingerLower = null,
-                atr = null,
-                sma50 = null,
-                ema20 = null,
-                isSufficientData = false
-            )
+            return Ta4jIndicatorResults(null, null, null, null, null, null, null, null, null, null, false)
         }
 
         val endIndex = series.endIndex
         val closePrice = ClosePriceIndicator(series)
+        val numFactory = series.numFactory()
 
-        // 1. RSI (14)
         val rsiIndicator = RSIIndicator(closePrice, 14)
         val rsiVal = rsiIndicator.getValue(endIndex).doubleValue()
 
-        // 2. MACD (12, 26, 9)
         val macdIndicator = MACDIndicator(closePrice, 12, 26)
         val macdSignalIndicator = EMAIndicator(macdIndicator, 9)
         val macdVal = macdIndicator.getValue(endIndex).doubleValue()
         val macdSignalVal = macdSignalIndicator.getValue(endIndex).doubleValue()
         val macdHistVal = macdVal - macdSignalVal
 
-        // 3. Bollinger Bands (20, 2 stddev)
         val bbMiddle = BollingerBandsMiddleIndicator(closePrice)
         val stdDev = StandardDeviationIndicator(closePrice, 20)
-        val bbUpper = BollingerBandsUpperIndicator(bbMiddle, stdDev, DecimalNum.valueOf(2))
-        val bbLower = BollingerBandsLowerIndicator(bbMiddle, stdDev, DecimalNum.valueOf(2))
+        val bbUpper = BollingerBandsUpperIndicator(bbMiddle, stdDev, numFactory.numOf(2))
+        val bbLower = BollingerBandsLowerIndicator(bbMiddle, stdDev, numFactory.numOf(2))
 
         val bbMidVal = bbMiddle.getValue(endIndex).doubleValue()
         val bbUpVal = bbUpper.getValue(endIndex).doubleValue()
         val bbLowVal = bbLower.getValue(endIndex).doubleValue()
 
-        // 4. ATR (14)
         val atrIndicator = ATRIndicator(series, 14)
         val atrVal = atrIndicator.getValue(endIndex).doubleValue()
 
-        // 5. SMA 50 & EMA 20
         val sma50Indicator = SMAIndicator(closePrice, 50.coerceAtMost(series.barCount))
         val ema20Indicator = EMAIndicator(closePrice, 20.coerceAtMost(series.barCount))
         val sma50Val = sma50Indicator.getValue(endIndex).doubleValue()
@@ -145,24 +125,14 @@ object Ta4jTechnicalCalculator {
         )
     }
 
-    /**
-     * RSI (14 period) serisi hesapla (NullPointerException korumalı)
-     */
     fun calculateRSI(barSeries: BarSeries, period: Int = 14): List<Double> {
         if (barSeries.isEmpty || barSeries.barCount < period) return emptyList()
         val rsiIndicator = RSIIndicator(ClosePriceIndicator(barSeries), period)
         return (0 until barSeries.barCount).map { i ->
-            try {
-                rsiIndicator.getValue(i).doubleValue()
-            } catch (_: Exception) {
-                0.0
-            }
+            try { rsiIndicator.getValue(i).doubleValue() } catch (_: Exception) { 0.0 }
         }
     }
 
-    /**
-     * MACD serisi hesapla (Fast, Slow, Signal)
-     */
     fun calculateMACD(
         barSeries: BarSeries,
         fastPeriod: Int = 12,

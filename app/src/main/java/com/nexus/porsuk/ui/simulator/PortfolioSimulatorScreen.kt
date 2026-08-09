@@ -48,9 +48,8 @@ private val BorderColor = Color(0xFFF1F5F9)
 private val SuccessGreen = Color(0xFF00C48C)
 private val WarningOrange = Color(0xFFFF9800)
 
-import com.ramcosta.composedestinations.annotation.Destination
+private data class SimAssetItem(val symbol: String, val name: String, val weightPct: Float, val category: String)
 
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortfolioSimulatorScreen(

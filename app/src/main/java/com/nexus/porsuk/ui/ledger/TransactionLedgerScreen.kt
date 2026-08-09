@@ -40,9 +40,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 
-import com.ramcosta.composedestinations.annotation.Destination
-
-@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionLedgerScreen(

@@ -110,21 +110,38 @@ private fun HeroMarketCardsRow(
     val usdRate = exchangeRates["USD"] ?: 34.5
 
     fun buildHeroItem(title: String, code: String, iconEmoji: String, defaultPrice: String, defaultChange: String, defaultPos: Boolean): HeroMarketCardItem {
-        val snap = prices[code]
+        val snap = when (code) {
+            "BIST100" -> prices["BIST100"] ?: prices["XU100"]
+            "BIST30" -> prices["BIST30"] ?: prices["XU030"]
+            "USDTRY" -> prices["USDTRY"] ?: exchangeRates["USD"]?.let { PriceSnapshot("USDTRY", it, 0.0, "DAY") }
+            "EURUSD" -> prices["EURUSD"] ?: prices["EURUSD=X"]
+            else -> prices[code]
+        }
         if (snap != null && snap.price > 0.0) {
             val (changeStr, isPos) = PercentFormatter.formatChangePercent(snap.changePercent)
-            val priceStr = CurrencyFormatter.formatTRY(snap.price, "TR")
+            val priceStr = when (code) {
+                "EURUSD" -> String.format(java.util.Locale.US, "%.4f", snap.price)
+                "USDTRY" -> String.format(java.util.Locale.US, "₺%.2f", snap.price)
+                "GC=F" -> String.format(java.util.Locale.US, "₺%.2f", snap.price * usdRate / 31.1035)
+                "CL=F" -> String.format(java.util.Locale.US, "$%.2f", snap.price)
+                "BTC-USD" -> String.format(java.util.Locale.US, "$%,.2f", snap.price)
+                else -> CurrencyFormatter.formatTRY(snap.price, "TR")
+            }
             val spark = if (isPos) listOf(40f, 42f, 45f, 48f, 50f) else listOf(50f, 48f, 45f, 42f, 40f)
-            return HeroMarketCardItem(title, priceStr, changeStr, isPos, iconEmoji, spark)
+            return HeroMarketCardItem(title, priceStr, changeStr, isPos, iconEmoji, spark, isDataAvailable = true)
         }
-        return HeroMarketCardItem(title, defaultPrice, defaultChange, defaultPos, iconEmoji, listOf(40f, 42f, 45f, 48f, 50f))
+        if (code == "USDTRY" && exchangeRates["USD"] != null && exchangeRates["USD"]!! > 0.0) {
+            val priceStr = String.format(java.util.Locale.US, "₺%.2f", exchangeRates["USD"])
+            return HeroMarketCardItem(title, priceStr, defaultChange, defaultPos, iconEmoji, listOf(40f, 42f, 45f, 48f, 50f), isDataAvailable = true)
+        }
+        return HeroMarketCardItem(title, "Veri Yok", "--", true, iconEmoji, emptyList(), isDataAvailable = false)
     }
 
     val cardsData = remember(prices, exchangeRates) {
         listOf(
             buildHeroItem("BIST 100", "BIST100", "🟣", "10.456,87", "^ %1,35", true),
             buildHeroItem("BIST 30", "BIST30", "🔵", "11.632,15", "^ %1,28", true),
-            buildHeroItem("DOLAR / TL", "USDTRY", "💵", String.format("%.2f", usdRate), "^ %0,42", true),
+            buildHeroItem("DOLAR / TL", "USDTRY", "💵", String.format(java.util.Locale.US, "₺%.2f", usdRate), "^ %0,42", true),
             buildHeroItem("ALTIN / GR", "GC=F", "🪙", "2.395,45", "^ %0,31", true),
             buildHeroItem("EUR / USD", "EURUSD", "💶", "1,0850", "v %0,28", false),
             buildHeroItem("BRENT", "CL=F", "🛢️", "84,20", "^ %0,75", true),
@@ -143,7 +160,15 @@ private fun HeroMarketCardsRow(
     }
 }
 
-private data class HeroMarketCardItem(val title: String, val price: String, val changePct: String, val isPositive: Boolean, val iconEmoji: String, val sparkValues: List<Float>)
+private data class HeroMarketCardItem(
+    val title: String,
+    val price: String,
+    val changePct: String,
+    val isPositive: Boolean,
+    val iconEmoji: String,
+    val sparkValues: List<Float>,
+    val isDataAvailable: Boolean = true
+)
 
 @Composable
 private fun HeroMarketCard(item: HeroMarketCardItem) {
@@ -174,17 +199,47 @@ private fun HeroMarketCard(item: HeroMarketCardItem) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Text(item.price, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = color)
-            Spacer(modifier = Modifier.height(8.dp))
+            if (!item.isDataAvailable) {
+                Text(
+                    "Veri Yok",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono),
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    "--",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono),
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                }
+            } else {
+                Text(
+                    item.price,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    item.changePct,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono),
+                    color = color
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Sparkline(
-                values = item.sparkValues,
-                color = color,
-                modifier = Modifier.fillMaxWidth().height(28.dp),
-                filled = true
-            )
+                Sparkline(
+                    values = item.sparkValues,
+                    color = color,
+                    modifier = Modifier.fillMaxWidth().height(28.dp),
+                    filled = true
+                )
+            }
         }
     }
 }
@@ -401,22 +456,54 @@ private fun GlobalMarketsSection(
     val filterTabs = remember { listOf("ABD", "Avrupa", "Asya", "Emtia", "Kripto") }
 
     fun buildGlobalItem(name: String, code: String, flag: String, defaultPrice: String, defaultChange: String, defaultPos: Boolean): GlobalMarketItem {
-        val snap = prices[code]
+        val snap = when (code) {
+            "DAX" -> prices["DAX"] ?: prices["^GDAXI"]
+            "FTSE" -> prices["FTSE"] ?: prices["^FTSE"]
+            "N225" -> prices["N225"] ?: prices["^N225"]
+            "HSI" -> prices["HSI"] ?: prices["^HSI"]
+            "SPY" -> prices["SPY"] ?: prices["^GSPC"]
+            "QQQ" -> prices["QQQ"] ?: prices["^IXIC"]
+            "IWM" -> prices["IWM"] ?: prices["^DJI"]
+            else -> prices[code]
+        }
         if (snap != null && snap.price > 0.0) {
             val (changeStr, isPos) = PercentFormatter.formatChangePercent(snap.changePercent)
-            val priceStr = String.format("%.2f", snap.price)
+            val priceStr = String.format(java.util.Locale.US, "%,.2f", snap.price)
             val spark = if (isPos) listOf(50f, 52f, 51f, 55f, 58f) else listOf(58f, 55f, 51f, 52f, 50f)
-            return GlobalMarketItem(name, priceStr, changeStr, isPos, flag, spark)
+            return GlobalMarketItem(name, priceStr, changeStr, isPos, flag, spark, isDataAvailable = true)
         }
-        return GlobalMarketItem(name, defaultPrice, defaultChange, defaultPos, flag, listOf(50f, 52f, 51f, 55f, 58f))
+        return GlobalMarketItem(name, "Veri Yok", "--", true, flag, emptyList(), isDataAvailable = false)
     }
 
-    val globalItems = remember(prices) {
-        listOf(
-            buildGlobalItem("S&P 500", "SPY", "🇺🇸", "5.325,16", "^ %0,88", true),
-            buildGlobalItem("NASDAQ", "QQQ", "🇺🇸", "16.832,62", "^ %1,28", true),
-            buildGlobalItem("DOW JONES", "IWM", "🇺🇸", "39.872,99", "^ %0,75", true)
-        )
+    val globalItems = remember(prices, selectedTab) {
+        when (selectedTab) {
+            0 -> listOf(
+                buildGlobalItem("S&P 500", "SPY", "🇺🇸", "5.325,16", "^ %0,88", true),
+                buildGlobalItem("NASDAQ", "QQQ", "🇺🇸", "16.832,62", "^ %1,28", true),
+                buildGlobalItem("DOW JONES", "IWM", "🇺🇸", "39.872,99", "^ %0,75", true)
+            )
+            1 -> listOf(
+                buildGlobalItem("DAX 40", "DAX", "🇩🇪", "18.720,40", "v %0,25", false),
+                buildGlobalItem("FTSE 100", "FTSE", "🇬🇧", "8.245,10", "^ %0,42", true)
+            )
+            2 -> listOf(
+                buildGlobalItem("NIKKEI 225", "N225", "🇯🇵", "38.650,00", "^ %0,75", true),
+                buildGlobalItem("HANG SENG", "HSI", "🇭🇰", "17.920,80", "v %0,65", false)
+            )
+            3 -> listOf(
+                buildGlobalItem("Altın (Ons)", "GC=F", "🪙", "2.395,45", "^ %0,31", true),
+                buildGlobalItem("Brent Petrol", "CL=F", "🛢️", "84,20", "^ %0,75", true)
+            )
+            4 -> listOf(
+                buildGlobalItem("Bitcoin", "BTC-USD", "₿", "67.450,00", "^ %2,10", true),
+                buildGlobalItem("Ethereum", "ETH-USD", "Ξ", "3.480,00", "^ %1,85", true)
+            )
+            else -> listOf(
+                buildGlobalItem("S&P 500", "SPY", "🇺🇸", "5.325,16", "^ %0,88", true),
+                buildGlobalItem("NASDAQ", "QQQ", "🇺🇸", "16.832,62", "^ %1,28", true),
+                buildGlobalItem("DOW JONES", "IWM", "🇺🇸", "39.872,99", "^ %0,75", true)
+            )
+        }
     }
 
     Card(
@@ -467,11 +554,20 @@ private fun GlobalMarketsSection(
                 ) {
                     Column(modifier = Modifier.weight(1.2f)) {
                         Text(item.name, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
-                        Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (!item.isDataAvailable) {
+                            Text("Veri Yok", style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = MaterialTheme.colorScheme.outline)
+                        } else {
+                            Text(item.price, style = MaterialTheme.typography.labelSmall.copy(fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
 
-                    Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = color, modifier = Modifier.weight(0.8f))
-                    Sparkline(values = item.sparkValues, color = color, modifier = Modifier.weight(1.0f).height(24.dp), filled = true)
+                    if (!item.isDataAvailable) {
+                        Text("--", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = MaterialTheme.colorScheme.outline, modifier = Modifier.weight(0.8f))
+                        Spacer(modifier = Modifier.weight(1.0f))
+                    } else {
+                        Text(item.changePct, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono, fontSize = 9.5.sp), color = color, modifier = Modifier.weight(0.8f))
+                        Sparkline(values = item.sparkValues, color = color, modifier = Modifier.weight(1.0f).height(24.dp), filled = true)
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(item.flagEmoji, fontSize = 18.sp)
                 }
@@ -481,7 +577,15 @@ private fun GlobalMarketsSection(
     }
 }
 
-private data class GlobalMarketItem(val name: String, val price: String, val changePct: String, val isPositive: Boolean, val flagEmoji: String, val sparkValues: List<Float>)
+private data class GlobalMarketItem(
+    val name: String,
+    val price: String,
+    val changePct: String,
+    val isPositive: Boolean,
+    val flagEmoji: String,
+    val sparkValues: List<Float>,
+    val isDataAvailable: Boolean = true
+)
 
 @Composable
 private fun QuickToolsGridSection(onCalendarClick: () -> Unit, onScreenerClick: () -> Unit) {

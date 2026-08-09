@@ -29,6 +29,7 @@ fun MarketsScreen(
     viewModel: AnalysisViewModel,
     financeViewModel: com.nexus.porsuk.ui.FinanceViewModel? = null,
     onStockClick: (String, String) -> Unit,
+    onFundClick: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onCalendarClick: () -> Unit = {},
     onScreenerClick: () -> Unit = {}
@@ -44,6 +45,25 @@ fun MarketsScreen(
     LaunchedEffect(Unit) {
         isVisible = true
         financeViewModel?.refreshExchangeRates()
+        
+        // BIST & Global Indices
+        listOf("XU100" to "BIST", "XU030" to "BIST").forEach { (symbol, market) ->
+            financeViewModel?.fetchPrice(symbol, market)
+        }
+        listOf("DAX", "FTSE", "N225", "HSI").forEach {
+            financeViewModel?.fetchPrice(it, "INDEX")
+        }
+
+        // Markets Tab Stocks
+        listOf(
+            "THYAO" to "BIST", "ASELS" to "BIST", "KCHOL" to "BIST",
+            "AKBNK" to "BIST", "SISE" to "BIST",
+            "NVDA" to "NASDAQ", "AAPL" to "NASDAQ", "TSLA" to "NASDAQ",
+            "MSFT" to "NASDAQ", "AMZN" to "NASDAQ"
+        ).forEach { (symbol, market) ->
+            financeViewModel?.fetchPrice(symbol, market)
+        }
+
         listOf("GC=F", "CL=F", "SI=F", "NG=F", "HG=F", "PL=F").forEach {
             financeViewModel?.fetchPrice(it, "COMMODITY")
         }
@@ -52,6 +72,9 @@ fun MarketsScreen(
         }
         listOf("SPY", "QQQ", "GLD", "VOO", "TLT", "IWM").forEach {
             financeViewModel?.fetchPrice(it, "ETF")
+        }
+        listOf("EURUSD").forEach {
+            financeViewModel?.fetchPrice(it, "FOREX")
         }
     }
 
@@ -98,15 +121,17 @@ fun MarketsScreen(
                         onGlobalMarketTabSelected = { selectedGlobalMarketTab = it },
                         onStockClick = onStockClick,
                         onCalendarClick = onCalendarClick,
-                        onScreenerClick = onScreenerClick
+                        onScreenerClick = onScreenerClick,
+                        prices = prices,
+                        exchangeRates = exchangeRates
                     )
-                    1 -> IndicesTab(onStockClick = onStockClick)
-                    2 -> StocksTab(onStockClick = onStockClick)
+                    1 -> IndicesTab(prices = prices, onStockClick = onStockClick)
+                    2 -> StocksTab(prices = prices, onStockClick = onStockClick)
                     3 -> ForexTab(exchangeRates = exchangeRates, prices = prices)
                     4 -> CommoditiesTab(prices = prices, exchangeRates = exchangeRates)
                     5 -> CryptoTab(prices = prices, exchangeRates = exchangeRates)
                     6 -> EtfTab(prices = prices)
-                    7 -> FundsTab(funds = tefasFunds)
+                    7 -> FundsTab(funds = tefasFunds, onFundClick = onFundClick)
                     8 -> CalendarPreviewTab(onCalendarClick = onCalendarClick)
                     9 -> HeatMapTab()
                     else -> SummaryOverviewTab(
@@ -115,7 +140,9 @@ fun MarketsScreen(
                         onGlobalMarketTabSelected = { selectedGlobalMarketTab = it },
                         onStockClick = onStockClick,
                         onCalendarClick = onCalendarClick,
-                        onScreenerClick = onScreenerClick
+                        onScreenerClick = onScreenerClick,
+                        prices = prices,
+                        exchangeRates = exchangeRates
                     )
                 }
             }

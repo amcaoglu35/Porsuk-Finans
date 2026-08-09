@@ -4,20 +4,26 @@ import android.content.Context
 import android.util.Log
 import androidx.work.*
 import com.nexus.porsuk.data.local.entity.KaziWatch
-import com.nexus.porsuk.ui.FinanceViewModelFactory
+import com.nexus.porsuk.data.repository.KaziRepository
+import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.ui.common.NotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import androidx.hilt.work.HiltWorker
 
-class KaziWatchWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class KaziWatchWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val kaziRepo: KaziRepository,
+    private val settings: SettingsManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val kaziRepo = FinanceViewModelFactory.getKaziRepository(applicationContext)
-        val apiKey = FinanceViewModelFactory.getSettingsManager(applicationContext).getGeminiApiKey()
+        val apiKey = settings.getGeminiApiKey()
 
         if (apiKey.isNullOrBlank()) return@withContext Result.success()
 

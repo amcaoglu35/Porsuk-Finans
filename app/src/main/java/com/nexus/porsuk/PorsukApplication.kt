@@ -15,6 +15,9 @@ class PorsukApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var priceAlertManager: com.nexus.porsuk.worker.PriceAlertManager
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -24,6 +27,9 @@ class PorsukApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Initialize Core Infrastructure
         com.nexus.porsuk.core.common.GlobalCrashHandler.initialize(this)
+
+        // Ensure PriceAlertManager is started
+        priceAlertManager.hashCode() 
 
         // Schedule System Workers
         com.nexus.porsuk.worker.AutomationWorker.schedule(this)

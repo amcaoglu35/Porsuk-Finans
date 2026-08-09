@@ -22,6 +22,16 @@ class PortfolioViewModel @Inject constructor(
     private val settingsManager: SettingsManager
 ) : ViewModel() {
 
+    init {
+        viewModelScope.launch {
+            repository.eventBus.events.collect { event ->
+                if (event is com.nexus.porsuk.core.common.PorsukEvent.PortfolioChanged) {
+                    refreshAllData()
+                }
+            }
+        }
+    }
+
     private val basketItemsFlow = repository.allBaskets.flatMapLatest { baskets ->
         val flows = baskets.map { basket ->
             repository.getBasketItems(basket.id).map { items ->

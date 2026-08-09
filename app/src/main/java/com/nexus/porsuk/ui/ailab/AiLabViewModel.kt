@@ -11,14 +11,58 @@ import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
+import java.util.UUID
+
+data class ToolReportHistory(
+    val toolName: String,
+    val report: String,
+    val timestamp: Long,
+    val id: String = UUID.randomUUID().toString()
+)
+
 @HiltViewModel
 class AiLabViewModel @Inject constructor(
     private val repository: FinanceRepository,
-    private val settingsManager: SettingsManager
+    private val settingsManager: SettingsManager,
+    private val autoRebalanceService: com.nexus.porsuk.data.engine.AutoRebalanceService,
+    private val contextBuilder: ToolContextBuilder
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiLabUiState())
     val uiState: StateFlow<AiLabUiState> = _uiState.asStateFlow()
+
+    private val _toolHistory = MutableStateFlow<List<ToolReportHistory>>(emptyList())
+    val toolHistory: StateFlow<List<ToolReportHistory>> = _toolHistory.asStateFlow()
+
+    fun executeAutoRebalance() {
+        viewModelScope.launch {
+            // Target: 25% THYAO, 25% ASELS, 20% KCHOL, 15% AKBNK, 15% SISE
+            val target = mapOf(
+                "THYAO" to 25.0,
+                "ASELS" to 25.0,
+                "KCHOL" to 20.0,
+                "AKBNK" to 15.0,
+                "SISE" to 15.0
+            )
+            autoRebalanceService.executeAutoRebalance(target)
+        }
+    }
+
+    fun setRiskMonitoring(enabled: Boolean, context: android.content.Context) {
+        if (enabled) {
+            com.nexus.porsuk.worker.RiskAlertWorker.schedule(context)
+        } else {
+            com.nexus.porsuk.worker.RiskAlertWorker.cancel(context)
+        }
+    }
+
+    fun setNightSummary(enabled: Boolean, context: android.content.Context) {
+        if (enabled) {
+            com.nexus.porsuk.worker.NightSummaryWorker.schedule(context)
+        } else {
+            com.nexus.porsuk.worker.NightSummaryWorker.cancel(context)
+        }
+    }
 
     fun runTool(toolName: String) {
         viewModelScope.launch {
@@ -35,85 +79,47 @@ class AiLabViewModel @Inject constructor(
                     throw Exception("Gemini API Key eksik. Lütfen Ayarlar menüsünden geçerli bir API Key tanımlayın.")
                 }
 
-                // Gerçek verilerden oluşturulan zengin bağlam (Context)
-                val contextData = when(toolName) {
-                    "Portfolio Health Check" -> {
-                        val items = repository.getAllBasketItemsDirect()
-                        "Portföy Varlıkları: " + items.joinToString { "${it.symbol} (${it.quantity} lot, Alış: ${it.buyPrice} TL)" }
-                    }
-                    "Stock Compare" -> {
-                        val watchlist = repository.watchlist.first()
-                        val companies = repository.allCompanies.first().filter { it.symbol in watchlist.map { w -> w.symbol } }.take(5)
-                        "Karşılaştırılacak Hisseler: " + companies.joinToString { "${it.symbol} (${it.name}, Fiyat: ${it.currentPrice}, Değişim: %${it.changePercent})" }
-                    }
-                    "Sector Compare" -> {
-                        val companies = repository.allCompanies.first()
-                        val sectorMap = companies.groupBy { it.sector }
-                        "Sektör Dağılımları: " + sectorMap.map { (sector, list) -> "$sector: ${list.size} şirket, ort. değişim: %${list.map { c -> c.changePercent }.average()}" }.joinToString("; ")
-                    }
-                    "AI Screener" -> {
-                        val companies = repository.allCompanies.first().take(15)
-                        "Taranan Hisseler: " + companies.joinToString { "${it.symbol} (Fiyat: ${it.currentPrice}, Sektör: ${it.sector})" }
-                    }
-                    "Dividend Finder" -> {
-                        val companies = repository.allCompanies.first().take(15)
-                        "Temettü Adayları: " + companies.joinToString { "${it.symbol} (${it.name})" }
-                    }
-                    "Growth Finder" -> {
-                        val companies = repository.allCompanies.first().filter { it.changePercent > 0 }.take(10)
-                        "Büyüme Odaklı Hisseler: " + companies.joinToString { "${it.symbol} (%${it.changePercent} artış)" }
-                    }
-                    "Value Finder" -> {
-                        val companies = repository.allCompanies.first().take(10)
-                        "Değer Odaklı Hisseler: " + companies.joinToString { "${it.symbol} (Fiyat: ${it.currentPrice})" }
-                    }
-                    "Momentum Finder" -> {
-                        val companies = repository.allCompanies.first().sortedByDescending { it.changePercent }.take(10)
-                        "Momentum Liderleri: " + companies.joinToString { "${it.symbol} (%${it.changePercent})" }
-                    }
-                    "Risk Scanner" -> {
-                        val items = repository.getAllBasketItemsDirect()
-                        "Risk Taraması Yapılacak Varlıklar: " + items.joinToString { it.symbol }
-                    }
-                    "Portfolio Diversification" -> {
-                        val items = repository.getAllBasketItemsDirect()
-                        "Çeşitlendirme Verileri: " + items.joinToString { "${it.symbol} (${it.quantity})" }
-                    }
-                    "AI Opportunity Finder" -> {
-                        val dipStocks = repository.allCompanies.first().sortedBy { it.changePercent }.take(10)
-                        "Fırsat Adayları: " + dipStocks.joinToString { "${it.symbol} (%${it.changePercent})" }
-                    }
-                    "AI Watchlist Analyzer" -> {
-                        val watchlist = repository.watchlist.first()
-                        "Takip Listesi Hisseleri: " + watchlist.joinToString { it.symbol }
-                    }
-                    "AI Earnings Summary" -> {
-                        val companies = repository.allCompanies.first().take(8)
-                        "Bilanço Özeti İstenen Hisseler: " + companies.joinToString { it.symbol }
-                    }
-                    "AI News Summary" -> {
-                        val watchlist = repository.watchlist.first()
-                        val firstSymbol = watchlist.firstOrNull()?.symbol ?: "THYAO"
-                        val newsList = repository.getNews(firstSymbol).first().take(5)
-                        "Son Haberler ($firstSymbol): " + newsList.joinToString { it.title }
-                    }
-                    "Economic Impact Analyzer" -> {
-                        val indicators = repository.getMacroIndicators()
-                        "Makroekonomik Göstergeler: $indicators"
-                    }
-                    else -> {
-                        val companies = repository.allCompanies.first().take(10)
-                        "Piyasa Bağlamı: " + companies.joinToString { it.symbol }
-                    }
+                // ── BÖLÜM A: Bağlam Oluşturucu (Standardize Context) ──
+                val baseContext = contextBuilder.buildPortfolioContext()
+                
+                val toolSpecificContext = when(toolName) {
+                    "Portfolio Health Check", "Portfolio Diversification", "Risk Scanner" -> 
+                        contextBuilder.buildPortfolioContext()
+                    
+                    "Stock Compare", "AI Watchlist Analyzer", "AI News Summary" -> 
+                        contextBuilder.buildWatchlistContext()
+                    
+                    "Sector Compare" -> 
+                        contextBuilder.buildSectorContext()
+                    
+                    "AI Screener", "Dividend Finder", "Growth Finder", "Value Finder", "Momentum Finder", "AI Opportunity Finder" -> 
+                        contextBuilder.buildMarketContext()
+                    
+                    else -> contextBuilder.buildMarketContext()
                 }
 
+                val fullContext = """
+                    $baseContext
+                    
+                    Aşağıdaki araç özelinde ek bağlam:
+                    $toolSpecificContext
+                """.trimIndent()
+
                 val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                val report = service.runLabTool(toolName, contextData)
+                val report = service.runLabTool(toolName, fullContext)
                 
                 _uiState.update { state ->
                     state.copy(
                         toolReports = state.toolReports + (toolName to report),
                         toolLoadingStates = state.toolLoadingStates + (toolName to false)
+                    )
+                }
+
+                _toolHistory.update { history ->
+                    history + ToolReportHistory(
+                        toolName = toolName,
+                        report = report,
+                        timestamp = System.currentTimeMillis()
                     )
                 }
             } catch (e: Exception) {

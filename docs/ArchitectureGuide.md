@@ -6,10 +6,13 @@ Porsuk Finans is a professional-grade investment platform built with a modular, 
 ## Core Pillars
 
 ### 1. Hybrid AI Orchestration
-The `AiMasterOrchestrator` manages the switching between **Cloud AI** (Gemini/OpenAI) and **Local AI** (TFLite/On-device). It handles:
-- **Failover**: Switches to Local AI when offline.
+The `AiMasterOrchestrator` manages the switching between **Cloud AI** (Gemini/OpenAI) and **Local AI** (Rule-based Fallback). It handles:
+- **Failover**: Switches to rule-based Local AI when offline to ensure critical analysis remains available without internet.
 - **Consensus**: Coordinates multi-agent opinions for a unified decision.
 - **Caching**: Local Room-based caching for frequent analysis requests.
+
+> [!NOTE]
+> Current Local AI uses a deterministic rule engine (Kotlin + ta4j). Full on-device LLM (TFLite) integration is currently on the roadmap.
 
 ### 2. Centralized Event Bus
 All modules communicate through `PorsukEventBus`. This enables complete decoupling.
@@ -18,7 +21,14 @@ All modules communicate through `PorsukEventBus`. This enables complete decoupli
 - `InternetStatus`: Orchestrates sync queues.
 
 ### 3. Enterprise Data Layer
-- **Unified DB (v45)**: Over 60 entities covering everything from basic holdings to deep institutional analytics.
+- **Unified DB (v47)**: 87 entities covering everything from basic holdings to deep institutional analytics.
+- **Room Migration Stratejisi**: Veri kayıplarını önlemek için üretim ortamında **yükseltme (upgrade) sırasında yıkıcı göç (destructive migration) kapalıdır**. Bunun yerine `DatabaseMigrations` kullanılmaktadır. Sadece sürüm düşürme (downgrade) durumunda `.fallbackToDestructiveMigrationOnDowngrade()` ile veriler sıfırlanır.
+  - **MIGRATION_1_40**: Erken versiyonlar için temel iskelet (TODO: Geçmişe dönük tam destek).
+  - **MIGRATION_40_43**: Ekonomik takvim, bilanço takvimi ve portföy motoru tabloları.
+  - **MIGRATION_43_44**: Bulut senkronizasyon kuyruğu (`cloud_sync_queue`) ve kullanıcı cihazları (`user_devices`) tabloları.
+  - **MIGRATION_44_45**: Otomasyon kuralları (`automation_rules`), geçmiş, AI önerileri, bildirim merkezi ve ajan performans metrikleri.
+  - **MIGRATION_45_46**: Aracı kurum hesapları (`broker_accounts`), abonelik yetkileri, AI çalışma alanları ve temettü zekası.
+  - **MIGRATION_46_47**: Güvenlik ve gizlilik denetim günlükleri (`engine_security_audit_logs`) ve aktif oturumlar (`engine_security_sessions`).
 - **Multi-Provider Repositories**: Transparently switches between different APIs (Yahoo, Finnhub, Google) based on reliability and rate limits.
 
 ### 4. Security & Privacy

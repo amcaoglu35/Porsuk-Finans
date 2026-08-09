@@ -10,13 +10,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.util.Locale
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 data class ChatMessage(
     val text: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis()
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(

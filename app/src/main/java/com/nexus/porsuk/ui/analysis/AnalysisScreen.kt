@@ -120,7 +120,8 @@ fun AnalysisScreen(
                 ) {
                     AiActionAndScenarioHubCard(
                         onRunAnalysis = { viewModel.runPortfolioHealthCheck() },
-                        onRunOracle = { viewModel.generateRebalanceReport() }
+                        onRunOracle = { viewModel.generateRebalanceReport() },
+                        onCreateBasket = onCreateBasket
                     )
                 }
             }

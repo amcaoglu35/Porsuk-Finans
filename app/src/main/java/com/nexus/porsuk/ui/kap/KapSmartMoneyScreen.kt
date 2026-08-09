@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nexus.porsuk.core.domain.repository.KapCategory
+import com.nexus.porsuk.core.domain.repository.KapNotice
 import com.nexus.porsuk.ui.theme.*
 import java.util.Locale
 
@@ -33,92 +38,17 @@ data class KapDisclosureItem(
     val timeStr: String
 )
 
-object KapSmartMoneyProvider {
-
-    fun getDisclosures(): List<KapDisclosureItem> = listOf(
-        KapDisclosureItem(
-            id = 1,
-            symbol = "THYAO",
-            companyName = "Türk Hava Yolları",
-            category = "YENİ İŞ İLİŞKİSİ",
-            summary = "Avrupa hatlarında 12 yeni uçak kiralama ve filo genişletme anlaşması imzalandı.",
-            impactRating = "ÇOK OLUMLU (+)",
-            impactColorHex = 0xFF00A878,
-            timeStr = "10:14"
-        ),
-        KapDisclosureItem(
-            id = 2,
-            symbol = "KCHOL",
-            companyName = "Koç Holding",
-            category = "GERİ ALIM",
-            summary = "Şirket yönetim kurulu kararıyla 500.000 adet pay geri alımı gerçekleştirildi.",
-            impactRating = "OLUMLU (+)",
-            impactColorHex = 0xFF00A878,
-            timeStr = "09:45"
-        ),
-        KapDisclosureItem(
-            id = 3,
-            symbol = "ASELS",
-            companyName = "Aselsan",
-            category = "YENİ İŞ İLİŞKİSİ",
-            summary = "Savunma Sanayii Başkanlığı ile $48.5M tutarında yeni ihracat sözleşmesi imzalandı.",
-            impactRating = "ÇOK OLUMLU (+)",
-            impactColorHex = 0xFF00A878,
-            timeStr = "09:30"
-        ),
-        KapDisclosureItem(
-            id = 4,
-            symbol = "EREGL",
-            companyName = "Ereğli Demir Çelik",
-            category = "PATRON ALIMI",
-            summary = "Yönetim kurulu üyesi tarafından borsadan 250.000 lot hisse alımı yapıldığı bildirildi.",
-            impactRating = "OLUMLU (+)",
-            impactColorHex = 0xFF00A878,
-            timeStr = "09:15"
-        ),
-        KapDisclosureItem(
-            id = 5,
-            symbol = "TUPRS",
-            companyName = "Tüpraş",
-            category = "TEMETTÜ",
-            summary = "Hisse başına net ₺6.85 nakit kar payı dağıtım takvimi açıklandı.",
-            impactRating = "OLUMLU (+)",
-            impactColorHex = 0xFF00A878,
-            timeStr = "Dün"
-        )
-    )
-import com.nexus.porsuk.core.domain.repository.KapCategory
-import com.nexus.porsuk.core.domain.repository.KapNotice
-import com.nexus.porsuk.core.domain.repository.KapScraperService
-
-// UYARI: Web scraping bağımlılığı. kap.org.tr HTML/DOM yapısı değişirse scraper güncellenmelidir.
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KapSmartMoneyScreen(
     onBack: () -> Unit,
     onStockClick: (String, String) -> Unit,
-    scraperService: KapScraperService = remember { KapScraperService() }
+    viewModel: KapSmartMoneyViewModel = hiltViewModel()
 ) {
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var rawNotices by remember { mutableStateOf<List<KapNotice>>(emptyList()) }
-    var selectedCategory by remember { mutableStateOf("Tümü") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        isLoading = true
-        val result = scraperService.fetchLatestKapNotices()
-        if (result.isSuccess) {
-            rawNotices = result.getOrDefault(emptyList())
-            errorMessage = null
-        } else {
-            errorMessage = result.exceptionOrNull()?.message ?: "KAP duyuruları çekilemedi. kap.org.tr HTML yapısı değişmiş veya erişim kısıtlanmış olabilir."
-        }
-        isLoading = false
-    }
-
-    val disclosures = remember(rawNotices) {
-        rawNotices.mapIndexed { idx, n ->
+    val disclosures = remember(uiState.notices) {
+        uiState.notices.mapIndexed { idx, n ->
             KapDisclosureItem(
                 id = idx + 1,
                 symbol = n.symbol,
@@ -138,9 +68,9 @@ fun KapSmartMoneyScreen(
         }
     }
 
-    val filtered = remember(disclosures, selectedCategory) {
-        if (selectedCategory == "Tümü") disclosures
-        else disclosures.filter { it.category == selectedCategory }
+    val filtered = remember(disclosures, uiState.selectedCategory) {
+        if (uiState.selectedCategory == "Tümü") disclosures
+        else disclosures.filter { it.category == uiState.selectedCategory }
     }
 
     Scaffold(
@@ -218,8 +148,37 @@ fun KapSmartMoneyScreen(
                                     fontSize = 11.sp,
                                     color = Color.White.copy(alpha = 0.8f),
                                     fontFamily = Manrope
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Category Filter Row
+            item {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 4.dp)
+                ) {
+                    val categories = listOf("Tümü", "PATRON / ALIM", "BİLANÇO", "SERMAYE", "TEMETTÜ", "ÖZEL DURUM")
+                    items(categories) { cat ->
+                        FilterChip(
+                            selected = uiState.selectedCategory == cat,
+                            onClick = { viewModel.selectCategory(cat) },
+                            label = { Text(cat, fontSize = 11.sp, fontFamily = IBMPlexMono) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PrimaryTeal,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+
             // Loading indicator item
-            if (isLoading) {
+            if (uiState.isLoading) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = PrimaryTeal)
@@ -227,8 +186,8 @@ fun KapSmartMoneyScreen(
                 }
             }
 
-            // Error Message item (no fake fallback!)
-            if (errorMessage != null) {
+            // Error Message item
+            if (uiState.errorMessage != null) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -239,7 +198,7 @@ fun KapSmartMoneyScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("⚠️ KAP Duyuruları Alınamadı", fontWeight = FontWeight.Bold, color = Color(0xFFCF1322), fontSize = 14.sp, fontFamily = Manrope)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(errorMessage!!, fontSize = 12.sp, color = Color(0xFF595959), fontFamily = Manrope)
+                            Text(uiState.errorMessage!!, fontSize = 12.sp, color = Color(0xFF595959), fontFamily = Manrope)
                         }
                     }
                 }

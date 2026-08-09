@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 enum class Region(val label: String, val flag: String, val market: String) {
     BIST("BIST", "🇹🇷", "IST"),
@@ -33,8 +35,7 @@ data class CreateBasketUiState(
     val isBottomSheetVisible: Boolean = false,
     val isSaving: Boolean = false,
     val errorMessage: String? = null
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class CreateBasketViewModel @Inject constructor(

@@ -6,15 +6,22 @@ import androidx.work.*
 import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.data.repository.FinanceRepository
 import com.nexus.porsuk.data.repository.KaziRepository
-import com.nexus.porsuk.ui.FinanceViewModelFactory
+import com.nexus.porsuk.data.local.SettingsManager
 import com.nexus.porsuk.ui.common.NotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import androidx.hilt.work.HiltWorker
 
-class KaziAnalysisWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class KaziAnalysisWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val repository: KaziRepository,
+    private val financeRepo: FinanceRepository,
+    private val settings: SettingsManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     private val TAG = "KaziAnalysisWorker"
@@ -23,9 +30,6 @@ class KaziAnalysisWorker(
         val runId = inputData.getInt("runId", -1)
         if (runId == -1) return@withContext Result.failure()
 
-        val repository = FinanceViewModelFactory.getKaziRepository(applicationContext)
-        val financeRepo = FinanceViewModelFactory.getRepository(applicationContext)
-        val settings = FinanceViewModelFactory.getSettingsManager(applicationContext)
         val apiKey = settings.getGeminiApiKey() ?: return@withContext Result.failure()
 
         try {

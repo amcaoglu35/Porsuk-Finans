@@ -9,36 +9,41 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Porsuk Data Center — Ağ Bağlantı İzleyicisi (Network Connectivity Monitor)
- *
- * Cihazın anlık internet bağlantısını (Wi-Fi, Hücresel vb.) izler ve
- * reaktif bir `Flow<Boolean>` yayınlar.
  */
 @Singleton
 class NetworkConnectivityMonitor @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val eventBus: PorsukEventBus
 ) {
-
+    private val scope = CoroutineScope(Dispatchers.IO)
     private val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     /**
      * İnternet erişim durumunu reaktif bir Flow olarak döndürür.
-     * True: Cihaz internete bağlı.
-     * False: İnternet bağlantısı yok.
      */
     val isConnected: Flow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 trySend(true)
+                scope.launch {
+                    eventBus.publish(PorsukEvent.InternetConnectionRestored)
+                }
             }
 
             override fun onLost(network: Network) {
                 trySend(false)
+                scope.launch {
+                    eventBus.publish(PorsukEvent.InternetConnectionLost)
+                }
             }
 
             override fun onUnavailable() {

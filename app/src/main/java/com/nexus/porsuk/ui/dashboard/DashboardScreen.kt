@@ -27,6 +27,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onStockClick: (String, String) -> Unit,
     onBasketClick: (Int) -> Unit,
+    onPortfolioClick: () -> Unit = {},
     onLedgerClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onNotificationsClick: () -> Unit = {},
@@ -35,6 +36,8 @@ fun DashboardScreen(
     onAnalysisClick: () -> Unit,
     onMarketsClick: () -> Unit = {},
     onModelSepetlerClick: () -> Unit,
+    onSeeAllBasketsClick: () -> Unit = {},
+    onCreateBasketClick: () -> Unit = {},
     onKapRadarClick: () -> Unit = {},
     onInstitutionalClick: () -> Unit = {},
     onReportingClick: () -> Unit = {},
@@ -61,6 +64,7 @@ fun DashboardScreen(
     val insights by viewModel.insights.collectAsState()
     val aiMarketSummary by viewModel.aiMarketSummary.collectAsState()
     val oracleGlow by viewModel.oracleGlow.collectAsState()
+    val myBaskets by viewModel.myBaskets.collectAsState()
     val opportunities by viewModel.opportunities.collectAsState()
     val liveMarkets by viewModel.liveMarkets.collectAsState()
     val newsList by viewModel.newsList.collectAsState()
@@ -158,6 +162,7 @@ fun DashboardScreen(
                             onToggleBalance = { isBalanceVisible = !isBalanceVisible },
                             numberFormat = numberFormat,
                             onLedgerClick = onLedgerClick,
+                            onPortfolioClick = onPortfolioClick,
                             totalGainValue = totalGainValue,
                             totalGainPercent = totalGainPercent,
                             annualGainValue = totalGainValue,
@@ -218,6 +223,16 @@ fun DashboardScreen(
                         onWatchlistClick = onWatchlistClick,
                         onAlertsClick = onAlertsClick,
                         onAllToolsClick = onAllToolsClick
+                    )
+                }
+
+                // MY BASKETS SECTION
+                item(key = "my_baskets_section") {
+                    MyBasketsSection(
+                        baskets = myBaskets,
+                        onBasketClick = onBasketClick,
+                        onCreateBasketClick = onCreateBasketClick,
+                        onSeeAllClick = onSeeAllBasketsClick
                     )
                 }
 

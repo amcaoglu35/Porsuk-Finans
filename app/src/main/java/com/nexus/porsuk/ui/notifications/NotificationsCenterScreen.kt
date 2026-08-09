@@ -37,9 +37,7 @@ private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
 private val BorderColor = Color(0xFFF1F5F9)
 private val SuccessGreen = Color(0xFF00C48C)
-import com.ramcosta.composedestinations.annotation.Destination
 
-@Destination(start = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsCenterScreen(

@@ -2,21 +2,21 @@ package com.nexus.porsuk.worker
 
 import android.content.Context
 import androidx.work.*
-import com.nexus.porsuk.data.repository.IpoRepositoryImpl
-import com.nexus.porsuk.ui.FinanceViewModelFactory
-import com.nexus.porsuk.ui.common.NotificationHelper
+import com.nexus.porsuk.domain.repository.IpoRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import androidx.hilt.work.HiltWorker
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
-class IpoAlertWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class IpoAlertWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val repository: IpoRepository
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val repository = FinanceViewModelFactory.getRepository(applicationContext)
-        // Note: Real implementation would use IpoRepository from DI
-        
         try {
             // Check for upcoming IPOs in the next 24 hours
             // This is a placeholder for actual logic

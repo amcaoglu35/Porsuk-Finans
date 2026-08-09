@@ -11,6 +11,8 @@ import com.nexus.porsuk.ui.fund.Region
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 enum class PortfolioRange(val label: String) {
     WEEK("1H"), MONTH("1A"), THREE_MONTHS("3A"), YEAR("1Y"), ALL("Tümü")
@@ -77,8 +79,7 @@ data class AnalysisUiState(
     val realizedPnL: Double = 0.0,
     val unrealizedPnL: Double = 0.0,
     val vixValue: Double? = null
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+)
 
 @HiltViewModel
 class AnalysisViewModel @Inject constructor(

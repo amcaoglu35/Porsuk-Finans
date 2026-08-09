@@ -11,6 +11,7 @@ import com.nexus.porsuk.domain.model.ConsensusDecision
  */
 data class AgentRequest(
     val symbol: String? = null,
+    val currency: String = "TRY",
     val historicalPrices: List<Double> = emptyList(),
     val volumes: List<Double> = emptyList(),
     val newsTitles: List<String> = emptyList(),

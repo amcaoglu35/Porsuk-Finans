@@ -10,9 +10,5 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 object TefasEngineModule {
-
-    @Provides
-    fun provideTefasFundDao(db: PorsukDatabase): TefasFundDao {
-        return db.tefasFundDao()
-    }
+    // TefasFundDao is provided in AppDatabaseModule
 }

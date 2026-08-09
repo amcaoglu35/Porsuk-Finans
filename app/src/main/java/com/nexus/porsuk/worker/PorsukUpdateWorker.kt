@@ -3,23 +3,27 @@ package com.nexus.porsuk.worker
 import android.content.Context
 import android.util.Log
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.nexus.porsuk.data.local.PorsukDatabase
-import com.nexus.porsuk.data.remote.FinnhubService
-import com.nexus.porsuk.data.remote.GoogleFinanceScraper
-import com.nexus.porsuk.data.remote.YahooFinanceService
+import com.nexus.porsuk.data.local.dao.AssetDao
 import com.nexus.porsuk.data.remote.ScrapeResult
 import com.nexus.porsuk.data.repository.FinanceRepository
 import com.nexus.porsuk.widget.PorsukWidget
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-class PorsukUpdateWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class PorsukUpdateWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val repository: FinanceRepository,
+    private val assetDao: AssetDao,
+    private val settingsManager: com.nexus.porsuk.data.local.SettingsManager
 ) : CoroutineWorker(appContext, workerParams) {
 
     private val TAG = "PorsukUpdateWorker"
@@ -28,21 +32,8 @@ class PorsukUpdateWorker(
         Log.d(TAG, "Periyodik borsa veri güncelleme işlemi başlatıldı...")
 
         try {
-            val database = PorsukDatabase.getDatabase(applicationContext)
-            val assetDao = database.assetDao()
-            val settingsManager = com.nexus.porsuk.data.local.SettingsManager(applicationContext)
             val apiKey = settingsManager.getGeminiApiKey()
-            val configProvider = com.nexus.porsuk.core.network.ConfigProviderImpl()
             
-            val repository = FinanceRepository(
-                assetDao,
-                GoogleFinanceScraper(),
-                null, // No EventBus for background sync to avoid UI loops
-                FinnhubService(configProvider.getFinnhubKey()),
-                YahooFinanceService(configProvider.getYahooRapidApiKey()),
-                settingsManager
-            )
-
             // 1. Hisse Fiyatlarını Güncelle
             val savedCompanies = assetDao.getAllCompaniesDirect()
             val priceAlertsEnabled = try { settingsManager.priceAlerts.first() } catch (_: Exception) { true }
@@ -177,7 +168,7 @@ class PorsukUpdateWorker(
         }
     }
 
-    private suspend fun sendEveningSummary(apiKey: String, assetDao: com.nexus.porsuk.data.local.dao.AssetDao, settingsManager: com.nexus.porsuk.data.local.SettingsManager) {
+    private suspend fun sendEveningSummary(apiKey: String, assetDao: AssetDao, settingsManager: com.nexus.porsuk.data.local.SettingsManager) {
         val lastEvening = try { settingsManager.lastEveningNotifTime.first() } catch (_: Exception) { 0L }
         val todayStart = java.util.Calendar.getInstance().apply {
             set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0)
@@ -195,7 +186,7 @@ class PorsukUpdateWorker(
                     totalValue += item.quantity * currentPrice
                 }
 
-                val prompt = "Sen samimi bir 'Borsa Profesörü' karakterisin. Portföyümün bugünkü durumuna göre (%${(kotlin.random.Random.nextFloat() * 4 - 2)}) tek cümlelik, esprili bir kapanış özeti yap. Toplam Portföy: $totalValue TL"
+                val prompt = "Sen samimi bir 'Borsa Profesörü' karakterisin. Portföyümün bugünkü durumuna göre tek cümlelik, esprili bir kapanış özeti yap. Toplam Portföy: $totalValue TL"
                 
                 val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
                 val summaryText = service.generateRawContent(prompt).ifBlank { "Bugün de piyasayı izledik, her şey yolunda!" }

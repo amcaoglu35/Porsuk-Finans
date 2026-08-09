@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.data.local.entity.PriceSnapshot
 import com.nexus.porsuk.ui.common.CurrencyFormatter
+import com.nexus.porsuk.ui.common.NumberFormatter
 import com.nexus.porsuk.ui.common.PercentFormatter
 import com.nexus.porsuk.ui.common.Sparkline
 import com.nexus.porsuk.ui.theme.*
@@ -43,20 +44,50 @@ fun IndicesTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(indexConfigs, key = { it.name }) { item ->
-            val snapshot = prices[item.symbol] ?: prices[item.name.replace(" ", "")]
-            val priceStr = if (snapshot != null && snapshot.price > 0.0) CurrencyFormatter.formatTRY(snapshot.price, "TR") else item.defaultPrice
-            val changeVal = snapshot?.changePercent ?: item.defaultChange
+            val snapshot = when (item.symbol) {
+                "BIST100" -> prices["BIST100"] ?: prices["XU100"]
+                "BIST30" -> prices["BIST30"] ?: prices["XU030"]
+                "DAX" -> prices["DAX"] ?: prices["^GDAXI"]
+                "FTSE" -> prices["FTSE"] ?: prices["^FTSE"]
+                "N225" -> prices["N225"] ?: prices["^N225"]
+                "HSI" -> prices["HSI"] ?: prices["^HSI"]
+                "SPY" -> prices["SPY"] ?: prices["^GSPC"]
+                "QQQ" -> prices["QQQ"] ?: prices["^IXIC"]
+                else -> prices[item.symbol] ?: prices[item.name.replace(" ", "")]
+            }
+            val isDataAvailable = snapshot != null && snapshot.price > 0.0
+            val priceStr = if (isDataAvailable) {
+                when (item.symbol) {
+                    "BIST100", "BIST30" -> CurrencyFormatter.formatTRY(snapshot!!.price, "TR")
+                    "DAX" -> "€${NumberFormatter.format(snapshot!!.price, "TR")}"
+                    "FTSE" -> "£${NumberFormatter.format(snapshot!!.price, "TR")}"
+                    "N225" -> "¥${NumberFormatter.format(snapshot!!.price, "TR")}"
+                    "HSI" -> "HK$${NumberFormatter.format(snapshot!!.price, "TR")}"
+                    else -> "$${NumberFormatter.format(snapshot!!.price, "TR")}"
+                }
+            } else {
+                "Veri Yok"
+            }
+            val changeVal = if (isDataAvailable) snapshot!!.changePercent else 0.0
             val (changeText, isPos) = PercentFormatter.formatChangePercent(changeVal)
 
-            val sparkValues = remember(isPos) {
-                if (isPos) listOf(40f, 42f, 45f, 48f, 50f) else listOf(50f, 48f, 45f, 42f, 40f)
+            val sparkValues = remember(isPos, isDataAvailable) {
+                if (!isDataAvailable) emptyList()
+                else if (isPos) listOf(40f, 42f, 45f, 48f, 50f)
+                else listOf(50f, 48f, 45f, 42f, 40f)
             }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(3.dp, RoundedCornerShape(20.dp))
-                    .clickable { onStockClick(item.symbol, "INDEX") },
+                    .clickable {
+                        val clickMarket = when (item.symbol) {
+                            "BIST100", "BIST30" -> "BIST"
+                            else -> "INDEX"
+                        }
+                        onStockClick(item.symbol, clickMarket)
+                    },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -79,18 +110,29 @@ fun IndicesTab(
                     }
 
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
-                        Text(priceStr, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
-                        Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)
+                        if (!isDataAvailable) {
+                            Text("Veri Yok", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.outline)
+                            Text("--", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.outline)
+                        } else {
+                            Text(priceStr, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
+                            Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Sparkline(
-                        values = sparkValues,
-                        color = if (isPos) PozitifGreen else NegatifRed,
-                        modifier = Modifier.width(65.dp).height(28.dp),
-                        filled = true
-                    )
+                    if (isDataAvailable) {
+                        Sparkline(
+                            values = sparkValues,
+                            color = if (isPos) PozitifGreen else NegatifRed,
+                            modifier = Modifier.width(65.dp).height(28.dp),
+                            filled = true
+                        )
+                    } else {
+                        Box(modifier = Modifier.width(65.dp).height(28.dp), contentAlignment = Alignment.Center) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                    }
                 }
             }
         }

@@ -50,6 +50,7 @@ fun QuickActionsGrid(
     onAlertsClick: () -> Unit = {},
     onAllToolsClick: () -> Unit = {}
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val actions = listOf(
         QuickActionItem(
             emoji = "📋",
@@ -73,71 +74,71 @@ fun QuickActionsGrid(
             emoji = "🩺",
             title = "Portföy Doktoru",
             subtitle = "Sağlık Skoru & Rebalans",
-            gradientStart = Color(0xFF6C4CF1),
-            gradientEnd = Color(0xFF4C2CE1),
-            accentSoft = Color(0xFFF3F0FF),
+            gradientStart = colorScheme.primary,
+            gradientEnd = colorScheme.primary.copy(alpha = 0.8f),
+            accentSoft = colorScheme.primary.copy(alpha = 0.1f),
             onClick = onDoctorClick
         ),
         QuickActionItem(
             emoji = "⭐",
             title = "İzleme Listesi",
             subtitle = "Favori Hisselerim",
-            gradientStart = Color(0xFFF59E0B),
-            gradientEnd = Color(0xFFD97706),
-            accentSoft = Color(0xFFFEF3C7),
+            gradientStart = colorScheme.tertiary,
+            gradientEnd = colorScheme.tertiary.copy(alpha = 0.8f),
+            accentSoft = colorScheme.tertiary.copy(alpha = 0.1f),
             onClick = onWatchlistClick
         ),
         QuickActionItem(
             emoji = "🔔",
             title = "Alarmlarım",
             subtitle = "Fiyat & Bildirim",
-            gradientStart = Color(0xFFEF4444),
-            gradientEnd = Color(0xFFB91C1C),
-            accentSoft = Color(0xFFFEE2E2),
+            gradientStart = NegatifRed,
+            gradientEnd = NegatifRed.copy(alpha = 0.8f),
+            accentSoft = RedSoft,
             onClick = onAlertsClick
         ),
         QuickActionItem(
             emoji = "☁️",
             title = "Yedekleme",
             subtitle = "Bulut Senkronizasyon",
-            gradientStart = Color(0xFF3B82F6),
-            gradientEnd = Color(0xFF1D4ED8),
-            accentSoft = Color(0xFFDBEAFE),
+            gradientStart = colorScheme.secondary,
+            gradientEnd = colorScheme.secondary.copy(alpha = 0.8f),
+            accentSoft = colorScheme.secondary.copy(alpha = 0.1f),
             onClick = onCloudSyncClick
         ),
         QuickActionItem(
             emoji = "📊",
             title = "Kurumsal Analiz",
             subtitle = "Bloomberg Terminal",
-            gradientStart = Color(0xFF1E293B),
-            gradientEnd = Color(0xFF0F172A),
-            accentSoft = Color(0xFFE2E8F0),
+            gradientStart = colorScheme.onSurface,
+            gradientEnd = colorScheme.onSurface.copy(alpha = 0.7f),
+            accentSoft = colorScheme.onSurface.copy(alpha = 0.1f),
             onClick = onInstitutionalClick
         ),
         QuickActionItem(
             emoji = "📑",
             title = "Rapor Merkezi",
             subtitle = "PDF & Excel Döküm",
-            gradientStart = Color(0xFF7C6CF0),
-            gradientEnd = Color(0xFF5C4AD8),
-            accentSoft = Color(0xFFECE9FE),
+            gradientStart = colorScheme.primaryContainer,
+            gradientEnd = colorScheme.primary.copy(alpha = 0.6f),
+            accentSoft = VioletSoft,
             onClick = onReportingClick
         ),
         QuickActionItem(
             emoji = "🤖",
             title = "AI Yönetimi",
             subtitle = "Cloud & Local Hibrit",
-            gradientStart = Color(0xFFE8A93B),
-            gradientEnd = Color(0xFFC8891E),
-            accentSoft = Color(0xFFFBF1DD),
+            gradientStart = colorScheme.tertiaryContainer,
+            gradientEnd = colorScheme.tertiary.copy(alpha = 0.6f),
+            accentSoft = GoldSoft,
             onClick = onAiEngineClick
         ),
         QuickActionItem(
             emoji = "🧰",
             title = "Tüm Araçlar",
             subtitle = "14 Finansal Modül",
-            gradientStart = Color(0xFF10B981),
-            gradientEnd = Color(0xFF047857),
+            gradientStart = EmeraldNew,
+            gradientEnd = EmeraldNew.copy(alpha = 0.8f),
             accentSoft = AquaSoft,
             onClick = onAllToolsClick
         )
