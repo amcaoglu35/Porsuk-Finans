@@ -31,8 +31,6 @@ import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
-private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
 private val BorderColor = Color(0xFFF1F5F9)
@@ -85,7 +83,7 @@ fun NotificationsCenterScreen(
                             notifications = notifications.map { it.copy(isRead = true) }
                             Toast.makeText(context, "Tümü okundu olarak işaretlendi", Toast.LENGTH_SHORT).show()
                         }) {
-                            Icon(Icons.Outlined.CheckCircle, contentDescription = "Tümünü Okundu İşaretle", tint = PrimaryPurple)
+                            Icon(Icons.Outlined.CheckCircle, contentDescription = "Tümünü Okundu İşaretle", tint = Violet)
                         }
                         IconButton(onClick = {
                             notifications = emptyList()
@@ -102,7 +100,7 @@ fun NotificationsCenterScreen(
                     selectedTabIndex = selectedTabIndex,
                     modifier = Modifier.fillMaxWidth(),
                     containerColor = Color.Transparent,
-                    contentColor = PrimaryPurple,
+                    contentColor = Violet,
                     edgePadding = 20.dp,
                     divider = {}
                 ) {
@@ -116,7 +114,7 @@ fun NotificationsCenterScreen(
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = if (selectedTabIndex == index) FontWeight.ExtraBold else FontWeight.Medium
                                     ),
-                                    color = if (selectedTabIndex == index) PrimaryPurple else TextSecondary
+                                    color = if (selectedTabIndex == index) Violet else TextSecondary
                                 )
                             }
                         )
@@ -162,9 +160,9 @@ fun NotificationsCenterScreen(
                             },
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (item.isRead) CardWhite else PurpleSoftBg.copy(alpha = 0.5f)
+                            containerColor = if (item.isRead) CardWhite else VioletSoft.copy(alpha = 0.5f)
                         ),
-                        border = BorderStroke(1.dp, if (item.isRead) BorderColor else PrimaryPurple.copy(alpha = 0.3f))
+                        border = BorderStroke(1.dp, if (item.isRead) BorderColor else Violet.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -172,14 +170,14 @@ fun NotificationsCenterScreen(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = if (item.isRead) LightBackground else PrimaryPurple.copy(alpha = 0.15f),
+                                color = if (item.isRead) LightBackground else Violet.copy(alpha = 0.15f),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Outlined.Notifications,
                                         contentDescription = null,
-                                        tint = if (item.isRead) TextSecondary else PrimaryPurple,
+                                        tint = if (item.isRead) TextSecondary else Violet,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }

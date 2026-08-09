@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.ui.dashboard.components.*
+import com.nexus.porsuk.ui.theme.*
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +43,6 @@ fun DashboardScreen(
     onInstitutionalClick: () -> Unit = {},
     onReportingClick: () -> Unit = {},
     onAiEngineClick: () -> Unit = {},
-    onPluginsClick: () -> Unit = {},
     onCloudSyncClick: () -> Unit = {},
     onDoctorClick: () -> Unit = {},
     onWatchlistClick: () -> Unit = {},
@@ -124,7 +124,7 @@ fun DashboardScreen(
                         .size(60.dp)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(Color(0xFF8B5CF6), primaryColor, Color(0xFF4C1D95))
+                                colors = listOf(VioletSoft, primaryColor, Violet)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -217,7 +217,6 @@ fun DashboardScreen(
                         onInstitutionalClick = onInstitutionalClick,
                         onReportingClick = onReportingClick,
                         onAiEngineClick = onAiEngineClick,
-                        onPluginsClick = onPluginsClick,
                         onCloudSyncClick = onCloudSyncClick,
                         onDoctorClick = onDoctorClick,
                         onWatchlistClick = onWatchlistClick,

@@ -20,7 +20,6 @@ import com.nexus.porsuk.ui.orakul.OracleHisseReport
 import com.nexus.porsuk.ui.theme.*
 
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
 private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val SuccessGreen = Color(0xFF00C48C)
 private val WarningOrange = Color(0xFFFF9800)
@@ -70,7 +69,7 @@ fun MarketDirectionProbabilitySection(marketSentimentScore: Int = 65) {
                             text = "Duyarlılık Skoru: $marketSentimentScore/100",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple,
+                            color = Violet,
                             fontFamily = IBMPlexMono
                         )
                         Text(
@@ -163,7 +162,7 @@ fun OracleScoreGaugesSection() {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScoreGaugeItem("Temettü Verimi", "68", WarningOrange, Modifier.weight(1f))
                 ScoreGaugeItem("Nakit Akışı", "88", SuccessGreen, Modifier.weight(1f))
-                ScoreGaugeItem("Sektör Liderliği", "91", PrimaryPurple, Modifier.weight(1f))
+                ScoreGaugeItem("Sektör Liderliği", "91", Violet, Modifier.weight(1f))
             }
         }
     }
@@ -208,7 +207,7 @@ fun MainScenariosSection() {
             )
 
             ScenarioCard("Boğa Katalizörü", "TCMB faiz indirim döngüsü başlangıcı ile sanayi ve gayrimenkul sektörlerinde hızlı değer artış beklentisi.", SuccessGreen)
-            ScenarioCard("Baz Senaryo", "Endeksin %15 bandı içerisinde dalgalanarak enflasyon üzeri net reel getiri sunmaya devam etmesi.", PrimaryPurple)
+            ScenarioCard("Baz Senaryo", "Endeksin %15 bandı içerisinde dalgalanarak enflasyon üzeri net reel getiri sunmaya devam etmesi.", Violet)
         }
     }
 }
@@ -253,14 +252,14 @@ fun HisseScoreGrid(report: OracleHisseReport) {
             )
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScoreGaugeItem("AI Puanı", "${report.aiScore}", PrimaryPurple, Modifier.weight(1f))
+                ScoreGaugeItem("AI Puanı", "${report.aiScore}", Violet, Modifier.weight(1f))
                 ScoreGaugeItem("Risk Skoru", "${report.riskScore}", ErrorRed, Modifier.weight(1f))
                 ScoreGaugeItem("Büyüme Potansiyeli", "${report.growthPotential}", SuccessGreen, Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScoreGaugeItem("Finansal Sağlık", "${report.financialHealth}", SuccessGreen, Modifier.weight(1f))
                 ScoreGaugeItem("Temettü Skoru", "${report.dividendScore}", WarningOrange, Modifier.weight(1f))
-                ScoreGaugeItem("Kalite Puanı", "${report.qualityScore}", PrimaryPurple, Modifier.weight(1f))
+                ScoreGaugeItem("Kalite Puanı", "${report.qualityScore}", Violet, Modifier.weight(1f))
             }
         }
     }

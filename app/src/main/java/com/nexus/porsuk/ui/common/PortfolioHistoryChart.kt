@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Brush
 fun PortfolioHistoryChart(
     portfolioValues: List<Pair<Long, Double>>,
     modifier: Modifier = Modifier,
-    lineColor: Color = Color(0xFF6C4CF1)
+    lineColor: Color = com.nexus.porsuk.ui.theme.Violet
 ) {
     if (portfolioValues.isEmpty()) return
 

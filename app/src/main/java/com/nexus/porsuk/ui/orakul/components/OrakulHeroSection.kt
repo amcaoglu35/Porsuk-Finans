@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.theme.*
 
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
 private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
@@ -117,7 +116,7 @@ fun OracleHeroCard(
             Surface(
                 color = PurpleSoftBg,
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryPurple.copy(alpha = 0.2f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, Violet.copy(alpha = 0.2f))
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -128,13 +127,13 @@ fun OracleHeroCard(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(PrimaryPurple)
+                            .background(Violet)
                     )
                     Text(
                         text = "MOTOR: $sourceEngine",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple,
+                        color = Violet,
                         fontFamily = IBMPlexMono
                     )
                 }
@@ -154,7 +153,7 @@ fun OracleHeroCard(
                         text = "%88",
                         fontSize = 38.sp,
                         fontWeight = FontWeight.Black,
-                        color = PrimaryPurple,
+                        color = Violet,
                         fontFamily = IBMPlexMono
                     )
                     Text(
@@ -202,7 +201,7 @@ fun CosmicOrbCanvas(orbScale: Float, orbRotation: Float) {
         // Outer glow gradient
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(PrimaryPurple.copy(alpha = 0.25f), Color.Transparent),
+                colors = listOf(Violet.copy(alpha = 0.25f), Color.Transparent),
                 center = center,
                 radius = radius * 1.3f
             ),
@@ -223,7 +222,7 @@ fun CosmicOrbCanvas(orbScale: Float, orbRotation: Float) {
 
         // Orbit ring
         drawCircle(
-            color = PrimaryPurple.copy(alpha = 0.4f),
+            color = Violet.copy(alpha = 0.4f),
             center = center,
             radius = radius * 0.85f,
             style = Stroke(width = 2.dp.toPx())
@@ -240,7 +239,7 @@ fun CosmicOrbCanvas(orbScale: Float, orbRotation: Float) {
         }
         drawPath(
             path = wavePath,
-            color = PrimaryPurple,
+            color = Violet,
             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
         )
     }

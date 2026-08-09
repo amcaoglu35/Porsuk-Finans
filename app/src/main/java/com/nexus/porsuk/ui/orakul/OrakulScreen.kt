@@ -21,7 +21,6 @@ import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
 private val BorderColor = Color(0xFFF1F5F9)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,14 +101,14 @@ fun OrakulScreen(
                                     viewModel.analyzeSymbol(searchQuery.uppercase())
                                 }
                             }) {
-                                Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryPurple)
+                                Icon(Icons.Default.Search, contentDescription = null, tint = Violet)
                             }
                         },
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = Color.Transparent,
-                            focusedBorderColor = PrimaryPurple
+                            focusedBorderColor = Violet
                         )
                     )
                 }
@@ -118,7 +117,7 @@ fun OrakulScreen(
             if (uiState.isLoading) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryPurple)
+                        CircularProgressIndicator(color = Violet)
                     }
                 }
             }

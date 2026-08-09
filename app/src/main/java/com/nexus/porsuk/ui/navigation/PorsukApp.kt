@@ -323,9 +323,6 @@ fun PorsukApp(
                             onAiEngineClick = {
                                 navController.navigate(Screen.AiEngineManager.route)
                             },
-                            onPluginsClick = {
-                                navController.navigate(Screen.PluginMarketplace.route)
-                            },
                             onCloudSyncClick = {
                                 navController.navigate(Screen.CloudSync.route)
                             },
@@ -684,24 +681,6 @@ fun PorsukApp(
                         )
                     }
 
-                    composable(Screen.DevOpsRelease.route) {
-                        com.nexus.porsuk.feature.devops.DevOpsReleaseScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.PluginManager.route) {
-                        com.nexus.porsuk.feature.plugins.PluginManagerScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.RealtimeStreaming.route) {
-                        com.nexus.porsuk.feature.streaming.StreamingPlatformScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
                     composable(Screen.QuantResearch.route) {
                         com.nexus.porsuk.feature.quant.QuantResearchScreen(
                             onNavigateBack = { navController.popBackStack() }
@@ -720,20 +699,8 @@ fun PorsukApp(
                         )
                     }
 
-                    composable(Screen.DerivativesPlatform.route) {
-                        com.nexus.porsuk.feature.derivatives.DerivativesPlatformScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
                     composable(Screen.MacroIntelligence.route) {
                         com.nexus.porsuk.feature.macro.MacroIntelligenceScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.EnterpriseApi.route) {
-                        com.nexus.porsuk.feature.api.EnterpriseApiScreen(
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
@@ -744,26 +711,8 @@ fun PorsukApp(
                         )
                     }
 
-                    composable(Screen.EsgPlatform.route) {
-                        com.nexus.porsuk.feature.esg.EsgPlatformScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.AlternativeData.route) {
-                        com.nexus.porsuk.feature.alternative.AlternativeDataScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
                     composable(Screen.InstitutionalIntelligence.route) {
                         com.nexus.porsuk.feature.institutional.InstitutionalScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.EarningsCallTranscripts.route) {
-                        com.nexus.porsuk.feature.transcript.TranscriptScreen(
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
@@ -799,7 +748,8 @@ fun PorsukApp(
                         val symbol = backStackEntry.arguments?.getString("symbol") ?: ""
                         com.nexus.porsuk.ui.orakul.agents.MultiAgentAnalysisScreen(
                             symbol = symbol,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onNavigateToSettings = { navController.navigate(Screen.Ayarlar.route) }
                         )
                     }
 
@@ -822,12 +772,6 @@ fun PorsukApp(
 
                     composable(Screen.ReportingCenter.route) {
                         com.nexus.porsuk.feature.reporting.ReportingCenterScreen(
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.PluginMarketplace.route) {
-                        com.nexus.porsuk.feature.plugins.PluginMarketplaceScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }

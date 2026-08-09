@@ -20,7 +20,6 @@ import com.nexus.porsuk.ui.theme.*
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
 private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val SuccessGreen = Color(0xFF00C48C)
 private val TextDark = Color(0xFF0F172A)
@@ -60,7 +59,7 @@ fun OracleTimeframeFilterRow(
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PrimaryPurple,
+                    selectedContainerColor = Violet,
                     selectedLabelColor = Color.White,
                     containerColor = CardWhite,
                     labelColor = TextSecondary
@@ -70,7 +69,7 @@ fun OracleTimeframeFilterRow(
                     enabled = true,
                     selected = isSelected,
                     borderColor = BorderColor,
-                    selectedBorderColor = PrimaryPurple
+                    selectedBorderColor = Violet
                 )
             )
         }
@@ -182,7 +181,7 @@ fun SectorExplanationBottomSheet(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                colors = ButtonDefaults.buttonColors(containerColor = Violet)
             ) {
                 Text("Kapat", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
             }

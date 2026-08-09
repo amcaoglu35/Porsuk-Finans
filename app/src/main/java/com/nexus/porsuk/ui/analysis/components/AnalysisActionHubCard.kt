@@ -35,7 +35,7 @@ fun AiAccuracyCardSection() {
         Box(
             modifier = Modifier.background(
                 Brush.linearGradient(
-                    colors = listOf(Color(0xFF512DA8), Color(0xFF6C4CF1))
+                    colors = listOf(Color(0xFF512DA8), Violet)
                 )
             )
         ) {

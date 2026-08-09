@@ -268,7 +268,19 @@ class DashboardViewModel @Inject constructor(
         val gainPct = if (summary.totalCost > 0) ((summary.totalBalance - summary.totalCost) / summary.totalCost) * 100 else 0.0
 
         val score = (70 + (bistChange * 2).toInt()).coerceIn(30, 95)
-        val confidenceVal = if (summary.totalBalance > 0) 85 else 60
+        
+        // ── GA-4: Improved Confidence Formula ──
+        var confidenceVal = 75 // Starting base for active market
+        if (summary.totalBalance > 0) confidenceVal += 5
+        if (fearGreed != null) confidenceVal += 10 else confidenceVal -= 5
+        
+        val absBistChange = Math.abs(bistChange)
+        if (absBistChange > 2.5) confidenceVal -= 15
+        else if (absBistChange > 1.2) confidenceVal -= 5
+        else if (absBistChange < 0.4) confidenceVal += 5
+        
+        confidenceVal = confidenceVal.coerceIn(40, 95)
+        
         val riskText = if (gainPct < -5) "Yüksek" else if (gainPct < 0) "Orta" else "Düşük"
         
         val fearGreedText = fearGreed?.let {

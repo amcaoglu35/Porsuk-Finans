@@ -43,7 +43,6 @@ fun QuickActionsGrid(
     onInstitutionalClick: () -> Unit = {},
     onReportingClick: () -> Unit = {},
     onAiEngineClick: () -> Unit = {},
-    onPluginsClick: () -> Unit = {},
     onCloudSyncClick: () -> Unit = {},
     onDoctorClick: () -> Unit = {},
     onWatchlistClick: () -> Unit = {},

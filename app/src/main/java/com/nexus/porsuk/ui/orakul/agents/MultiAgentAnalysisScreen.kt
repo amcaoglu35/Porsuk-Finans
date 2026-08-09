@@ -26,21 +26,26 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.domain.model.*
 import com.nexus.porsuk.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MultiAgentAnalysisScreen(
     symbol: String,
     onBack: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: MultiAgentAnalysisViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(symbol) {
         viewModel.runAnalysis(symbol)
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -97,7 +102,23 @@ fun MultiAgentAnalysisScreen(
                     // Debate Button
                     item {
                         Button(
-                            onClick = { viewModel.startDebate("YOUR_API_KEY") }, // API key should come from settings
+                            onClick = {
+                                val apiKey = viewModel.getGeminiApiKey()
+                                if (apiKey.isNullOrBlank()) {
+                                    scope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "AI Tartışması için Gemini API anahtarı gereklidir.",
+                                            actionLabel = "Ayarlar",
+                                            duration = SnackbarDuration.Long
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            onNavigateToSettings()
+                                        }
+                                    }
+                                } else {
+                                    viewModel.startDebate(apiKey)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = Violet),
                             shape = RoundedCornerShape(12.dp),

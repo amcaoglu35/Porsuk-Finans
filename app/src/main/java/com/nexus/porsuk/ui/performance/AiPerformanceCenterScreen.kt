@@ -41,8 +41,6 @@ import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
-private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
 private val BorderColor = Color(0xFFF1F5F9)
@@ -127,7 +125,7 @@ fun AiPerformanceCenterScreen(
                                 Toast.makeText(context, "📄 AI Şeffaflık & Doğruluk Raporu Oluşturuldu!", Toast.LENGTH_LONG).show()
                             },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                            colors = ButtonDefaults.buttonColors(containerColor = Violet),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier.padding(end = 12.dp)
                         ) {
@@ -144,7 +142,7 @@ fun AiPerformanceCenterScreen(
                     selectedTabIndex = selectedTab,
                     modifier = Modifier.fillMaxWidth(),
                     containerColor = Color.Transparent,
-                    contentColor = PrimaryPurple,
+                    contentColor = Violet,
                     edgePadding = 20.dp,
                     divider = {}
                 ) {
@@ -158,7 +156,7 @@ fun AiPerformanceCenterScreen(
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = if (selectedTab == idx) FontWeight.ExtraBold else FontWeight.Medium
                                     ),
-                                    color = if (selectedTab == idx) PrimaryPurple else TextSecondary
+                                    color = if (selectedTab == idx) Violet else TextSecondary
                                 )
                             }
                         )
@@ -219,10 +217,10 @@ private fun GeneralStatsTabContent() {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        StatTile("Toplam Analiz", "1.480", PrimaryPurple)
+                        StatTile("Toplam Analiz", "1.480", Violet)
                         StatTile("Başarılı", "1.098", SuccessGreen)
                         StatTile("Başarısız", "142", CriticalRed)
-                        StatTile("Ort. Güven", "%89.2", PrimaryPurple)
+                        StatTile("Ort. Güven", "%89.2", Violet)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -241,13 +239,13 @@ private fun GeneralStatsTabContent() {
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TimeframeCard("Son 7 Gün", "%91.4", SuccessGreen, modifier = Modifier.weight(1f))
-                TimeframeCard("Son 30 Gün", "%88.5", PrimaryPurple, modifier = Modifier.weight(1f))
+                TimeframeCard("Son 30 Gün", "%88.5", Violet, modifier = Modifier.weight(1f))
             }
         }
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TimeframeCard("Son 90 Gün", "%86.2", PrimaryPurple, modifier = Modifier.weight(1f))
+                TimeframeCard("Son 90 Gün", "%86.2", Violet, modifier = Modifier.weight(1f))
                 TimeframeCard("Tüm Zamanlar", "%88.5", SuccessGreen, modifier = Modifier.weight(1f))
             }
         }
@@ -279,7 +277,7 @@ private fun ModuleLeaderboardTabContent(moduleLeaderboard: List<ModuleAccuracyIt
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = CircleShape, color = PurpleSoftBg, modifier = Modifier.size(38.dp)) {
+                        Surface(shape = CircleShape, color = VioletSoft, modifier = Modifier.size(38.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(item.icon, fontSize = 18.sp)
                             }
@@ -345,11 +343,11 @@ private fun PastPredictionsTabContent(pastPredictions: List<PredictionHistoryIte
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text("Tahmin: ${item.predictionStr}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = TextDark)
-                    Text("Sonuç: ${item.actualOutcomeStr}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PrimaryPurple)
+                    Text("Sonuç: ${item.actualOutcomeStr}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Violet)
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Surface(shape = RoundedCornerShape(10.dp), color = PurpleSoftBg) {
+                    Surface(shape = RoundedCornerShape(10.dp), color = VioletSoft) {
                         Text("🤖 AI Retrospektif Yorum: ${item.selfEvaluation}", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp, lineHeight = 13.sp), color = TextDark, modifier = Modifier.padding(8.dp))
                     }
                 }
@@ -437,7 +435,7 @@ private fun AccuracyCanvasGraph() {
 
         drawPath(
             path = path,
-            brush = Brush.horizontalGradient(colors = listOf(PrimaryPurple, SuccessGreen)),
+            brush = Brush.horizontalGradient(colors = listOf(Violet, SuccessGreen)),
             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
         )
     }

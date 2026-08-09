@@ -30,8 +30,6 @@ import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
-private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
 private val BorderColor = Color(0xFFF1F5F9)
@@ -104,7 +102,7 @@ fun GlobalSearchScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     placeholder = { Text("Hisse, Fon, Kripto, Döviz veya Haber ara...", style = MaterialTheme.typography.bodyMedium, color = TextSecondary) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = PrimaryPurple) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = Violet) },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(onClick = { query = "" }) {
@@ -116,7 +114,7 @@ fun GlobalSearchScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = CardWhite,
                         unfocusedContainerColor = CardWhite,
-                        focusedBorderColor = PrimaryPurple,
+                        focusedBorderColor = Violet,
                         unfocusedBorderColor = BorderColor
                     ),
                     singleLine = true
@@ -134,8 +132,8 @@ fun GlobalSearchScreen(
                         val isSelected = selectedCategoryIndex == idx
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = if (isSelected) PurpleSoftBg else CardWhite,
-                            border = BorderStroke(1.dp, if (isSelected) PrimaryPurple else BorderColor),
+                            color = if (isSelected) VioletSoft else CardWhite,
+                            border = BorderStroke(1.dp, if (isSelected) Violet else BorderColor),
                             modifier = Modifier.clickable { selectedCategoryIndex = idx }
                         ) {
                             Text(
@@ -144,7 +142,7 @@ fun GlobalSearchScreen(
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     fontSize = 11.sp
                                 ),
-                                color = if (isSelected) PrimaryPurple else TextSecondary,
+                                color = if (isSelected) Violet else TextSecondary,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
@@ -180,11 +178,11 @@ fun GlobalSearchScreen(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = PurpleSoftBg,
+                            color = VioletSoft,
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(item.symbol.take(2), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = PrimaryPurple)
+                                Text(item.symbol.take(2), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold), color = Violet)
                             }
                         }
 

@@ -81,7 +81,7 @@ fun AiGeneralOverviewCard(onDetailClick: () -> Unit) {
                             style = Stroke(width = strokeWidth)
                         )
                         drawArc(
-                            color = Color(0xFF6C4CF1),
+                            color = Violet,
                             startAngle = -90f,
                             sweepAngle = 280f,
                             useCenter = false,

@@ -20,11 +20,14 @@ data class MultiAgentUiState(
 
 @HiltViewModel
 class MultiAgentAnalysisViewModel @Inject constructor(
-    private val financeRepository: FinanceRepository
+    private val financeRepository: FinanceRepository,
+    private val settingsManager: com.nexus.porsuk.data.local.SettingsManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MultiAgentUiState())
     val uiState: StateFlow<MultiAgentUiState> = _uiState.asStateFlow()
+
+    fun getGeminiApiKey(): String? = settingsManager.getGeminiApiKey()
 
     fun runAnalysis(symbol: String) {
         viewModelScope.launch {

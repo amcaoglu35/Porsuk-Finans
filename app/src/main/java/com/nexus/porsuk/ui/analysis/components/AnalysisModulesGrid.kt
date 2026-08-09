@@ -84,7 +84,7 @@ fun DetailedAnalysisModulesSection(onModuleClick: (String) -> Unit) {
             DetailedModuleItem("Haber Analizi", "Haberlerin hisse üzerindeki etkisi", "78 /100", AmberWarning, "📰", listOf(30f, 32f, 31f, 35f, 38f)),
             DetailedModuleItem("Makro Analiz", "Döviz, faiz, enflasyon ve endeksler", "68 /100", AmberWarning, "🌐", listOf(60f, 59f, 62f, 65f, 68f)),
             DetailedModuleItem("Portföy Etki Analizi", "Portföyünüz üzerindeki olası etkiler", "72 /100", PozitifGreen, "🍕", listOf(40f, 43f, 45f, 48f, 52f)),
-            DetailedModuleItem("Senaryo Simülasyonu", "Faiz, kur, enflasyon senaryoları", "Yeni", Color(0xFF6C4CF1), "⚙️", listOf(50f, 55f, 52f, 58f, 60f))
+            DetailedModuleItem("Senaryo Simülasyonu", "Faiz, kur, enflasyon senaryoları", "Yeni", Violet, "⚙️", listOf(50f, 55f, 52f, 58f, 60f))
         )
     }
 

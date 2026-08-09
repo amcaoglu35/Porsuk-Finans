@@ -40,8 +40,6 @@ import com.nexus.porsuk.ui.theme.*
 
 private val LightBackground = Color(0xFFFAFAFA)
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
-private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val TextDark = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
 private val BorderColor = Color(0xFFF1F5F9)
@@ -101,7 +99,7 @@ fun PortfolioSimulatorScreen(
                                 Toast.makeText(context, "📄 Simülasyon & Backtest Raporu Hazırlandı!", Toast.LENGTH_LONG).show()
                             },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                            colors = ButtonDefaults.buttonColors(containerColor = Violet),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier.padding(end = 12.dp)
                         ) {
@@ -117,7 +115,7 @@ fun PortfolioSimulatorScreen(
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.Transparent,
-                    contentColor = PrimaryPurple,
+                    contentColor = Violet,
                     divider = {}
                 ) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
@@ -198,8 +196,8 @@ private fun SimulatorTabContent(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("AI Senaryo Analiz Motoru", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = Manrope), color = TextDark)
                         }
-                        Surface(shape = RoundedCornerShape(8.dp), color = PurpleSoftBg) {
-                            Text("%${String.format("%.0f", totalWeight)} Ağırlık", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = PrimaryPurple, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                        Surface(shape = RoundedCornerShape(8.dp), color = VioletSoft) {
+                            Text("%${String.format("%.0f", totalWeight)} Ağırlık", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Violet, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
                         }
                     }
 
@@ -210,7 +208,7 @@ private fun SimulatorTabContent(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         MetricTile("Beklenen Getiri", "+%${String.format("%.1f", expectedReturnPct)}", SuccessGreen)
-                        MetricTile("Risk Skoru", "$riskScore / 100", if (riskScore > 70) WarningOrange else PrimaryPurple)
+                        MetricTile("Risk Skoru", "$riskScore / 100", if (riskScore > 70) WarningOrange else Violet)
                         MetricTile("Çeşitlilik", "$diversityScore / 100", SuccessGreen)
                     }
 
@@ -247,14 +245,14 @@ private fun SimulatorTabContent(
                             Text(item.symbol, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold), color = TextDark)
                             Text(item.name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = TextSecondary)
                         }
-                        Text("%${item.weightPct.toInt()}", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = PrimaryPurple)
+                        Text("%${item.weightPct.toInt()}", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = Violet)
                     }
 
                     Slider(
                         value = item.weightPct,
                         onValueChange = { onWeightChange(idx, it) },
                         valueRange = 0f..100f,
-                        colors = SliderDefaults.colors(thumbColor = PrimaryPurple, activeTrackColor = PrimaryPurple)
+                        colors = SliderDefaults.colors(thumbColor = Violet, activeTrackColor = Violet)
                     )
                 }
             }
@@ -326,8 +324,8 @@ private fun BacktestTabContent(
                     val isSel = selectedPeriod == idx
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSel) PrimaryPurple else CardWhite,
-                        border = BorderStroke(1.dp, if (isSel) PrimaryPurple else BorderColor),
+                        color = if (isSel) Violet else CardWhite,
+                        border = BorderStroke(1.dp, if (isSel) Violet else BorderColor),
                         modifier = Modifier.weight(1f).clickable { onPeriodSelect(idx) }
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
@@ -372,7 +370,7 @@ private fun BacktestTabContent(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("• Zayıf Yönler: Yüksek enflasyonist dönemlerde reel varlık koruma marjı %3 gerilemiştir.", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = TextDark)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("• Piyasa Başarısı: Trend yükselişlerinde %92 başarı, yatay piyasalarda %78 tutarlılık.", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = PrimaryPurple)
+                    Text("• Piyasa Başarısı: Trend yükselişlerinde %92 başarı, yatay piyasalarda %78 tutarlılık.", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = Violet)
                 }
             }
         }
@@ -397,7 +395,7 @@ private fun ComparisonRow(title: String, realVal: String, simVal: String) {
         Text(title, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium), color = TextDark)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(realVal, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono), color = TextSecondary)
-            Text(simVal, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = PrimaryPurple)
+            Text(simVal, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = Violet)
         }
     }
 }
@@ -418,7 +416,7 @@ private fun SimulationCanvasGraph() {
 
         drawPath(
             path = path,
-            brush = Brush.horizontalGradient(colors = listOf(PrimaryPurple, SuccessGreen)),
+            brush = Brush.horizontalGradient(colors = listOf(Violet, SuccessGreen)),
             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
         )
     }

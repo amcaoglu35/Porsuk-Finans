@@ -29,7 +29,6 @@ import com.nexus.porsuk.ui.theme.*
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 private val CardWhite = Color(0xFFFFFFFF)
-private val PrimaryPurple = Color(0xFF6C4CF1)
 private val PurpleSoftBg = Color(0xFFF3F0FF)
 private val SuccessGreen = Color(0xFF00C48C)
 private val ErrorRed = Color(0xFFF44336)
@@ -83,7 +82,7 @@ fun StructuredForecastCard(
                             text = symbol,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = PrimaryPurple,
+                            color = Violet,
                             fontFamily = IBMPlexMono
                         )
                     }
@@ -98,7 +97,7 @@ fun StructuredForecastCard(
                 // Sparkline integration
                 Sparkline(
                     values = sparklineValues,
-                    color = PrimaryPurple,
+                    color = Violet,
                     modifier = Modifier.size(60.dp, 24.dp)
                 )
             }
@@ -146,7 +145,7 @@ fun ExpandableWeightBreakdown(consensusWeights: Map<String, Int>) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = PurpleSoftBg.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, PrimaryPurple.copy(alpha = 0.15f))
+        border = BorderStroke(1.dp, Violet.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -161,7 +160,7 @@ fun ExpandableWeightBreakdown(consensusWeights: Map<String, Int>) {
                     Text(
                         text = "Konsensüs Ağırlık Dökümü",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = PrimaryPurple,
+                        color = Violet,
                         fontFamily = Manrope
                     )
                 }
@@ -169,7 +168,7 @@ fun ExpandableWeightBreakdown(consensusWeights: Map<String, Int>) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = "Aç/Kapat",
-                    tint = PrimaryPurple
+                    tint = Violet
                 )
             }
 
@@ -189,7 +188,7 @@ fun ExpandableWeightBreakdown(consensusWeights: Map<String, Int>) {
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(moduleName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextDark, fontFamily = Manrope)
-                                Text("%$weightPct", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryPurple, fontFamily = IBMPlexMono)
+                                Text("%$weightPct", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Violet, fontFamily = IBMPlexMono)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Box(
@@ -204,7 +203,7 @@ fun ExpandableWeightBreakdown(consensusWeights: Map<String, Int>) {
                                         .fillMaxHeight()
                                         .fillMaxWidth(weightPct / 100f)
                                         .clip(CircleShape)
-                                        .background(PrimaryPurple)
+                                        .background(Violet)
                                 )
                             }
                         }
