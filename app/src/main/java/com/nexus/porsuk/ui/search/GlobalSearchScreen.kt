@@ -28,6 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.theme.*
 
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.nexus.porsuk.ui.FinanceViewModel
+
 private val LightBackground = Color(0xFFFAFAFA)
 private val CardWhite = Color(0xFFFFFFFF)
 private val TextDark = Color(0xFF0F172A)
@@ -40,39 +43,77 @@ private val ErrorRed = Color(0xFFF44336)
 @Composable
 fun GlobalSearchScreen(
     onBack: () -> Unit,
-    onStockClick: (String, String) -> Unit
+    onStockClick: (String, String) -> Unit,
+    viewModel: FinanceViewModel = hiltViewModel()
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(0) }
 
+    val companies by viewModel.allCompanies.collectAsState(initial = emptyList())
+    val tefasFunds by viewModel.allTefasFunds.collectAsState(initial = emptyList())
+    val prices by viewModel.prices.collectAsState()
+
     val categories = remember {
-        listOf("Tümü", "Hisseler", "Fonlar", "ETF", "Kripto", "Döviz", "Emtia", "Şirketler", "Haberler", "AI Raporları", "Oracle Tahminleri")
+        listOf("Tümü", "Hisseler", "Fonlar", "Kripto", "Döviz", "Emtia")
     }
 
-    val allSearchItems = remember {
-        listOf(
-            SearchResultItem("THYAO", "Türk Hava Yolları", "Hisseler", "₺305,25", "^ %2,87", "BIST", true),
-            SearchResultItem("ASELS", "Aselsan Elektronik", "Hisseler", "₺56,70", "^ %4,25", "BIST", true),
-            SearchResultItem("NVDA", "NVIDIA Corporation", "Hisseler", "$128,20", "^ %3,45", "NASDAQ", true),
-            SearchResultItem("AAPL", "Apple Inc.", "Hisseler", "$224,30", "^ %1,12", "NASDAQ", true),
-            SearchResultItem("TTE", "İş Portföy Teknoloji Fonu", "Fonlar", "%48,2 Yıllık", "^ %1,85", "TEFAS", true),
-            SearchResultItem("SPY", "SPDR S&P 500 ETF", "ETF", "$542,10", "^ %0,88", "NYSE", true),
-            SearchResultItem("BTC", "Bitcoin", "Kripto", "$67.450,00", "^ %2,10", "BINANCE", true),
-            SearchResultItem("ETH", "Ethereum", "Kripto", "$3.480,20", "^ %1,85", "BINANCE", true),
-            SearchResultItem("USD/TRY", "Amerikan Doları", "Döviz", "₺32,65", "^ %0,42", "FOREX", true),
-            SearchResultItem("ALTIN", "Gram Altın", "Emtia", "₺2.395,45", "^ %0,31", "PIYASA", true),
-            SearchResultItem("BIST 100 Rekor Kırdı", "Piyasa analistleri 10.850 hedefini açıkladı.", "Haberler", "Bugün", "AI Analiz", "HABER", true),
-            SearchResultItem("Oracle Boğa Sinyali", "BIST Teknoloji %88 alım güveni üretti.", "Oracle Tahminleri", "%88 Güven", "AI Sinyal", "ORACLE", true)
-        )
+    val dynamicSearchItems = remember(companies, tefasFunds, prices) {
+        val list = mutableListOf<SearchResultItem>()
+
+        // 1. Canlı Hisse Senetleri
+        companies.forEach { comp ->
+            val snap = prices[comp.symbol]
+            val priceVal = snap?.price ?: comp.currentPrice
+            val changeVal = snap?.changePercent ?: 0.0
+            val isPos = changeVal >= 0
+            val prefix = if (comp.market.equals("NASDAQ", true) || comp.market.equals("NYSE", true)) "$" else "₺"
+            list.add(
+                SearchResultItem(
+                    symbol = comp.symbol,
+                    title = comp.companyName,
+                    category = "Hisseler",
+                    valueStr = "$prefix${String.format(java.util.Locale.US, "%.2f", priceVal)}",
+                    changeStr = "${if (isPos) "+" else ""}%${String.format(java.util.Locale.US, "%.2f", changeVal)}",
+                    market = comp.market.ifBlank { "BIST" },
+                    isPos = isPos
+                )
+            )
+        }
+
+        // 2. TEFAS Yatırım Fonları
+        tefasFunds.forEach { fund ->
+            list.add(
+                SearchResultItem(
+                    symbol = fund.code,
+                    title = fund.title,
+                    category = "Fonlar",
+                    valueStr = "₺${String.format(java.util.Locale.US, "%.4f", fund.price)}",
+                    changeStr = "TEFAS",
+                    market = "TEFAS",
+                    isPos = true
+                )
+            )
+        }
+
+        // 3. Sabit Piyasa Göstergeleri
+        list.add(SearchResultItem("USD/TRY", "Amerikan Doları", "Döviz", "₺32,65", "+%0,42", "FOREX", true))
+        list.add(SearchResultItem("EUR/TRY", "Euro", "Döviz", "₺35,40", "+%0,28", "FOREX", true))
+        list.add(SearchResultItem("ALTIN", "Gram Altın", "Emtia", "₺2.395,45", "+%0,31", "PIYASA", true))
+        list.add(SearchResultItem("BTC", "Bitcoin", "Kripto", "$67.450,00", "+%2,10", "BINANCE", true))
+        list.add(SearchResultItem("ETH", "Ethereum", "Kripto", "$3.480,20", "+%1,85", "BINANCE", true))
+
+        list
     }
 
-    val filteredItems = remember(query, selectedCategoryIndex) {
-        allSearchItems.filter { item ->
-            val matchesQuery = query.isBlank() || item.symbol.contains(query, ignoreCase = true) || item.title.contains(query, ignoreCase = true)
+    val filteredItems = remember(query, selectedCategoryIndex, dynamicSearchItems) {
+        dynamicSearchItems.filter { item ->
+            val matchesQuery = query.isBlank() || 
+                item.symbol.contains(query, ignoreCase = true) || 
+                item.title.contains(query, ignoreCase = true)
             val categoryFilter = categories.getOrNull(selectedCategoryIndex) ?: "Tümü"
             val matchesCategory = categoryFilter == "Tümü" || item.category == categoryFilter
             matchesQuery && matchesCategory
-        }
+        }.take(50)
     }
 
     Scaffold(

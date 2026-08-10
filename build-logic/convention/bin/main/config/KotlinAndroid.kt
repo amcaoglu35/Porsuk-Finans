@@ -1,19 +1,24 @@
+package config
+
 import com.android.build.api.dsl.CommonExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 internal fun Project.configureKotlinAndroid(
-    commonExtension: CommonExtension,
+    commonExtension: CommonExtension<*, *, *, *, *, *>,
 ) {
     commonExtension.apply {
-        compileSdk = libs.findVersion("compileSdk").get().toString().toInt()
+        compileSdk = libs.findVersion("compileSdk").get().requiredVersion.toInt()
 
         defaultConfig.apply {
-            minSdk = libs.findVersion("minSdk").get().toString().toInt()
+            minSdk = libs.findVersion("minSdk").get().requiredVersion.toInt()
         }
 
         compileOptions.apply {
@@ -31,6 +36,10 @@ internal fun Project.configureKotlinAndroid(
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             )
         }
+    }
+
+    tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+        options.compilerArgs.add("-proc:none")
     }
 
     dependencies {

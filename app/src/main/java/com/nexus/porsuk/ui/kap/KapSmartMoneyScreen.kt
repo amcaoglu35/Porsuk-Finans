@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +36,8 @@ data class KapDisclosureItem(
     val summary: String,
     val impactRating: String,    // "ÇOK OLUMLU (+)", "OLUMLU (+)", "NÖTR"
     val impactColorHex: Long,
-    val timeStr: String
+    val timeStr: String,
+    val rawNotice: KapNotice? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,8 +49,13 @@ fun KapSmartMoneyScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val disclosures = remember(uiState.notices) {
-        uiState.notices.mapIndexed { idx, n ->
+    val disclosures = remember(uiState.notices, uiState.searchQuery) {
+        uiState.notices.filter {
+            uiState.searchQuery.isBlank() || 
+            it.symbol.contains(uiState.searchQuery, ignoreCase = true) || 
+            it.companyName.contains(uiState.searchQuery, ignoreCase = true) || 
+            it.title.contains(uiState.searchQuery, ignoreCase = true)
+        }.mapIndexed { idx, n ->
             KapDisclosureItem(
                 id = idx + 1,
                 symbol = n.symbol,
@@ -63,7 +70,8 @@ fun KapSmartMoneyScreen(
                 summary = n.summary.ifBlank { n.title },
                 impactRating = if (n.isImportant) "ÇOK OLUMLU (+)" else "OLUMLU (+)",
                 impactColorHex = 0xFF00A878,
-                timeStr = n.publishTime
+                timeStr = n.publishTime,
+                rawNotice = n
             )
         }
     }
@@ -153,6 +161,23 @@ fun KapSmartMoneyScreen(
                         }
                     }
                 }
+            }
+
+            // Search Bar (GA-5-C1)
+            item {
+                OutlinedTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Hisse veya haber içeriğinde ara...", fontSize = 12.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryTeal) },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryTeal,
+                        unfocusedBorderColor = LineBorder
+                    )
+                )
             }
 
             // Category Filter Row
@@ -261,9 +286,44 @@ fun KapSmartMoneyScreen(
                         }
 
                         Text(item.summary, style = MaterialTheme.typography.bodyMedium, color = InkText, fontFamily = Manrope, lineHeight = 18.sp)
+
+                        if (item.rawNotice != null) {
+                            Button(
+                                onClick = { viewModel.loadAiSummary(item.rawNotice) },
+                                modifier = Modifier.fillMaxWidth().height(36.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal.copy(alpha = 0.1f), contentColor = PrimaryTeal)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("🤖 AI Özet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        // AI Summary Dialog (GA-5-C1)
+        if (uiState.activeAiSummary != null || uiState.isAiLoading) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearAiSummary() },
+                title = { Text("🤖 AI KAP Analizi", fontWeight = FontWeight.Bold, fontFamily = Manrope) },
+                text = {
+                    if (uiState.isAiLoading) {
+                        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = PrimaryTeal)
+                        }
+                    } else {
+                        Text(uiState.activeAiSummary ?: "", fontSize = 13.sp, fontFamily = Manrope, lineHeight = 20.sp)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearAiSummary() }) {
+                        Text("Kapat")
+                    }
+                }
+            )
         }
     }
 }

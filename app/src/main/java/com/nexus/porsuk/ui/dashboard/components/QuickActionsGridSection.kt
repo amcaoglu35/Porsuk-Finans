@@ -40,7 +40,6 @@ fun QuickActionsGrid(
     onAnalysisClick: () -> Unit,
     onModelSepetlerClick: () -> Unit,
     onKapRadarClick: () -> Unit = {},
-    onInstitutionalClick: () -> Unit = {},
     onReportingClick: () -> Unit = {},
     onAiEngineClick: () -> Unit = {},
     onCloudSyncClick: () -> Unit = {},
@@ -106,15 +105,6 @@ fun QuickActionsGrid(
             onClick = onCloudSyncClick
         ),
         QuickActionItem(
-            emoji = "📊",
-            title = "Kurumsal Analiz",
-            subtitle = "Bloomberg Terminal",
-            gradientStart = colorScheme.onSurface,
-            gradientEnd = colorScheme.onSurface.copy(alpha = 0.7f),
-            accentSoft = colorScheme.onSurface.copy(alpha = 0.1f),
-            onClick = onInstitutionalClick
-        ),
-        QuickActionItem(
             emoji = "📑",
             title = "Rapor Merkezi",
             subtitle = "PDF & Excel Döküm",
@@ -133,9 +123,36 @@ fun QuickActionsGrid(
             onClick = onAiEngineClick
         ),
         QuickActionItem(
+            emoji = "⚡",
+            title = "KAP Radarı",
+            subtitle = "Akıllı Para & Patron",
+            gradientStart = Color(0xFF00A878),
+            gradientEnd = Color(0xFF006B4D),
+            accentSoft = AquaSoft,
+            onClick = onKapRadarClick
+        ),
+        QuickActionItem(
+            emoji = "🎯",
+            title = "Model Sepetler",
+            subtitle = "Aracı Kurum Önerileri",
+            gradientStart = Color(0xFF8B5CF6),
+            gradientEnd = Color(0xFF6D28D9),
+            accentSoft = VioletSoft,
+            onClick = onModelSepetlerClick
+        ),
+        QuickActionItem(
+            emoji = "🔬",
+            title = "Teknik Analiz",
+            subtitle = "İndikatör & Sinyaller",
+            gradientStart = Color(0xFF3B82F6),
+            gradientEnd = Color(0xFF1D4ED8),
+            accentSoft = TealSoft,
+            onClick = onAnalysisClick
+        ),
+        QuickActionItem(
             emoji = "🧰",
             title = "Tüm Araçlar",
-            subtitle = "14 Finansal Modül",
+            subtitle = "Tüm Finansal Modüller",
             gradientStart = EmeraldNew,
             gradientEnd = EmeraldNew.copy(alpha = 0.8f),
             accentSoft = AquaSoft,

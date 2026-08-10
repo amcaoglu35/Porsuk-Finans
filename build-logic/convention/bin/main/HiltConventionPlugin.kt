@@ -1,3 +1,4 @@
+import config.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -16,9 +17,7 @@ class HiltConventionPlugin : Plugin<Project> {
                 add("implementation", libs.findLibrary("hilt.android").get())
                 add("ksp", hiltCompiler)
 
-                add("kspTest", hiltCompiler)
                 add("testImplementation", hiltAndroidTesting)
-                add("kspAndroidTest", hiltCompiler)
                 add("androidTestImplementation", hiltAndroidTesting)
             }
         }

@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Checklist
@@ -31,6 +32,7 @@ import com.nexus.porsuk.feature.watchlist.components.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchlistScreen(
+    onNavigateBack: () -> Unit = {},
     onNavigateToCompanyDetail: (String) -> Unit = {},
     viewModel: WatchlistViewModel = hiltViewModel()
 ) {
@@ -49,6 +51,14 @@ fun WatchlistScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri"
+                        )
+                    }
                 },
                 actions = {
                     // Favori Liste Belirleme Butonu

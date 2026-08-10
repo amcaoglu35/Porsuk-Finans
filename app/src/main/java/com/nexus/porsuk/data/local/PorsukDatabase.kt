@@ -8,13 +8,9 @@ import androidx.room.TypeConverters
 import com.nexus.porsuk.data.local.dao.*
 import com.nexus.porsuk.data.local.entity.*
 import com.nexus.porsuk.data.local.db.FundConverters
-import com.nexus.porsuk.data.local.db.IpoCorporateConverters
 
 /**
  * Porsuk Finans — Ana Room Veritabanı (PorsukDatabase - Version 47)
- *
- * v43 -> v47 geçişindeki `cloud_sync_queue`, `automation_rules`, `broker_accounts` ve `engine_security_*`
- * tablolarını içeren şema güncellemelerini yönetir.
  */
 @Database(
     entities = [
@@ -65,11 +61,6 @@ import com.nexus.porsuk.data.local.db.IpoCorporateConverters
         FundPerformanceEntity::class,
         FundAllocationEntity::class,
         FundRiskEntity::class,
-        IpoIntelligenceEntity::class,
-        CorporateActionEntity::class,
-        DividendHistoryProEntity::class,
-        PluginConfigEntity::class,
-        PluginHealthEntity::class,
         LocalAiModelEntity::class,
         AiAnalysisCacheEntity::class,
         // Legacy/Existing Entities
@@ -108,7 +99,7 @@ import com.nexus.porsuk.data.local.db.IpoCorporateConverters
     version = 47,
     exportSchema = false
 )
-@TypeConverters(FundConverters::class, IpoCorporateConverters::class)
+@TypeConverters(FundConverters::class)
 abstract class PorsukDatabase : RoomDatabase() {
 
     abstract fun exchangeRateDao(): ExchangeRateDao
@@ -143,9 +134,6 @@ abstract class PorsukDatabase : RoomDatabase() {
     abstract fun assetDao(): AssetDao
     abstract fun marketQuoteDao(): MarketQuoteDao
     abstract fun syncLogDao(): SyncLogDao
-    abstract fun fundIntelligenceDao(): FundIntelligenceDao
-    abstract fun ipoCorporateDao(): IpoCorporateDao
-    abstract fun pluginDao(): PluginDao
     abstract fun aiEngineDao(): AiEngineDao
 
     companion object {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -30,7 +31,10 @@ import com.nexus.porsuk.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val uriHandler = LocalUriHandler.current
 
@@ -47,13 +51,26 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             .background(BackgroundNew)
             .padding(horizontal = 20.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            "Ayarlar",
-            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
-            color = InkText
-        )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Geri",
+                    tint = InkText
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Ayarlar",
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope),
+                color = InkText
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

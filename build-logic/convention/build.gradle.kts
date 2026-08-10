@@ -16,10 +16,10 @@ kotlin {
 }
 
 dependencies {
-    compileOnly(libs.android.gradlePlugin)
-    compileOnly(libs.kotlin.gradlePlugin)
-    compileOnly(libs.kotlin.composeGradlePlugin)
-    compileOnly(libs.ksp.gradlePlugin)
+    implementation(libs.android.gradlePlugin)
+    implementation(libs.kotlin.gradlePlugin)
+    implementation(libs.kotlin.composeGradlePlugin)
+    implementation(libs.ksp.gradlePlugin)
     implementation(libs.detekt.gradlePlugin)
 }
 

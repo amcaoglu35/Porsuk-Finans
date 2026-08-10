@@ -12,8 +12,7 @@ import java.util.concurrent.TimeUnit
 @HiltWorker
 class IpoAlertWorker @AssistedInject constructor(
     @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters,
-    private val repository: IpoRepository
+    @Assisted workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {

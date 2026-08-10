@@ -1,4 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
+import config.configureKotlinAndroid
+import config.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -8,14 +10,12 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             apply(plugin = "com.android.application")
-            apply(plugin = "app.android.lint")
-            apply(plugin = "app.android.detekt")
 
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
 
                 defaultConfig {
-                    targetSdk = libs.findVersion("targetSdk").get().toString().toInt()
+                    targetSdk = libs.findVersion("targetSdk").get().requiredVersion.toInt()
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 }
 

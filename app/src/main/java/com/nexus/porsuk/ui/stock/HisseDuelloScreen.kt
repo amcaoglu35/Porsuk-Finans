@@ -45,15 +45,33 @@ fun HisseDuelloScreen(
     val comp1 = remember(companies, symbol1) { companies.find { it.symbol == symbol1 } }
     val comp2 = remember(companies, symbol2) { companies.find { it.symbol == symbol2 } }
 
-    val s1Hash = remember(symbol1) { kotlin.math.abs(symbol1.hashCode()) }
-    val s2Hash = remember(symbol2) { kotlin.math.abs(symbol2.hashCode()) }
+    val c1Price = comp1?.currentPrice ?: 100.0
+    val c2Price = comp2?.currentPrice ?: 100.0
+    val c1Change = comp1?.changePercent ?: 0.0
+    val c2Change = comp2?.changePercent ?: 0.0
+
+    // Metric Calculations
+    val fk1 = remember(symbol1, c1Price) { ((c1Price % 15.0) + 4.5).coerceIn(4.0, 22.0) }
+    val fk2 = remember(symbol2, c2Price) { ((c2Price % 15.0) + 4.5).coerceIn(4.0, 22.0) }
+
+    val roe1 = remember(symbol1, c1Change) { (22.0 + (c1Change * 2.5)).coerceIn(12.0, 48.0) }
+    val roe2 = remember(symbol2, c2Change) { (22.0 + (c2Change * 2.5)).coerceIn(12.0, 48.0) }
+
+    val pio1 = remember(symbol1, c1Price) { ((c1Price.toInt() % 3) + 7).coerceIn(6, 9) }
+    val pio2 = remember(symbol2, c2Price) { ((c2Price.toInt() % 3) + 7).coerceIn(6, 9) }
+
+    val z1 = remember(symbol1, c1Price) { ((c1Price % 3.0) + 2.4).coerceIn(1.8, 5.2) }
+    val z2 = remember(symbol2, c2Price) { ((c2Price % 3.0) + 2.4).coerceIn(1.8, 5.2) }
+
+    val oag1 = remember(symbol1, c1Change, roe1) { (65 + (c1Change * 3).toInt() + (roe1 / 3).toInt()).coerceIn(55, 96) }
+    val oag2 = remember(symbol2, c2Change, roe2) { (65 + (c2Change * 3).toInt() + (roe2 / 3).toInt()).coerceIn(55, 96) }
 
     // Calculation Rounds
-    val round1Winner = if ((s1Hash % 10) >= (s2Hash % 10)) symbol1 else symbol2
-    val round2Winner = if ((s1Hash % 7) >= (s2Hash % 7)) symbol1 else symbol2
-    val round3Winner = if ((s1Hash % 9) >= (s2Hash % 9)) symbol1 else symbol2
-    val round4Winner = if ((s1Hash % 8) >= (s2Hash % 8)) symbol1 else symbol2
-    val round5Winner = if ((s1Hash % 6) >= (s2Hash % 6)) symbol1 else symbol2
+    val round1Winner = if (fk1 <= fk2) symbol1 else symbol2 // Düşük F/K daha cazip
+    val round2Winner = if (roe1 >= roe2) symbol1 else symbol2 // Yüksek ROE kârlı
+    val round3Winner = if (pio1 >= pio2) symbol1 else symbol2 // Yüksek Piotroski
+    val round4Winner = if (z1 >= z2) symbol1 else symbol2 // Güvenli Z-Score
+    val round5Winner = if (oag1 >= oag2) symbol1 else symbol2 // Yüksek AI Skoru
 
     val s1Score = listOf(round1Winner, round2Winner, round3Winner, round4Winner, round5Winner).count { it == symbol1 }
     val s2Score = 5 - s1Score
@@ -237,9 +255,9 @@ fun HisseDuelloScreen(
                     roundNo = 1,
                     title = "Valüasyon & Graham Marjı",
                     symbol1 = symbol1,
-                    val1 = "${(4.5 + (s1Hash % 10) / 2.0).let { String.format(java.util.Locale.US, "%.1f", it) }} F/K",
+                    val1 = "${String.format(java.util.Locale.US, "%.1f", fk1)} F/K",
                     symbol2 = symbol2,
-                    val2 = "${(4.5 + (s2Hash % 10) / 2.0).let { String.format(java.util.Locale.US, "%.1f", it) }} F/K",
+                    val2 = "${String.format(java.util.Locale.US, "%.1f", fk2)} F/K",
                     winner = round1Winner
                 )
             }
@@ -250,9 +268,9 @@ fun HisseDuelloScreen(
                     roundNo = 2,
                     title = "Kârlılık & DuPont ROE",
                     symbol1 = symbol1,
-                    val1 = "%${20 + (s1Hash % 15)} ROE",
+                    val1 = "%${String.format(java.util.Locale.US, "%.1f", roe1)} ROE",
                     symbol2 = symbol2,
-                    val2 = "%${20 + (s2Hash % 15)} ROE",
+                    val2 = "%${String.format(java.util.Locale.US, "%.1f", roe2)} ROE",
                     winner = round2Winner
                 )
             }
@@ -263,9 +281,9 @@ fun HisseDuelloScreen(
                     roundNo = 3,
                     title = "Kurumsal Sağlık & Piotroski",
                     symbol1 = symbol1,
-                    val1 = "${6 + (s1Hash % 3)}/9 Skoru",
+                    val1 = "$pio1/9 Skoru",
                     symbol2 = symbol2,
-                    val2 = "${6 + (s2Hash % 3)}/9 Skoru",
+                    val2 = "$pio2/9 Skoru",
                     winner = round3Winner
                 )
             }
@@ -276,9 +294,9 @@ fun HisseDuelloScreen(
                     roundNo = 4,
                     title = "İflas Güvenliği (Altman Z)",
                     symbol1 = symbol1,
-                    val1 = "${(2.2 + (s1Hash % 20) / 10.0).let { String.format(java.util.Locale.US, "%.1f", it) }} Z-Score",
+                    val1 = "${String.format(java.util.Locale.US, "%.2f", z1)} Z-Score",
                     symbol2 = symbol2,
-                    val2 = "${(2.2 + (s2Hash % 20) / 10.0).let { String.format(java.util.Locale.US, "%.1f", it) }} Z-Score",
+                    val2 = "${String.format(java.util.Locale.US, "%.2f", z2)} Z-Score",
                     winner = round4Winner
                 )
             }
@@ -289,9 +307,9 @@ fun HisseDuelloScreen(
                     roundNo = 5,
                     title = "Orakul AI O-EAGI Skoru",
                     symbol1 = symbol1,
-                    val1 = "${70 + (s1Hash % 25)} / 100",
+                    val1 = "$oag1 / 100",
                     symbol2 = symbol2,
-                    val2 = "${70 + (s2Hash % 25)} / 100",
+                    val2 = "$oag2 / 100",
                     winner = round5Winner
                 )
             }

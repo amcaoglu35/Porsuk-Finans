@@ -63,24 +63,15 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object HisseDuello : Screen("hisse_duello?symbol1={symbol1}&symbol2={symbol2}", "Hisse Düellosu", Icons.Outlined.Psychology) {
         fun createRoute(symbol1: String = "THYAO", symbol2: String = "PGSUS") = "hisse_duello?symbol1=$symbol1&symbol2=$symbol2"
     }
-    object QuantResearch : Screen("quant_research", "Quant Research Studio", Icons.Outlined.Psychology)
-    object AiCopilot : Screen("ai_copilot", "AI Copilot Assistant", Icons.Outlined.Psychology)
-    object RegulatoryFiling : Screen("regulatory_filing", "KAP & Regulatory Filings", Icons.AutoMirrored.Outlined.List)
     object MacroIntelligence : Screen("macro_intelligence", "Macro Intelligence Platform", Icons.AutoMirrored.Outlined.TrendingUp)
     object PortfolioOptimization : Screen("portfolio_optimization", "Portfolio Optimization Engine", Icons.AutoMirrored.Outlined.TrendingUp)
-    object InstitutionalIntelligence : Screen("institutional_intelligence", "Institutional & Insider Intelligence", Icons.AutoMirrored.Outlined.List)
-    object CorporateEventsIntelligence : Screen("corporate_events_intelligence", "M&A & Corporate Events Intelligence", Icons.AutoMirrored.Outlined.List)
-    object IpoIntelligence : Screen("ipo_intelligence", "IPO Intelligence", Icons.Outlined.Home)
-    object CorporateActions : Screen("corporate_actions", "Corporate Actions", Icons.Outlined.Home)
     object MultiAgentConsensus : Screen("multi_agent?symbol={symbol}", "AI Konsensüs", Icons.Outlined.Psychology) {
         fun createRoute(symbol: String) = "multi_agent?symbol=$symbol"
     }
     object AdvancedChart : Screen("advanced_chart?symbol={symbol}", "Advanced Chart", Icons.AutoMirrored.Outlined.TrendingUp) {
         fun createRoute(symbol: String) = "advanced_chart?symbol=$symbol"
     }
-    object InstitutionalAnalytics : Screen("institutional_analytics", "Kurumsal Analiz", Icons.Outlined.SpaceDashboard)
     object ReportingCenter : Screen("reporting_center", "Raporlar", Icons.AutoMirrored.Outlined.List)
-    object PluginMarketplace : Screen("plugin_marketplace", "Plugin Marketplace", Icons.Outlined.Settings)
     object AiEngineManager : Screen("ai_engine_manager", "AI Engine Manager", Icons.Outlined.Psychology)
 
     // Feature Module Routes
@@ -100,10 +91,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object GlobalMarkets : Screen("global_markets", "Global Piyasalar", Icons.AutoMirrored.Outlined.TrendingUp)
     object AllTools : Screen("all_tools", "Tüm Araçlar", Icons.Outlined.Settings)
     object PortfolioOverview : Screen("portfolio_overview", "Portföy Özeti", Icons.Outlined.AccountBalanceWallet)
-    object FundDetail : Screen("fund_detail/{fundCode}", "Fon Detayı", Icons.AutoMirrored.Outlined.List) {
-        fun createRoute(fundCode: String) = "fund_detail/$fundCode"
-    }
-    object FundIntelligence : Screen("fund_intelligence/{fundCode}", "Fon Zekası", Icons.Outlined.Psychology) {
-        fun createRoute(fundCode: String) = "fund_intelligence/$fundCode"
-    }
+    object BrokerHub : Screen("broker_hub", "Aracı Kurum Merkezi", Icons.Outlined.Settings)
+    object SecurityCenter : Screen("security_center", "Güvenlik ve Gizlilik", Icons.Outlined.Settings)
+    object Upgrade : Screen("upgrade", "Premium Üyelik", Icons.Outlined.Psychology)
 }

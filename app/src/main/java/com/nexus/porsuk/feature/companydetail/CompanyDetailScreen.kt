@@ -1,5 +1,6 @@
 package com.nexus.porsuk.feature.companydetail
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -16,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,28 +28,30 @@ import com.nexus.porsuk.feature.companydetail.components.*
 @Composable
 fun CompanyDetailScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToLedger: () -> Unit = {},
+    onNavigateToAlerts: () -> Unit = {},
     viewModel: CompanyDetailViewModel = hiltViewModel()
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val historicalPrices by viewModel.historicalPrices.collectAsState()
 
     val onShareClick = {
-        val sendIntent = android.content.Intent().apply {
-            action = android.content.Intent.ACTION_SEND
-            putExtra(android.content.Intent.EXTRA_TEXT, "${uiState.company?.companyName ?: uiState.symbol} (${uiState.symbol}) detaylarını Porsuk Finans uygulamasında inceleyin!")
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, "${uiState.company?.companyName ?: uiState.symbol} (${uiState.symbol}) detaylarını Porsuk Finans uygulamasında inceleyin!")
             type = "text/plain"
         }
-        val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+        val shareIntent = Intent.createChooser(sendIntent, null)
         context.startActivity(shareIntent)
     }
 
     val onAlarmClick = {
-        android.widget.Toast.makeText(context, "${uiState.symbol} için fiyat alarmı oluşturuldu", android.widget.Toast.LENGTH_SHORT).show()
+        onNavigateToAlerts()
     }
 
     val onTradeClick = {
-        android.widget.Toast.makeText(context, "${uiState.symbol} için alım/satım emri penceresi açılıyor...", android.widget.Toast.LENGTH_SHORT).show()
+        onNavigateToLedger()
     }
 
     Scaffold(
@@ -58,7 +62,7 @@ fun CompanyDetailScreen(
                 onTradeClick = onTradeClick
             )
         },
-        containerColor = Color(0xFFF8F9FA) // Very light gray background
+        containerColor = Color(0xFFF8F9FA)
     ) { paddingValues ->
         if (uiState.isLoading) {
             CompanyDetailShimmer(modifier = Modifier.padding(paddingValues))
@@ -197,7 +201,7 @@ fun CompanyDetailScreen(
                         }
                     }
                 }
-                
+
                 item {
                     Spacer(modifier = Modifier.height(100.dp))
                 }

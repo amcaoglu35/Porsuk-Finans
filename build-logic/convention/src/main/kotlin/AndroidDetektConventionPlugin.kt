@@ -1,6 +1,7 @@
-import dev.detekt.gradle.Detekt
-import dev.detekt.gradle.DetektCreateBaselineTask
-import dev.detekt.gradle.extensions.DetektExtension
+import config.libs
+import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
+import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
@@ -20,10 +21,10 @@ class AndroidDetektConventionPlugin : Plugin<Project> {
         }
 
         extensions.configure<DetektExtension> {
-            buildUponDefaultConfig.set(true)
-            parallel.set(true)
+            buildUponDefaultConfig = true
+            parallel = true
 
-            basePath.set(rootProject.layout.projectDirectory)
+            basePath = rootProject.layout.projectDirectory.asFile.absolutePath
             config.setFrom(rootProject.file("config/detekt/detekt.yml"))
 
             val moduleConfig = project.file("detekt.yml")
@@ -31,29 +32,29 @@ class AndroidDetektConventionPlugin : Plugin<Project> {
                 config.from(moduleConfig)
             }
 
-            baseline.set(project.file("detekt-baseline.xml"))
+            baseline = project.file("detekt-baseline.xml")
         }
 
         tasks.withType<Detekt>().configureEach {
-            jvmTarget.set("17")
+            jvmTarget = "17"
 
             reports {
-                checkstyle.required.set(true)
+                xml.required.set(true)
                 html.required.set(true)
                 sarif.required.set(true)
-                markdown.required.set(false)
+                md.required.set(false)
             }
 
             if (project.pluginManager.hasPlugin("org.jetbrains.kotlin.jvm")) {
                 val javaExtension = extensions.findByType(JavaPluginExtension::class.java)
                 javaExtension?.let {
-                    classpath.from(it.sourceSets.getByName("main").compileClasspath)
+                    classpath.setFrom(it.sourceSets.getByName("main").compileClasspath)
                 }
             }
         }
 
         tasks.withType<DetektCreateBaselineTask>().configureEach {
-            jvmTarget.set("17")
+            jvmTarget = "17"
         }
     }
 }

@@ -42,12 +42,9 @@ object AppDatabaseModule {
     @Provides fun provideSyncLogDao(db: PorsukDatabase): SyncLogDao = db.syncLogDao()
     @Provides fun provideSubscriptionDao(db: PorsukDatabase): SubscriptionDao = db.subscriptionDao()
     @Provides fun provideAssetDao(db: PorsukDatabase): AssetDao = db.assetDao()
-    @Provides fun provideIpoCorporateDao(db: PorsukDatabase): IpoCorporateDao = db.ipoCorporateDao()
     @Provides fun provideAiEngineDao(db: PorsukDatabase): AiEngineDao = db.aiEngineDao()
-    @Provides fun providePluginDao(db: PorsukDatabase): PluginDao = db.pluginDao()
     @Provides fun provideExchangeRateDao(db: PorsukDatabase): ExchangeRateDao = db.exchangeRateDao()
     @Provides fun provideTefasFundDao(db: PorsukDatabase): TefasFundDao = db.tefasFundDao()
-    @Provides fun provideFundIntelligenceDao(db: PorsukDatabase): FundIntelligenceDao = db.fundIntelligenceDao()
 
     @Provides
     @Singleton

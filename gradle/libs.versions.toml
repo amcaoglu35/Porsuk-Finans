@@ -1,48 +1,49 @@
 [versions]
 # Build
-agp = "9.3.1"
-kotlin = "2.2.10"
-ksp = "2.3.6"
-compileSdk = "36"
+agp = "8.6.0"
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.27"
+compileSdk = "35"
 minSdk = "24"
-targetSdk = "36"
-desugarJdk = "2.1.5"
+targetSdk = "35"
+desugarJdk = "2.1.2"
 
 # Compose
-composeBom = "2026.01.01"
-navigation3 = "1.0.0"
-composeConstraintLayout = "1.1.1"
-activityCompose = "1.12.0"
+composeBom = "2024.10.01"
+navigationCompose = "2.8.5"
+composeConstraintLayout = "1.1.0"
+activityCompose = "1.9.3"
 
 # Core Android
-coreKtx = "1.17.0"
-appcompat = "1.7.1"
+coreKtx = "1.15.0"
+appcompat = "1.7.0"
 material = "1.12.0"
-lifecycle = "2.10.0"
-paging = "3.3.6"
-constraintLayout = "2.1.4"
-dataStorePreferences = "1.1.4"
+lifecycle = "2.8.7"
+paging = "3.3.5"
+constraintLayout = "2.2.0"
+dataStorePreferences = "1.1.1"
 palette = "1.0.0"
 securityCrypto = "1.1.0-alpha06"
-room = "2.7.0-alpha13"
-work = "2.9.0"
+room = "2.6.1"
+work = "2.10.0"
 glance = "1.1.1"
 gson = "2.11.0"
 jsoup = "1.18.1"
 googleAiGenerativeai = "0.9.0"
 
 # Dependency Injection
-hilt = "2.59.2"
-hiltNavigationCompose = "1.3.0"
+hilt = "2.52"
+hiltNavigationCompose = "1.2.0"
 hiltWork = "1.2.0"
 javaxInject = "1"
+javaxAnnotationApi = "1.3.2"
 
 # Serialization
-kotlinxSerialization = "1.9.0"
+kotlinxSerialization = "1.7.3"
 
 # Network
-retrofit = "3.0.0"
-okhttpLogging = "5.3.2"
+retrofit = "2.11.0"
+okhttpLogging = "4.12.0"
 
 # Reactive
 rxKotlin = "3.0.1"
@@ -50,10 +51,10 @@ rxAndroid = "3.0.2"
 rxJava = "3.1.5"
 rxBinding = "4.0.0"
 rxCoroutine = "1.6.4"
-coroutines = "1.10.2"
+coroutines = "1.9.0"
 
 # UI
-accompanistPlaceholder = "0.34.0"
+accompanistPlaceholder = "0.36.0"
 coilCompose = "2.7.0"
 lottie = "6.6.2"
 
@@ -64,8 +65,8 @@ leakCanary = "2.14"
 junit = "4.13.2"
 truth = "1.4.4"
 turbine = "1.2.0"
-mockk = "1.13.16"
-coroutinesTest = "1.10.2"
+mockk = "1.13.13"
+coroutinesTest = "1.9.0"
 archCoreTesting = "2.2.0"
 espresso = "3.6.1"
 testRunner = "1.6.2"
@@ -73,9 +74,9 @@ testCore = "1.6.1"
 testExtJunit = "1.2.1"
 
 # Code Quality
-detekt = "2.0.0-alpha.1"
-composeRules = "0.5.0"
-checkDependencyVersions = "0.53.0"
+detekt = "1.23.7"
+composeRules = "0.4.16"
+checkDependencyVersions = "0.51.0"
 
 [libraries]
 # Build plugins (for build-logic convention module)
@@ -83,7 +84,7 @@ android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", ver
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-composeGradlePlugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
 ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
-detekt-gradlePlugin = { group = "dev.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
+detekt-gradlePlugin = { group = "io.gitlab.arturbosch.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
 
 # Convention plugin dependencies
 androidx-core-desugaring = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdk" }
@@ -106,9 +107,7 @@ androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-animation-graphics = { group = "androidx.compose.animation", name = "animation-graphics" }
-androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
-androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3" }
-androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-compose-paging = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
 androidx-compose-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "composeConstraintLayout" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -142,6 +141,7 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltWork" }
 java-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject" }
+javax-annotation-api = { group = "javax.annotation", name = "javax.annotation-api", version.ref = "javaxAnnotationApi" }
 
 # Serialization
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
@@ -190,7 +190,7 @@ test-core = { group = "androidx.test", name = "core", version.ref = "testCore" }
 test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "testExtJunit" }
 
 # Code Quality
-detekt-formatting = { group = "dev.detekt", name = "detekt-rules-ktlint-wrapper", version.ref = "detekt" }
+detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref = "composeRules" }
 
 [plugins]
@@ -212,5 +212,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-detekt = { id = "dev.detekt", version.ref = "detekt" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 gradleVersionsPlugin = { id = "com.github.ben-manes.versions", version.ref = "checkDependencyVersions" }

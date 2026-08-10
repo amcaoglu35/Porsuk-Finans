@@ -66,6 +66,7 @@ fun PorsukApp(
 ) {
     val financeViewModel: FinanceViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val kaziViewModel: KaziViewModel = hiltViewModel()
     val settingsUiState by settingsViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -314,9 +315,6 @@ fun PorsukApp(
                             onKapRadarClick = {
                                 navController.navigate(Screen.KapRadar.route)
                             },
-                            onInstitutionalClick = {
-                                navController.navigate(Screen.InstitutionalAnalytics.route)
-                            },
                             onReportingClick = {
                                 navController.navigate(Screen.ReportingCenter.route)
                             },
@@ -385,7 +383,7 @@ fun PorsukApp(
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
                             },
                             onFundClick = { fundCode ->
-                                navController.navigate(Screen.FundIntelligence.createRoute(fundCode))
+                                // Fund Intelligence removed
                             },
                             onNavigateToSettings = {
                                 navController.navigate(Screen.NotificationsCenter.route)
@@ -525,7 +523,7 @@ fun PorsukApp(
                         OrakulScreen(
                             viewModel = orakulViewModel,
                             onNavigateToSettings = {
-                                navController.navigate(Screen.Ayarlar.route)
+                                navController.navigate(Screen.NotificationsCenter.route)
                             },
                             onStockClick = { symbol, market ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol, market))
@@ -540,7 +538,6 @@ fun PorsukApp(
                     }
 
                     composable(Screen.KaziConfig.route) {
-                        val kaziViewModel: KaziViewModel = hiltViewModel()
                         KaziConfigScreen(
                             viewModel = kaziViewModel,
                             onBack = { navController.popBackStack() },
@@ -551,7 +548,6 @@ fun PorsukApp(
                     }
 
                     composable(Screen.KaziAnalysis.route) {
-                        val kaziViewModel: KaziViewModel = hiltViewModel()
                         KaziAnalysisScreen(
                             viewModel = kaziViewModel,
                             onBack = { navController.popBackStack() },
@@ -564,7 +560,6 @@ fun PorsukApp(
                     }
 
                     composable(Screen.KaziResult.route) {
-                        val kaziViewModel: KaziViewModel = hiltViewModel()
                         KaziResultScreen(
                             viewModel = kaziViewModel,
                             onBack = { 
@@ -615,7 +610,10 @@ fun PorsukApp(
                     }
 
                     composable(Screen.Ayarlar.route) {
-                        SettingsScreen(viewModel = settingsViewModel)
+                        SettingsScreen(
+                            viewModel = settingsViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
 
                     composable(Screen.IslemDefteri.route) {
@@ -681,24 +679,6 @@ fun PorsukApp(
                         )
                     }
 
-                    composable(Screen.QuantResearch.route) {
-                        com.nexus.porsuk.feature.quant.QuantResearchScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.AiCopilot.route) {
-                        com.nexus.porsuk.feature.copilot.AiCopilotScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.RegulatoryFiling.route) {
-                        com.nexus.porsuk.feature.filings.RegulatoryFilingScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
                     composable(Screen.MacroIntelligence.route) {
                         com.nexus.porsuk.feature.macro.MacroIntelligenceScreen(
                             onNavigateBack = { navController.popBackStack() }
@@ -708,30 +688,6 @@ fun PorsukApp(
                     composable(Screen.PortfolioOptimization.route) {
                         com.nexus.porsuk.feature.optimization.PortfolioOptimizationScreen(
                             onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.InstitutionalIntelligence.route) {
-                        com.nexus.porsuk.feature.institutional.InstitutionalScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.CorporateEventsIntelligence.route) {
-                        com.nexus.porsuk.feature.ma.CorporateEventScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.IpoIntelligence.route) {
-                        com.nexus.porsuk.feature.ipo.IpoIntelligenceScreen(
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.CorporateActions.route) {
-                        com.nexus.porsuk.feature.ipo.CorporateActionsScreen(
-                            onBack = { navController.popBackStack() }
                         )
                     }
 
@@ -754,18 +710,29 @@ fun PorsukApp(
                     }
 
                     composable(
+                        route = Screen.CompanyDetail.route,
+                        arguments = listOf(
+                            navArgument("symbol") { type = NavType.StringType },
+                            navArgument("market") {
+                                type = NavType.StringType
+                                defaultValue = "IST"
+                            }
+                        )
+                    ) {
+                        com.nexus.porsuk.feature.companydetail.CompanyDetailScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToLedger = { navController.navigate(Screen.IslemDefteri.route) },
+                            onNavigateToAlerts = { navController.navigate(Screen.Alerts.route) }
+                        )
+                    }
+
+                    composable(
                         route = Screen.AdvancedChart.route,
                         arguments = listOf(navArgument("symbol") { type = NavType.StringType })
                     ) { backStackEntry ->
                         val symbol = backStackEntry.arguments?.getString("symbol") ?: ""
                         com.nexus.porsuk.ui.chart.AdvancedChartStudioScreen(
                             symbol = symbol,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.InstitutionalAnalytics.route) {
-                        com.nexus.porsuk.ui.institutional.InstitutionalAnalyticsScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }
@@ -796,6 +763,7 @@ fun PorsukApp(
 
                     composable(Screen.Watchlist.route) {
                         com.nexus.porsuk.feature.watchlist.WatchlistScreen(
+                            onNavigateBack = { navController.popBackStack() },
                             onNavigateToCompanyDetail = { symbol ->
                                 navController.navigate(Screen.CompanyDetail.createRoute(symbol))
                             }
@@ -868,25 +836,21 @@ fun PorsukApp(
                         )
                     }
 
-                    composable(
-                        route = Screen.FundIntelligence.route,
-                        arguments = listOf(navArgument("fundCode") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val fundCode = backStackEntry.arguments?.getString("fundCode") ?: ""
-                        com.nexus.porsuk.feature.fundintelligence.FundIntelligenceScreen(
-                            fundCode = fundCode,
-                            onBack = { navController.popBackStack() }
+                    composable(Screen.BrokerHub.route) {
+                        com.nexus.porsuk.feature.broker.BrokerHubScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
-                    composable(
-                        route = Screen.FundDetail.route,
-                        arguments = listOf(navArgument("fundCode") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val fundCode = backStackEntry.arguments?.getString("fundCode") ?: ""
-                        com.nexus.porsuk.feature.fundintelligence.FundIntelligenceScreen(
-                            fundCode = fundCode,
-                            onBack = { navController.popBackStack() }
+                    composable(Screen.SecurityCenter.route) {
+                        com.nexus.porsuk.feature.security.SecurityCenterScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(Screen.Upgrade.route) {
+                        com.nexus.porsuk.feature.subscription.UpgradeScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 

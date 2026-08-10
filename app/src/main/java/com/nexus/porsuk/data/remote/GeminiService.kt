@@ -462,6 +462,28 @@ class GeminiService(private val apiKey: String) {
         }
     }
 
+    suspend fun getKapNoticeAiSummary(title: String, summary: String): String = withContext(Dispatchers.IO) {
+        val cacheKey = AiCacheManager.generateKey("kap_summary", prompt = "$title:$summary")
+        val cached = AiCacheManager.get(cacheKey)
+        if (cached != null) return@withContext cached
+
+        try {
+            val prompt = """
+                Aşağıdaki KAP bildirimini analiz et ve yatırımcı için kritik olan 3-4 maddelik bir özet çıkar.
+                
+                BAŞLIK: $title
+                DETAY: $summary
+                
+                GÖREV: Bu bildirim şirket için ne anlama geliyor? (Olumlu/Olumsuz/Nötr)
+            """.trimIndent()
+            val result = executeWithFallback(prompt)
+            AiCacheManager.put(cacheKey, result)
+            result
+        } catch (e: Exception) {
+            GeminiErrorParser.parse(e)
+        }
+    }
+
     suspend fun generateRawContent(prompt: String): String = withContext(Dispatchers.IO) {
         val cacheKey = AiCacheManager.generateKey("raw", prompt = prompt)
         val cached = AiCacheManager.get(cacheKey)
