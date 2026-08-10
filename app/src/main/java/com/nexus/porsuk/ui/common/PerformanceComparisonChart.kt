@@ -422,9 +422,9 @@ fun PerformanceComparisonChart(
                 )
 
                 // İnteraktif Kılavuz Çizgisi (Crosshair) ve Nokta Vurgulama
-                if (activeIndex != null) {
-                    val idx = activeIndex!!
-                    val activeX = paddingLeft + chartWidth * (filteredPortfolio[idx].timestamp - minTime).toFloat() / timeRange
+                val currentIdx = activeIndex
+                if (currentIdx != null) {
+                    val activeX = paddingLeft + chartWidth * (filteredPortfolio[currentIdx].timestamp - minTime).toFloat() / timeRange
                     
                     // Dikey kılavuz çizgisi
                     drawLine(
@@ -436,7 +436,7 @@ fun PerformanceComparisonChart(
                     )
 
                     // Portföy Aktif Noktası
-                    val myNorm = (myPortfolioData[idx] - minVal) / valRange
+                    val myNorm = (myPortfolioData[currentIdx] - minVal) / valRange
                     val myY = paddingTop + chartHeight * (1f - myNorm)
                     drawCircle(color = Aqua.copy(alpha = 0.2f), radius = 10.dp.toPx(), center = Offset(activeX, myY))
                     drawCircle(color = Aqua, radius = 5.dp.toPx(), center = Offset(activeX, myY))
@@ -444,7 +444,7 @@ fun PerformanceComparisonChart(
 
                     // BIST 100 Aktif Noktası (Portföy tarihindeki en yakın BIST 100 noktası)
                     if (filteredBenchmark.isNotEmpty() && bist100Data.size == filteredBenchmark.size) {
-                        val targetTime = filteredPortfolio[idx].timestamp
+                        val targetTime = filteredPortfolio[currentIdx].timestamp
                         var closestBistIdx = 0
                         var minBistDiff = Long.MAX_VALUE
                         for (i in filteredBenchmark.indices) {

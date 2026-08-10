@@ -75,6 +75,7 @@ fun AdvancedChartStudioScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            val aiAnalysis = uiState.aiAnalysis
             // Chart Area
             Box(
                 modifier = Modifier
@@ -93,8 +94,8 @@ fun AdvancedChartStudioScreen(
                 }
                 
                 // AI Analysis Overlay
-                if (uiState.aiAnalysis != null) {
-                    AiAnalysisOverlay(analysis = uiState.aiAnalysis!!)
+                if (aiAnalysis != null) {
+                    AiAnalysisOverlay(analysis = aiAnalysis)
                 }
             }
             

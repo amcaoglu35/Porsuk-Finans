@@ -122,13 +122,13 @@ fun OrakulScreen(
                 }
             }
 
-            if (uiState.hisseReport != null) {
+            uiState.hisseReport?.let { report ->
                 item(key = "hisse_score_grid") {
-                    HisseScoreGrid(uiState.hisseReport!!)
+                    HisseScoreGrid(report)
                 }
 
                 item(key = "hisse_detailed_analysis") {
-                    HisseDetailedAnalysis(uiState.hisseReport!!)
+                    HisseDetailedAnalysis(report)
                 }
             }
 

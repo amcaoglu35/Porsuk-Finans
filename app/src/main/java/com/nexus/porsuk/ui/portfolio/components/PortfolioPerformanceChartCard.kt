@@ -89,7 +89,7 @@ fun PortfolioPerformanceChartCard(
                         contentColor = Color.White
                     ) {
                         Text(
-                            text = hoveredPrice!!,
+                            text = hoveredPrice,
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontFamily = IBMPlexMono),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )

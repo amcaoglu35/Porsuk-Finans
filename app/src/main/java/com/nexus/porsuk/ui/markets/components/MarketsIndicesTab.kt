@@ -55,20 +55,21 @@ fun IndicesTab(
                 "QQQ" -> prices["QQQ"] ?: prices["^IXIC"]
                 else -> prices[item.symbol] ?: prices[item.name.replace(" ", "")]
             }
-            val isDataAvailable = snapshot != null && snapshot.price > 0.0
-            val priceStr = if (isDataAvailable) {
+            val safeSnapshot = if (snapshot != null && snapshot.price > 0.0) snapshot else null
+            val isDataAvailable = safeSnapshot != null
+            val priceStr = if (safeSnapshot != null) {
                 when (item.symbol) {
-                    "BIST100", "BIST30" -> CurrencyFormatter.formatTRY(snapshot!!.price, "TR")
-                    "DAX" -> "€${NumberFormatter.format(snapshot!!.price, "TR")}"
-                    "FTSE" -> "£${NumberFormatter.format(snapshot!!.price, "TR")}"
-                    "N225" -> "¥${NumberFormatter.format(snapshot!!.price, "TR")}"
-                    "HSI" -> "HK$${NumberFormatter.format(snapshot!!.price, "TR")}"
-                    else -> "$${NumberFormatter.format(snapshot!!.price, "TR")}"
+                    "BIST100", "BIST30" -> CurrencyFormatter.formatTRY(safeSnapshot.price, "TR")
+                    "DAX" -> "€${NumberFormatter.format(safeSnapshot.price, "TR")}"
+                    "FTSE" -> "£${NumberFormatter.format(safeSnapshot.price, "TR")}"
+                    "N225" -> "¥${NumberFormatter.format(safeSnapshot.price, "TR")}"
+                    "HSI" -> "HK$${NumberFormatter.format(safeSnapshot.price, "TR")}"
+                    else -> "$${NumberFormatter.format(safeSnapshot.price, "TR")}"
                 }
             } else {
                 "Veri Yok"
             }
-            val changeVal = if (isDataAvailable) snapshot!!.changePercent else 0.0
+            val changeVal = safeSnapshot?.changePercent ?: 0.0
             val (changeText, isPos) = PercentFormatter.formatChangePercent(changeVal)
 
             val sparkValues = remember(isPos, isDataAvailable) {

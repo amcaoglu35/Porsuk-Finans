@@ -390,10 +390,12 @@ class FinanceRepository @Inject constructor(
     suspend fun refreshCompanyInfo(symbol: String, market: String) {
         val existingInfo = assetDao.getCachedInfoDirect(symbol)
         var currentInfo = existingInfo ?: CachedCompanyInfo(symbol, "", null, null, null, null, null, null, null)
-        if (fmpService != null) {
-            val fmpRes = fmpService!!.fetchCompanyProfiles(listOf(symbol))
-            if (fmpRes is ScrapeResult.Success && fmpRes.data.isNotEmpty()) currentInfo = mergeCompanyInfo(currentInfo, fmpRes.data.first())
+        
+        val fmpRes = fmpService.fetchCompanyProfiles(listOf(symbol))
+        if (fmpRes is ScrapeResult.Success && fmpRes.data.isNotEmpty()) {
+            currentInfo = mergeCompanyInfo(currentInfo, fmpRes.data.first())
         }
+        
         val publicResult = yahooPublicService.fetchCompanyInfo(symbol, market)
         if (publicResult is ScrapeResult.Success) currentInfo = mergeCompanyInfo(currentInfo, publicResult.data)
         assetDao.insertCachedInfo(currentInfo)

@@ -130,8 +130,9 @@ private fun HeroMarketCardsRow(
             val spark = if (isPos) listOf(40f, 42f, 45f, 48f, 50f) else listOf(50f, 48f, 45f, 42f, 40f)
             return HeroMarketCardItem(title, priceStr, changeStr, isPos, iconEmoji, spark, isDataAvailable = true)
         }
-        if (code == "USDTRY" && exchangeRates["USD"] != null && exchangeRates["USD"]!! > 0.0) {
-            val priceStr = String.format(java.util.Locale.US, "₺%.2f", exchangeRates["USD"])
+        val usdFromRates = exchangeRates["USD"]
+        if (code == "USDTRY" && usdFromRates != null && usdFromRates > 0.0) {
+            val priceStr = String.format(java.util.Locale.US, "₺%.2f", usdFromRates)
             return HeroMarketCardItem(title, priceStr, defaultChange, defaultPos, iconEmoji, listOf(40f, 42f, 45f, 48f, 50f), isDataAvailable = true)
         }
         return HeroMarketCardItem(title, "Veri Yok", "--", true, iconEmoji, emptyList(), isDataAvailable = false)

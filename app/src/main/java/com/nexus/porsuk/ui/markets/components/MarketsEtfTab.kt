@@ -37,7 +37,6 @@ fun EtfTab(
     ) {
         items(etfs, key = { it.first }) { (symbol, name, ySymbol) ->
             val snapshot = prices[ySymbol]
-            val hasData = snapshot != null && snapshot.price > 0.0
 
             Card(
                 modifier = Modifier
@@ -58,8 +57,8 @@ fun EtfTab(
                     }
 
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
-                        if (hasData) {
-                            Text("$${String.format("%.2f", snapshot!!.price)}", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
+                        if (snapshot != null) {
+                            Text("$${String.format("%.2f", snapshot.price)}", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
                             val isPos = snapshot.changePercent >= 0.0
                             val changeText = "${if (isPos) "^ %" else "v %"}${String.format("%.2f", snapshot.changePercent)}"
                             Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)

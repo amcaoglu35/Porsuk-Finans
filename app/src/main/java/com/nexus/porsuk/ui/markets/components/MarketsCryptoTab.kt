@@ -40,7 +40,6 @@ fun CryptoTab(
     ) {
         items(cryptos, key = { it.second }) { (name, symbol, ySymbol) ->
             val snapshot = prices[ySymbol]
-            val hasData = snapshot != null && snapshot.price > 0.0
 
             Card(
                 modifier = Modifier
@@ -68,15 +67,15 @@ fun CryptoTab(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontFamily = Manrope), color = MaterialTheme.colorScheme.onSurface)
-                            if (hasData) {
-                                Text("₺${String.format("%.0f", snapshot!!.price * usdRate)}", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (snapshot != null) {
+                                Text("₺${String.format("%.0f", snapshot.price * usdRate)}", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
 
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
-                        if (hasData) {
-                            Text("$${String.format("%.2f", snapshot!!.price)}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
+                        if (snapshot != null) {
+                            Text("$${String.format("%.2f", snapshot.price)}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
                             val isPos = snapshot.changePercent >= 0.0
                             val changeText = "${if (isPos) "^ %" else "v %"}${String.format("%.2f", snapshot.changePercent)}"
                             Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)

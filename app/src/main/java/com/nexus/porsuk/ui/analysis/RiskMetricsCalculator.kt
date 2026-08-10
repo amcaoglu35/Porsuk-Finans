@@ -1,5 +1,7 @@
 package com.nexus.porsuk.ui.analysis
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.sqrt
 
@@ -15,13 +17,13 @@ data class RiskMetricsSummary(
 
 object RiskMetricsCalculator {
 
-    fun calculate(
+    suspend fun calculate(
         portfolioPrices: List<Double>,
         benchmarkPrices: List<Double> = emptyList(),
-        annualRiskFreeRate: Double = 0.40 // %40 TL Risk-Free Rate / Mevduat Referansı
-    ): RiskMetricsSummary {
+        annualRiskFreeRate: Double = 0.40
+    ): RiskMetricsSummary = withContext(Dispatchers.Default) {
         if (portfolioPrices.size < 3) {
-            return RiskMetricsSummary(
+            return@withContext RiskMetricsSummary(
                 beta = 1.0,
                 sharpeRatio = 0.0,
                 maxDrawdownPct = 0.0,
@@ -32,27 +34,22 @@ object RiskMetricsCalculator {
             )
         }
 
-        // 1. Calculate Daily Returns
         val portfolioReturns = calculateReturns(portfolioPrices)
         val benchmarkReturns = if (benchmarkPrices.size == portfolioPrices.size) {
             calculateReturns(benchmarkPrices)
         } else {
-            // Simulated benchmark returns matching standard BIST volatility if missing
             portfolioReturns.map { it * 0.8 + (Math.random() - 0.5) * 0.01 }
         }
 
-        // 2. Volatility (Standard Deviation of daily returns * sqrt(252 trading days))
         val avgReturn = portfolioReturns.average()
         val variance = portfolioReturns.sumOf { Math.pow(it - avgReturn, 2.0) } / (portfolioReturns.size - 1).coerceAtLeast(1)
         val dailyVol = sqrt(variance)
         val annualizedVolPct = dailyVol * sqrt(252.0) * 100.0
 
-        // 3. Sharpe Ratio = (Annualized Return - RiskFreeRate) / Annualized Volatility
         val annualizedReturn = (avgReturn * 252.0)
         val excessReturn = annualizedReturn - annualRiskFreeRate
         val sharpeRatio = if (annualizedVolPct > 0) excessReturn / (annualizedVolPct / 100.0) else 0.0
 
-        // 4. Beta = Covariance(Portfolio, Benchmark) / Variance(Benchmark)
         val benchAvg = benchmarkReturns.average()
         val benchVariance = benchmarkReturns.sumOf { Math.pow(it - benchAvg, 2.0) } / (benchmarkReturns.size - 1).coerceAtLeast(1)
         var covariance = 0.0
@@ -64,7 +61,6 @@ object RiskMetricsCalculator {
 
         val beta = if (benchVariance > 0) covariance / benchVariance else 1.0
 
-        // 5. Max Drawdown (MDD)
         var peak = portfolioPrices[0]
         var maxDrawdown = 0.0
         for (p in portfolioPrices) {
@@ -74,7 +70,6 @@ object RiskMetricsCalculator {
         }
         val maxDrawdownPct = maxDrawdown * 100.0
 
-        // Assessments
         val betaText = when {
             beta > 1.2 -> "Yüksek Oynaklık (Piyasadan %${String.format(Locale.US, "%.0f", (beta - 1) * 100)} daha hareketli)"
             beta in 0.8..1.2 -> "Piyasa İle Dengeli (BIST 100 Paralelinde)"
@@ -94,7 +89,7 @@ object RiskMetricsCalculator {
             else -> "🛡️ Savunmacı / Güvenli"
         }
 
-        return RiskMetricsSummary(
+        RiskMetricsSummary(
             beta = beta,
             sharpeRatio = sharpeRatio,
             maxDrawdownPct = maxDrawdownPct,

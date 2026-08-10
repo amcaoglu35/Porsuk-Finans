@@ -106,7 +106,7 @@ fun AlertsScreen(
             if (!uiState.isShowingHistoryTab) {
                 // 2. Alarm Kategori Filtre Çubuğu
                 ScrollableTabRow(
-                    selectedTabIndex = if (uiState.selectedCategoryFilter == null) 0 else uiState.selectedCategoryFilter!!.ordinal + 1,
+                    selectedTabIndex = uiState.selectedCategoryFilter?.ordinal?.plus(1) ?: 0,
                     edgePadding = 16.dp,
                     containerColor = MaterialTheme.colorScheme.surface,
                     divider = {},

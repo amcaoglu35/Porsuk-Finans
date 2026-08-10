@@ -40,7 +40,6 @@ fun ForexTab(
         items(pairs, key = { it.first }) { (pairTitle, pairName, code) ->
             val rate = exchangeRates[code]
             val snapshot = prices["${code}TRY"]
-            val hasData = rate != null && rate > 0.0
 
             Card(
                 modifier = Modifier
@@ -61,11 +60,11 @@ fun ForexTab(
                     }
 
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
-                        if (hasData) {
-                            Text(CurrencyFormatter.formatTRY(rate!!, "TR"), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
+                        if (rate != null && rate > 0.0) {
+                            Text(CurrencyFormatter.formatTRY(rate, "TR"), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
                             val changePct = snapshot?.changePercent ?: 0.0
                             val isPos = changePct >= 0.0
-                            val changeText = "${if (isPos) "^ %" else "v %"}${String.format("%.2f", changePct)}"
+                            val changeText = "${if (isPos) "^ %" else "v %"}${String.format("%.22f", changePct)}"
                             Text(changeText, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = if (isPos) PozitifGreen else NegatifRed)
                         } else {
                             Text("Veri Yok", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)

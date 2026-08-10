@@ -170,14 +170,14 @@ fun AiLabScreen(
                 }
             }
 
-            if (selectedToolForReport != null) {
+            selectedToolForReport?.let { toolName ->
                 item(key = "tool_report_card") {
                     ToolReportCard(
-                        toolName = selectedToolForReport!!,
-                        report = labState.toolReports[selectedToolForReport!!],
-                        isLoading = labState.toolLoadingStates[selectedToolForReport!!] ?: false,
-                        error = labState.toolErrorStates[selectedToolForReport!!],
-                        onRetry = { labViewModel.runTool(selectedToolForReport!!) },
+                        toolName = toolName,
+                        report = labState.toolReports[toolName],
+                        isLoading = labState.toolLoadingStates[toolName] ?: false,
+                        error = labState.toolErrorStates[toolName],
+                        onRetry = { labViewModel.runTool(toolName) },
                         onClose = { selectedToolForReport = null }
                     )
                 }

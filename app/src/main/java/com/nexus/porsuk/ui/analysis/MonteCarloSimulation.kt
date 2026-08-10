@@ -13,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.porsuk.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.exp
 import kotlin.math.sqrt
@@ -22,23 +24,23 @@ data class MonteCarloResult(
     val initialValue: Double,
     val expectedValue1Year: Double,
     val medianValue1Year: Double,
-    val worstCaseVaR95: Double,     // %95 VaR (95% ihtimalle maksimum kayıp)
-    val worstCaseVaR99: Double,     // %99 VaR
+    val worstCaseVaR95: Double,
+    val worstCaseVaR99: Double,
     val bestCasePercentile95: Double,
-    val targetAttainmentProbability: Double // 1 yılda %30+ getiri sağlama ihtimali (%)
+    val targetAttainmentProbability: Double
 )
 
 object MonteCarloSimulation {
 
-    fun runSimulation(
+    suspend fun runSimulation(
         currentPortfolioValue: Double,
-        annualReturnMean: Double = 0.35, // %35 Ortalama Yıllık Getiri Beklentisi
-        annualVolatility: Double = 0.22, // %22 Yıllık Oynaklık
+        annualReturnMean: Double = 0.35,
+        annualVolatility: Double = 0.22,
         numSimulations: Int = 1000,
         timeHorizonYears: Double = 1.0
-    ): MonteCarloResult {
+    ): MonteCarloResult = withContext(Dispatchers.Default) {
         if (currentPortfolioValue <= 0) {
-            return MonteCarloResult(
+            return@withContext MonteCarloResult(
                 initialValue = 100000.0,
                 expectedValue1Year = 135000.0,
                 medianValue1Year = 131000.0,
@@ -55,7 +57,6 @@ object MonteCarloSimulation {
 
         val rand = Random(42)
         for (i in 0 until numSimulations) {
-            // Box-Muller transform for standard normal variable
             val u1 = rand.nextDouble().coerceAtLeast(1e-9)
             val u2 = rand.nextDouble().coerceAtLeast(1e-9)
             val z = sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2)
@@ -79,7 +80,7 @@ object MonteCarloSimulation {
         val targetCount = finalValues.count { it >= targetThreshold }
         val prob = (targetCount.toDouble() / numSimulations) * 100.0
 
-        return MonteCarloResult(
+        MonteCarloResult(
             initialValue = currentPortfolioValue,
             expectedValue1Year = expected,
             medianValue1Year = median,
@@ -136,7 +137,6 @@ fun MonteCarloCard(
                 }
             }
 
-            // Stats grid
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

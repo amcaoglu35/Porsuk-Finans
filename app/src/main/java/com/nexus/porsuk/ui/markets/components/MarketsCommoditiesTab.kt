@@ -40,7 +40,6 @@ fun CommoditiesTab(
     ) {
         items(commodities, key = { it.name }) { item ->
             val snapshot = prices[item.symbol]
-            val hasData = snapshot != null && snapshot.price > 0.0
 
             Card(
                 modifier = Modifier
@@ -73,8 +72,8 @@ fun CommoditiesTab(
                     }
 
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1.0f)) {
-                        if (hasData) {
-                            val priceVal = if (item.isGramGold) (snapshot!!.price * usdRate / 31.1035) else snapshot!!.price
+                        if (snapshot != null) {
+                            val priceVal = if (item.isGramGold) (snapshot.price * usdRate / 31.1035) else snapshot.price
                             val prefix = if (item.isGramGold) "₺" else "$"
                             Text("$prefix${String.format("%.2f", priceVal)}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontFamily = IBMPlexMono), color = MaterialTheme.colorScheme.onSurface)
                             val isPos = snapshot.changePercent >= 0.0
