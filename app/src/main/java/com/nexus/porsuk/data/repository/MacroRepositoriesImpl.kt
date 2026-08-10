@@ -11,15 +11,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MacroRepositoryImpl @Inject constructor() : MacroRepository {
-    private val outlookState = MutableStateFlow(MacroAiOutlook())
-
-    override fun getMacroAiOutlook(): Flow<MacroAiOutlook> = outlookState.asStateFlow()
-
-    override fun getSupportedProviders(): List<MacroProviderType> = MacroProviderType.entries.toList()
-}
-
-@Singleton
 class MacroIndicatorRepositoryImpl @Inject constructor(
     private val fredDataSource: FredRemoteDataSource,
     private val assetDao: AssetDao
@@ -67,7 +58,7 @@ class MacroIndicatorRepositoryImpl @Inject constructor(
         seriesIds.keys.forEach { seriesId ->
             val result = fredDataSource.getObservations(seriesId)
             if (result is NetworkResult.Success) {
-                val entities = result.data.observations?.map { obs ->
+                val entities = result.data?.observations?.map { obs ->
                     MacroDataEntity(
                         seriesId = seriesId,
                         date = obs.date,
@@ -83,6 +74,35 @@ class MacroIndicatorRepositoryImpl @Inject constructor(
     override fun getIndicatorHistory(indicatorId: String): Flow<List<Double>> {
         return assetDao.getMacroData(indicatorId).map { list -> list.map { it.value } }
     }
+}
+
+@Singleton
+class MacroRepositoryImpl @Inject constructor(
+    private val indicatorRepository: MacroIndicatorRepository
+) : MacroRepository {
+
+    override fun getMacroAiOutlook(): Flow<MacroAiOutlook> = indicatorRepository.getEconomicIndicators().map { indicators ->
+        val vix = indicators.find { it.indicatorId == "VIXCLS" }?.currentValue ?: 20.0
+        val unrate = indicators.find { it.indicatorId == "UNRATE" }?.currentValue ?: 4.0
+        val fed = indicators.find { it.indicatorId == "FEDFUNDS" }?.currentValue ?: 5.0
+        
+        val recessionProb = if (unrate > 4.5) 45.0 else if (vix > 25.0) 30.0 else 12.0
+        
+        val commentary = if (recessionProb > 40.0) {
+            "İşsizlik oranındaki artış ve piyasa volatilitesi resesyon riskini tetikliyor."
+        } else {
+            "Makro göstergeler ılımlı bir ekonomik büyümeye işaret ediyor."
+        }
+
+        MacroAiOutlook(
+            recessionProbabilityPct = recessionProb,
+            inflationCommentary = commentary,
+            interestRateForecastText = "Fed faiz beklentisi: ${fed}% seviyelerinde yatay seyir.",
+            marketImpactSummary = "Piyasa dengeli, VIX: ${vix} seviyesinde."
+        )
+    }
+
+    override fun getSupportedProviders(): List<MacroProviderType> = listOf(MacroProviderType.FRED_US)
 }
 
 @Singleton

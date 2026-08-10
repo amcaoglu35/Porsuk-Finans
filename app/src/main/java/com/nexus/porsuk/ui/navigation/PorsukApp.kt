@@ -836,12 +836,6 @@ fun PorsukApp(
                         )
                     }
 
-                    composable(Screen.BrokerHub.route) {
-                        com.nexus.porsuk.feature.broker.BrokerHubScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
                     composable(Screen.SecurityCenter.route) {
                         com.nexus.porsuk.feature.security.SecurityCenterScreen(
                             onNavigateBack = { navController.popBackStack() }

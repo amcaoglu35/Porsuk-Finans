@@ -23,7 +23,6 @@ import com.nexus.porsuk.data.local.db.FundConverters
         AiAutomationSuggestionEntity::class,
         NotificationCenterEntity::class,
         AgentPerformanceEntity::class,
-        BrokerAccountEntity::class,
         SubscriptionEntity::class,
         AiWorkspaceEntity::class,
         CalculationHistoryEntity::class,
@@ -106,7 +105,6 @@ abstract class PorsukDatabase : RoomDatabase() {
     abstract fun securityAuditDao(): SecurityAuditDao
     abstract fun cloudSyncDao(): CloudSyncDao
     abstract fun notificationAutomationDao(): NotificationAutomationDao
-    abstract fun brokerAccountDao(): BrokerAccountDao
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun aiWorkspaceDao(): AiWorkspaceDao
     abstract fun calculationHistoryDao(): CalculationHistoryDao

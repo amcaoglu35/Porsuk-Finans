@@ -1,32 +1,25 @@
 package com.nexus.porsuk.ui.settings
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nexus.porsuk.ui.settings.components.*
 import com.nexus.porsuk.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,652 +200,287 @@ fun SettingsScreen(
     }
 
     if (showCurrencyDialog) {
-        AlertDialog(
-            onDismissRequest = { showCurrencyDialog = false },
-            containerColor = CardNew,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text(
-                    "Ana Para Birimi Seç",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = InkText,
-                    fontFamily = Manrope
-                )
+        CurrencySelectionDialog(
+            currentCurrency = uiState.baseCurrency,
+            onCurrencySelected = { 
+                viewModel.setBaseCurrency(it)
+                showCurrencyDialog = false
             },
-            text = {
-                Column {
-                    listOf("TRY", "USD", "EUR").forEach { curr ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    viewModel.setBaseCurrency(curr)
-                                    showCurrencyDialog = false
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = uiState.baseCurrency == curr,
-                                onClick = null,
-                                colors = RadioButtonDefaults.colors(selectedColor = PrimaryTeal)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(curr, fontFamily = Manrope, color = InkText)
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showCurrencyDialog = false }) {
-                    Text("Kapat", color = SubText, fontFamily = Manrope)
-                }
-            }
+            onDismiss = { showCurrencyDialog = false }
         )
     }
 
     if (showApiKeyDialog) {
-        var tempKey by remember { mutableStateOf("") }
-        var isVisible by remember { mutableStateOf(false) }
-        AlertDialog(
-            onDismissRequest = { showApiKeyDialog = false },
-            containerColor = CardNew,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text(
-                    "Gemini API Anahtarı",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = InkText,
-                    fontFamily = Manrope
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = if (uiState.hasGeminiApiKey) "Anahtar Durumu: Kayıtlı (Mevcut)" else "Anahtar Durumu: Kayıtlı değil",
-                        color = if (uiState.hasGeminiApiKey) PrimaryTeal else NegatifRed,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = Manrope
-                    )
-                    Text(
-                        "Analizler ve sohbet robotu için Google AI Studio'dan aldığınız anahtarı girin.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SubText,
-                        fontFamily = Manrope
-                    )
-                    OutlinedTextField(
-                        value = tempKey,
-                        onValueChange = { tempKey = it },
-                        label = { Text("API Key", fontFamily = Manrope) },
-                        placeholder = { Text("AIzaSy...", fontFamily = Manrope) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { isVisible = !isVisible }) {
-                                Icon(
-                                    if (isVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    tint = SubText
-                                )
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryTeal,
-                            unfocusedBorderColor = LineBorder,
-                            focusedTextColor = InkText,
-                            unfocusedTextColor = InkText,
-                            focusedContainerColor = CardNew,
-                            unfocusedContainerColor = CardNew
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(
-                        "Anahtar Al (Google AI Studio) ↗",
-                        color = PrimaryTeal,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier
-                            .clickable { uriHandler.openUri("https://aistudio.google.com/apikey") }
-                            .padding(vertical = 4.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (uiState.hasGeminiApiKey) {
-                        TextButton(
-                            onClick = {
-                                viewModel.saveApiKey("")
-                                showApiKeyDialog = false
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = NegatifRed)
-                        ) {
-                            Text("Anahtarı Sil", fontFamily = Manrope, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Button(
-                        onClick = {
-                            if (tempKey.isNotBlank()) {
-                                viewModel.saveApiKey(tempKey)
-                            }
-                            showApiKeyDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                        shape = RoundedCornerShape(10.dp),
-                        enabled = tempKey.isNotBlank()
-                    ) {
-                        Text("Kaydet", color = Color.White, fontFamily = Manrope, fontWeight = FontWeight.Bold)
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showApiKeyDialog = false }) {
-                    Text("İptal", color = SubText, fontFamily = Manrope)
-                }
-            }
+        GeminiApiKeyDialog(
+            hasApiKey = uiState.hasGeminiApiKey,
+            onSaveKey = { viewModel.saveApiKey(it) },
+            onDismiss = { showApiKeyDialog = false }
         )
     }
 
     if (showFmpApiKeyDialog) {
-        var tempFmpKey by remember { mutableStateOf("") }
-        var isFmpVisible by remember { mutableStateOf(false) }
-        AlertDialog(
-            onDismissRequest = { showFmpApiKeyDialog = false },
-            containerColor = CardNew,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text(
-                    "FMP API Anahtarı (Financial Modeling Prep)",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = InkText,
-                    fontFamily = Manrope
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = if (uiState.hasFmpApiKey) "Anahtar Durumu: Kayıtlı (Encrypted)" else "Anahtar Durumu: Kayıtlı değil",
-                        color = if (uiState.hasFmpApiKey) PrimaryTeal else NegatifRed,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = Manrope
-                    )
-                    Text(
-                        "Canlı piyasa ve borsa verileri için FMP API anahtarınızı girin.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SubText,
-                        fontFamily = Manrope
-                    )
-                    OutlinedTextField(
-                        value = tempFmpKey,
-                        onValueChange = { tempFmpKey = it },
-                        label = { Text("FMP API Key", fontFamily = Manrope) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        visualTransformation = if (isFmpVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { isFmpVisible = !isFmpVisible }) {
-                                Icon(
-                                    if (isFmpVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    tint = SubText
-                                )
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryTeal,
-                            unfocusedBorderColor = LineBorder,
-                            focusedTextColor = InkText,
-                            unfocusedTextColor = InkText,
-                            focusedContainerColor = CardNew,
-                            unfocusedContainerColor = CardNew
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (uiState.hasFmpApiKey) {
-                        TextButton(
-                            onClick = {
-                                viewModel.saveFmpApiKey("")
-                                showFmpApiKeyDialog = false
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = NegatifRed)
-                        ) {
-                            Text("Sil", fontFamily = Manrope, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Button(
-                        onClick = {
-                            if (tempFmpKey.isNotBlank()) {
-                                viewModel.saveFmpApiKey(tempFmpKey)
-                            }
-                            showFmpApiKeyDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                        shape = RoundedCornerShape(10.dp),
-                        enabled = tempFmpKey.isNotBlank()
-                    ) {
-                        Text("Kaydet", color = Color.White, fontFamily = Manrope, fontWeight = FontWeight.Bold)
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showFmpApiKeyDialog = false }) {
-                    Text("İptal", color = SubText, fontFamily = Manrope)
-                }
-            }
-        )
-    }
-
-    if (showResetDialog) {
-        AlertDialog(
-            onDismissRequest = { showResetDialog = false },
-            containerColor = CardNew,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text(
-                    "Verileri Sıfırla",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = NegatifRed,
-                    fontFamily = Manrope
-                )
-            },
-            text = {
-                Text(
-                    "Tüm sepetleriniz ve takip listeniz silinecektir. Bu işlem geri alınamaz.",
-                    color = InkText,
-                    fontFamily = Manrope
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.resetAllData { showResetDialog = false } },
-                    colors = ButtonDefaults.buttonColors(containerColor = NegatifRed),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Sıfırla", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) {
-                    Text("İptal", color = SubText, fontFamily = Manrope)
-                }
-            }
+        FmpApiKeyDialog(
+            hasApiKey = uiState.hasFmpApiKey,
+            onSaveKey = { viewModel.saveFmpApiKey(it) },
+            onDismiss = { showFmpApiKeyDialog = false }
         )
     }
 
     if (showAboutDialog) {
-        AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
-            containerColor = CardNew,
-            shape = RoundedCornerShape(16.dp),
-            title = {
-                Text(
-                    "Uygulama Hakkında",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = InkText,
-                    fontFamily = Manrope
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Porsuk Portföy Takip",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = InkText,
-                        fontFamily = Manrope
-                    )
-                    Text(
-                        "Porsuk, hisse senedi sepetlerinizi yönetmenizi, analiz etmenizi ve Borsa Profesörü yapay zekasıyla portföyünüz hakkında fikir alışverişi yapmanızı sağlayan modern bir finans aracıdır.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SubText,
-                        fontFamily = Manrope
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showAboutDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Kapat", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                }
-            }
-        )
+        AboutDialog(onDismiss = { showAboutDialog = false })
     }
 
-    if (showAlarmsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showAlarmsSheet = false },
-            containerColor = CardNew,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = LineBorder) }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
+    if (showResetDialog) {
+        ResetDataDialog(
+            onConfirm = { 
+                viewModel.resetAllData { showResetDialog = false }
+            },
+            onDismiss = { showResetDialog = false }
+        )
+    }
+}
+
+@Composable
+fun CurrencySelectionDialog(
+    currentCurrency: String,
+    onCurrencySelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardNew,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Text(
+                "Ana Para Birimi Seç",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = InkText,
+                fontFamily = Manrope
+            )
+        },
+        text = {
+            Column {
+                listOf("TRY", "USD", "EUR").forEach { curr ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onCurrencySelected(curr) }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = currentCurrency == curr,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(selectedColor = PrimaryTeal)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(curr, fontFamily = Manrope, color = InkText)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Kapat", color = SubText, fontFamily = Manrope)
+            }
+        }
+    )
+}
+
+@Composable
+fun GeminiApiKeyDialog(
+    hasApiKey: Boolean,
+    onSaveKey: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var tempKey by remember { mutableStateOf("") }
+    var isVisible by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardNew,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Text(
+                "Gemini API Anahtarı",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = InkText,
+                fontFamily = Manrope
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "🚨 Kurulan Fiyat Alarmları",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = InkText,
+                    text = if (hasApiKey) "Anahtar Durumu: Kayıtlı (Mevcut)" else "Anahtar Durumu: Kayıtlı değil",
+                    color = if (hasApiKey) PrimaryTeal else NegatifRed,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
                     fontFamily = Manrope
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (uiState.activeAlerts.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Aktif fiyat alarmı bulunmuyor.", color = SubText, fontSize = 14.sp, fontFamily = Manrope)
-                    }
-                } else {
-                    val scrollState = rememberScrollState()
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 300.dp)
-                            .verticalScroll(scrollState),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        uiState.activeAlerts.forEach { alert ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(BackgroundNew, RoundedCornerShape(12.dp))
-                                    .border(1.dp, LineBorder, RoundedCornerShape(12.dp))
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        alert.symbol,
-                                        fontWeight = FontWeight.Bold,
-                                        color = InkText,
-                                        fontSize = 16.sp,
-                                        fontFamily = Manrope
-                                    )
-                                    Text(
-                                        text = if (alert.isAbove) "Hedef >= ${alert.targetPrice} ${com.nexus.porsuk.ui.common.CurrencyFormatter.getCurrencySymbol(alert.market)}"
-                                        else "Hedef <= ${alert.targetPrice} ${com.nexus.porsuk.ui.common.CurrencyFormatter.getCurrencySymbol(alert.market)}",
-                                        fontSize = 13.sp,
-                                        color = SubText,
-                                        fontFamily = Manrope
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { viewModel.deletePriceAlert(alert.id) }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Sil",
-                                        tint = NegatifRed
-                                    )
-                                }
-                            }
+                Text(
+                    "Analizler ve sohbet robotu için Google AI Studio'dan aldığınız anahtarı girin.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SubText,
+                    fontFamily = Manrope
+                )
+                OutlinedTextField(
+                    value = tempKey,
+                    onValueChange = { tempKey = it },
+                    label = { Text("API Key", fontFamily = Manrope) },
+                    placeholder = { Text("AIzaSy...", fontFamily = Manrope) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { isVisible = !isVisible }) {
+                            Icon(
+                                if (isVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = SubText
+                            )
                         }
                     }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = { showAlarmsSheet = false },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Kapat", color = Color.White, fontWeight = FontWeight.Bold, fontFamily = Manrope)
-                }
-            }
-        }
-    }
-
-
-}
-
-@Composable
-fun ProfileCard(userName: String, hasApiKey: Boolean = false) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, PrimaryTeal.copy(alpha = 0.25f))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF0B1F1C),
-                            Color(0xFF017A63),
-                            Color(0xFF00A388)
-                        )
-                    )
                 )
-                .padding(24.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSaveKey(tempKey)
+                    onDismiss()
+                },
+                enabled = tempKey.length > 10,
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                // Avatar
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(AquaNew, PrimaryTeal)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = userName.take(2).uppercase(),
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = Manrope,
-                        color = Color.White
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        userName,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            fontFamily = Manrope
-                        )
-                    )
-                    Text(
-                        "Porsuk Premium Kullanıcısı",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontFamily = Manrope
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // API Key durumu
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(if (hasApiKey) PrimaryTeal else NegatifRed)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (hasApiKey) "Gemini API Aktif" else "Gemini API Eksik",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (hasApiKey) PrimaryTeal else NegatifRed,
-                            fontFamily = JetBrainsMono
-                        )
-                    }
-                }
+                Text("Kaydet", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Vazgeç", color = SubText)
             }
         }
-    }
+    )
 }
 
 @Composable
-fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp,
-                fontFamily = IBMPlexMono
-            ),
-            fontSize = 10.sp,
-            color = PrimaryTeal,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardNew),
-            border = BorderStroke(1.dp, LineBorder)
-        ) {
-            Column(content = content)
-        }
-    }
-}
-
-@Composable
-fun SettingsRow(
-    icon: ImageVector,
-    title: String,
-    value: String? = null,
-    isDestructive: Boolean = false,
-    colorIndex: Int = 0,
-    valueFontFamily: androidx.compose.ui.text.font.FontFamily? = null,
-    onClick: () -> Unit
+fun FmpApiKeyDialog(
+    hasApiKey: Boolean,
+    onSaveKey: (String) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    val (iconColor, iconBg) = if (isDestructive) {
-        NegatifRed to RedSoft
-    } else {
-        when (colorIndex % 4) {
-            0 -> PrimaryTeal to TealSoft
-            1 -> AquaNew to AquaSoft
-            2 -> Gold to GoldSoft
-            else -> Violet to VioletSoft
-        }
-    }
-    
-    val titleColor = if (isDestructive) NegatifRed else InkText
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(iconBg),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = iconColor
-            )
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Manrope, fontWeight = FontWeight.Medium),
-            color = titleColor,
-            modifier = Modifier.weight(1f)
-        )
-        if (value != null) {
+    var tempKey by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardNew,
+        shape = RoundedCornerShape(16.dp),
+        title = {
             Text(
-                value,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFamily = valueFontFamily ?: Manrope,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = SubText
+                "FMP API Anahtarı",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = InkText,
+                fontFamily = Manrope
             )
-            Spacer(modifier = Modifier.width(4.dp))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = if (hasApiKey) "Anahtar Durumu: Kayıtlı" else "Anahtar Durumu: Kayıtlı değil",
+                    color = if (hasApiKey) PrimaryTeal else NegatifRed,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = Manrope
+                )
+                Text(
+                    "Finansal oranlar ve bilanço verileri için Financial Modeling Prep anahtarı gereklidir.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SubText,
+                    fontFamily = Manrope
+                )
+                OutlinedTextField(
+                    value = tempKey,
+                    onValueChange = { tempKey = it },
+                    label = { Text("FMP API Key", fontFamily = Manrope) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSaveKey(tempKey)
+                    onDismiss()
+                },
+                enabled = tempKey.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Kaydet", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Vazgeç", color = SubText)
+            }
         }
-        Icon(
-            Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = SubText,
-            modifier = Modifier.size(20.dp)
-        )
-    }
+    )
 }
 
 @Composable
-fun SettingsSwitchRow(
-    icon: ImageVector,
-    title: String,
-    checked: Boolean,
-    colorIndex: Int = 0,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    val (iconColor, iconBg) = when (colorIndex % 4) {
-        0 -> PrimaryTeal to TealSoft
-        1 -> AquaNew to AquaSoft
-        2 -> Gold to GoldSoft
-        else -> Violet to VioletSoft
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(iconBg),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = iconColor
-            )
+fun AboutDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardNew,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Text("Porsuk Finans v1.0.0", fontWeight = FontWeight.Bold, fontFamily = Manrope)
+        },
+        text = {
+            Column {
+                Text(
+                    "Yapay Zeka Destekli Portföy ve Piyasa Analiz Platformu.",
+                    color = InkText,
+                    fontFamily = Manrope
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "© 2026 Nexus AI Labs. Tüm hakları saklıdır.",
+                    fontSize = 11.sp,
+                    color = SubText,
+                    fontFamily = Manrope
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = PrimaryTeal)) {
+                Text("Kapat")
+            }
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Manrope, fontWeight = FontWeight.Medium),
-            color = InkText,
-            modifier = Modifier.weight(1f)
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryTeal,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = LineBorder,
-                uncheckedBorderColor = Color.Transparent
-            )
-        )
-    }
+    )
+}
+
+@Composable
+fun ResetDataDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardNew,
+        title = { Text("Tüm Verileri Sıfırla?", fontWeight = FontWeight.Bold, color = NegatifRed) },
+        text = {
+            Text("Bu işlem tüm portföy, sepet ve ayarlarınızı kalıcı olarak silecektir. Emin misiniz?")
+        },
+        confirmButton = {
+            Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = NegatifRed)) {
+                Text("Evet, Sıfırla")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Vazgeç") }
+        }
+    )
 }

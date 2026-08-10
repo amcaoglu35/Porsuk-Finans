@@ -49,15 +49,14 @@ class PrivacyRepositoryImpl @Inject constructor() : PrivacyRepository {
 }
 
 @Singleton
-class AuthenticationRepositoryImpl @Inject constructor() : AuthenticationRepository {
-    private var biometricsEnabled = true
+class AuthenticationRepositoryImpl @Inject constructor(
+    private val preferencesManager: com.nexus.porsuk.data.local.datastore.PorsukPreferencesManager
+) : AuthenticationRepository {
 
-    override fun isBiometricsEnabled(): Flow<Boolean> = flow {
-        emit(biometricsEnabled)
-    }
+    override fun isBiometricsEnabled(): Flow<Boolean> = preferencesManager.isBiometricsEnabled
 
     override suspend fun setBiometricsEnabled(enabled: Boolean) {
-        biometricsEnabled = enabled
+        preferencesManager.setBiometricsEnabled(enabled)
     }
 }
 

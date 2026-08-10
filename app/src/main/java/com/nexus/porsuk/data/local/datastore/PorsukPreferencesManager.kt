@@ -29,6 +29,17 @@ class PorsukPreferencesManager @Inject constructor(
         private val KEY_INITIAL_SYNC_DONE = booleanPreferencesKey("initial_sync_done")
         private val KEY_LAST_SYNC_TIMESTAMP = longPreferencesKey("last_sync_timestamp")
         private val KEY_LAST_FUND_SYNC_TIMESTAMP = longPreferencesKey("last_fund_sync_timestamp")
+        private val KEY_BIOMETRICS_ENABLED = booleanPreferencesKey("biometrics_enabled")
+    }
+
+    val isBiometricsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_BIOMETRICS_ENABLED] ?: false
+    }
+
+    suspend fun setBiometricsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_BIOMETRICS_ENABLED] = enabled
+        }
     }
 
     val isInitialSyncCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->

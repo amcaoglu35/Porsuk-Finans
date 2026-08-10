@@ -31,11 +31,20 @@ class UpgradeViewModel @Inject constructor(
     }
 
     fun upgradeCurrentPlan() {
+        // [FIX-2] Disable upgrading until Google Play Billing is integrated
+        _uiState.update { it.copy(errorMessage = "Ödeme sistemi yakında aktif edilecektir. İlginiz için teşekkürler!") }
+        
+        /* 
         val target = _uiState.value.selectedPlan
         viewModelScope.launch {
             subscriptionRepository.upgradePlan(target)
             loadSubscriptionState()
         }
+        */
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     private fun loadSubscriptionState() {

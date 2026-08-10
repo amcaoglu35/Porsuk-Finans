@@ -31,12 +31,16 @@ class SubscriptionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun upgradePlan(plan: MembershipPlan) {
+        // [FIX-2] Disabled until Google Play Billing is integrated.
+        // Prevent bypassing payment via local DB update.
+        /* 
         val entity = SubscriptionEntity(
             userId = "local_user",
             planName = plan.name,
             isActive = true
         )
         dao.insertSubscription(entity)
+        */
     }
 }
 

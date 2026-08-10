@@ -91,7 +91,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object GlobalMarkets : Screen("global_markets", "Global Piyasalar", Icons.AutoMirrored.Outlined.TrendingUp)
     object AllTools : Screen("all_tools", "Tüm Araçlar", Icons.Outlined.Settings)
     object PortfolioOverview : Screen("portfolio_overview", "Portföy Özeti", Icons.Outlined.AccountBalanceWallet)
-    object BrokerHub : Screen("broker_hub", "Aracı Kurum Merkezi", Icons.Outlined.Settings)
     object SecurityCenter : Screen("security_center", "Güvenlik ve Gizlilik", Icons.Outlined.Settings)
     object Upgrade : Screen("upgrade", "Premium Üyelik", Icons.Outlined.Psychology)
 }

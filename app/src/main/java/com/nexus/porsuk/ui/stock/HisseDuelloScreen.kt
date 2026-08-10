@@ -45,37 +45,48 @@ fun HisseDuelloScreen(
     val comp1 = remember(companies, symbol1) { companies.find { it.symbol == symbol1 } }
     val comp2 = remember(companies, symbol2) { companies.find { it.symbol == symbol2 } }
 
+    val ratios1 by viewModel.getCompanyRatios(symbol1).collectAsState(initial = emptyList())
+    val ratios2 by viewModel.getCompanyRatios(symbol2).collectAsState(initial = emptyList())
+
+    val latest1 = ratios1.firstOrNull()
+    val latest2 = ratios2.firstOrNull()
+
     val c1Price = comp1?.currentPrice ?: 100.0
     val c2Price = comp2?.currentPrice ?: 100.0
     val c1Change = comp1?.changePercent ?: 0.0
     val c2Change = comp2?.changePercent ?: 0.0
 
-    // Metric Calculations
-    val fk1 = remember(symbol1, c1Price) { ((c1Price % 15.0) + 4.5).coerceIn(4.0, 22.0) }
-    val fk2 = remember(symbol2, c2Price) { ((c2Price % 15.0) + 4.5).coerceIn(4.0, 22.0) }
+    // Real Metric Extraction
+    val fk1 = latest1?.peRatio
+    val fk2 = latest2?.peRatio
 
-    val roe1 = remember(symbol1, c1Change) { (22.0 + (c1Change * 2.5)).coerceIn(12.0, 48.0) }
-    val roe2 = remember(symbol2, c2Change) { (22.0 + (c2Change * 2.5)).coerceIn(12.0, 48.0) }
+    val roe1 = latest1?.roe
+    val roe2 = latest2?.roe
 
-    val pio1 = remember(symbol1, c1Price) { ((c1Price.toInt() % 3) + 7).coerceIn(6, 9) }
-    val pio2 = remember(symbol2, c2Price) { ((c2Price.toInt() % 3) + 7).coerceIn(6, 9) }
+    val pbr1 = latest1?.pbRatio
+    val pbr2 = latest2?.pbRatio
 
-    val z1 = remember(symbol1, c1Price) { ((c1Price % 3.0) + 2.4).coerceIn(1.8, 5.2) }
-    val z2 = remember(symbol2, c2Price) { ((c2Price % 3.0) + 2.4).coerceIn(1.8, 5.2) }
+    val debt1 = latest1?.debtToEquity
+    val debt2 = latest2?.debtToEquity
 
-    val oag1 = remember(symbol1, c1Change, roe1) { (65 + (c1Change * 3).toInt() + (roe1 / 3).toInt()).coerceIn(55, 96) }
-    val oag2 = remember(symbol2, c2Change, roe2) { (65 + (c2Change * 3).toInt() + (roe2 / 3).toInt()).coerceIn(55, 96) }
+    val oag1 = if (roe1 != null) (65 + (c1Change * 3).toInt() + (roe1 / 3).toInt()).coerceIn(55, 96) else null
+    val oag2 = if (roe2 != null) (65 + (c2Change * 3).toInt() + (roe2 / 3).toInt()).coerceIn(55, 96) else null
 
-    // Calculation Rounds
-    val round1Winner = if (fk1 <= fk2) symbol1 else symbol2 // Düşük F/K daha cazip
-    val round2Winner = if (roe1 >= roe2) symbol1 else symbol2 // Yüksek ROE kârlı
-    val round3Winner = if (pio1 >= pio2) symbol1 else symbol2 // Yüksek Piotroski
-    val round4Winner = if (z1 >= z2) symbol1 else symbol2 // Güvenli Z-Score
-    val round5Winner = if (oag1 >= oag2) symbol1 else symbol2 // Yüksek AI Skoru
+    // Calculation Rounds with Data Integrity Checks
+    val round1Winner = if (fk1 != null && fk2 != null) (if (fk1 <= fk2) symbol1 else symbol2) else "N/A"
+    val round2Winner = if (roe1 != null && roe2 != null) (if (roe1 >= roe2) symbol1 else symbol2) else "N/A"
+    val round3Winner = if (pbr1 != null && pbr2 != null) (if (pbr1 <= pbr2) symbol1 else symbol2) else "N/A"
+    val round4Winner = if (debt1 != null && debt2 != null) (if (debt1 <= debt2) symbol1 else symbol2) else "N/A"
+    val round5Winner = if (oag1 != null && oag2 != null) (if (oag1 >= oag2) symbol1 else symbol2) else "N/A"
 
-    val s1Score = listOf(round1Winner, round2Winner, round3Winner, round4Winner, round5Winner).count { it == symbol1 }
-    val s2Score = 5 - s1Score
-    val winnerSymbol = if (s1Score >= s2Score) symbol1 else symbol2
+    val winners = listOf(round1Winner, round2Winner, round3Winner, round4Winner, round5Winner).filter { it != "N/A" }
+    val s1Score = winners.count { it == symbol1 }
+    val s2Score = winners.count { it == symbol2 }
+    val winnerSymbol = when {
+        s1Score > s2Score -> symbol1
+        s2Score > s1Score -> symbol2
+        else -> "Berabere"
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -253,11 +264,11 @@ fun HisseDuelloScreen(
             item {
                 RoundCard(
                     roundNo = 1,
-                    title = "Valüasyon & Graham Marjı",
+                    title = "Valüasyon & F/K Oranı",
                     symbol1 = symbol1,
-                    val1 = "${String.format(java.util.Locale.US, "%.1f", fk1)} F/K",
+                    val1 = fk1?.let { String.format(java.util.Locale.US, "%.1f", it) + " F/K" } ?: "Veri Yok",
                     symbol2 = symbol2,
-                    val2 = "${String.format(java.util.Locale.US, "%.1f", fk2)} F/K",
+                    val2 = fk2?.let { String.format(java.util.Locale.US, "%.1f", it) + " F/K" } ?: "Veri Yok",
                     winner = round1Winner
                 )
             }
@@ -266,11 +277,11 @@ fun HisseDuelloScreen(
             item {
                 RoundCard(
                     roundNo = 2,
-                    title = "Kârlılık & DuPont ROE",
+                    title = "Kârlılık & ROE (Özkaynak Kârlılığı)",
                     symbol1 = symbol1,
-                    val1 = "%${String.format(java.util.Locale.US, "%.1f", roe1)} ROE",
+                    val1 = roe1?.let { "%${String.format(java.util.Locale.US, "%.1f", it)}" } ?: "Veri Yok",
                     symbol2 = symbol2,
-                    val2 = "%${String.format(java.util.Locale.US, "%.1f", roe2)} ROE",
+                    val2 = roe2?.let { "%${String.format(java.util.Locale.US, "%.1f", it)}" } ?: "Veri Yok",
                     winner = round2Winner
                 )
             }
@@ -279,11 +290,11 @@ fun HisseDuelloScreen(
             item {
                 RoundCard(
                     roundNo = 3,
-                    title = "Kurumsal Sağlık & Piotroski",
+                    title = "Piyasa Değeri / Defter Değeri (PD/DD)",
                     symbol1 = symbol1,
-                    val1 = "$pio1/9 Skoru",
+                    val1 = pbr1?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "Veri Yok",
                     symbol2 = symbol2,
-                    val2 = "$pio2/9 Skoru",
+                    val2 = pbr2?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "Veri Yok",
                     winner = round3Winner
                 )
             }
@@ -292,11 +303,11 @@ fun HisseDuelloScreen(
             item {
                 RoundCard(
                     roundNo = 4,
-                    title = "İflas Güvenliği (Altman Z)",
+                    title = "Finansal Sağlık & Borç/Özkaynak",
                     symbol1 = symbol1,
-                    val1 = "${String.format(java.util.Locale.US, "%.2f", z1)} Z-Score",
+                    val1 = debt1?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "Veri Yok",
                     symbol2 = symbol2,
-                    val2 = "${String.format(java.util.Locale.US, "%.2f", z2)} Z-Score",
+                    val2 = debt2?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "Veri Yok",
                     winner = round4Winner
                 )
             }
@@ -307,9 +318,9 @@ fun HisseDuelloScreen(
                     roundNo = 5,
                     title = "Orakul AI O-EAGI Skoru",
                     symbol1 = symbol1,
-                    val1 = "$oag1 / 100",
+                    val1 = oag1?.let { "$it / 100" } ?: "Veri Yok",
                     symbol2 = symbol2,
-                    val2 = "$oag2 / 100",
+                    val2 = oag2?.let { "$it / 100" } ?: "Veri Yok",
                     winner = round5Winner
                 )
             }

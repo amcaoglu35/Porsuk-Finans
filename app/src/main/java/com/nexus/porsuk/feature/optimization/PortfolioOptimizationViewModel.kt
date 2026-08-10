@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nexus.porsuk.domain.model.*
 import com.nexus.porsuk.domain.repository.*
+import com.nexus.porsuk.domain.usecase.optimization.CalculatePortfolioOptimizationUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,7 +21,8 @@ class PortfolioOptimizationViewModel @Inject constructor(
     private val allocationRepository: AllocationRepository,
     private val optimizationRiskRepository: OptimizationRiskRepository,
     private val scenarioRepository: OptimizationScenarioRepository,
-    private val rebalancingRepository: RebalancingRepository
+    private val rebalancingRepository: RebalancingRepository,
+    private val calculatePortfolioOptimizationUseCase: CalculatePortfolioOptimizationUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PortfolioOptimizationUiState())
@@ -28,6 +30,33 @@ class PortfolioOptimizationViewModel @Inject constructor(
 
     init {
         loadOptimizationData()
+        runRealOptimization()
+    }
+
+    private fun runRealOptimization() {
+        viewModelScope.launch {
+            calculatePortfolioOptimizationUseCase().collect { result ->
+                _uiState.update { current ->
+                    current.copy(
+                        riskMetrics = current.riskMetrics.copy(
+                            sharpeRatio = result.sharpeRatio,
+                            standardDeviationPct = result.totalVolatility * 100.0
+                        ),
+                        frontierPoints = result.assetMetrics.map { 
+                            EfficientFrontierPoint(
+                                expectedReturnPct = it.weight * 100.0, // Placeholder mapping
+                                volatilityPct = it.volatility * 100.0
+                            )
+                        },
+                        rebalanceSuggestions = result.suggestions.map { 
+                            RebalanceSuggestion(symbol = "AI", actionText = it, currentWeightPct = 0.0, targetWeightPct = 0.0, driftPct = 0.0)
+                        },
+                        isLoading = false,
+                        errorMessage = if (result.assetMetrics.isEmpty()) result.suggestions.firstOrNull() else null
+                    )
+                }
+            }
+        }
     }
 
     fun selectStrategy(strategy: OptimizationStrategyType) {

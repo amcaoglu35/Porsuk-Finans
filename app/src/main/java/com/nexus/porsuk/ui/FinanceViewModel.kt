@@ -321,9 +321,6 @@ class FinanceViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    private val _searchResults = MutableStateFlow<List<com.nexus.porsuk.data.model.StockDetails>>(emptyList())
-    val searchResults: StateFlow<List<com.nexus.porsuk.data.model.StockDetails>> = _searchResults
-    
     // For backward compatibility with older screens
     val allStocks = repository.watchlist.map { list -> list.map { com.nexus.porsuk.data.local.entity.StockAsset(symbol = it.symbol, exchange = "IST", purchasePrice = 0.0, quantity = 0.0, purchaseDate = 0L) } }
     val allFunds = repository.allBaskets
@@ -720,116 +717,13 @@ class FinanceViewModel @Inject constructor(
         }
     }
 
-    fun searchStock(symbol: String, market: String) {
+    fun removeFromWatchlist(item: com.nexus.porsuk.data.local.entity.WatchlistItem) {
         viewModelScope.launch {
-            val result = repository.refreshPrice(symbol, market)
-            if (result is ScrapeResult.Success) {
-                val details = com.nexus.porsuk.data.model.StockDetails(
-                    symbol = symbol,
-                    name = symbol, // Will update when details loaded
-                    price = result.data.price,
-                    currency = "",
-                    changeAmount = 0.0,
-                    changePercentage = result.data.changePercent
-                )
-                _searchResults.value = listOf(details)
-                checkAndAddCompany(symbol, market)
-            } else {
-                _searchResults.value = emptyList()
-            }
+            repository.removeFromWatchlist(item)
         }
     }
 
-    private suspend fun checkAndAddCompany(symbol: String, market: String) {
-        val existing = repository.getCompany(symbol)
-        if (existing == null) {
-            val yahooPublic = com.nexus.porsuk.data.remote.YahooFinancePublicService()
-            val result = yahooPublic.fetchCompanyInfo(symbol, market)
-            val companyName = if (result is ScrapeResult.Success) result.data.about else symbol
-            
-            // Clean domain names for Clearbit logos
-            val cleanName = companyName.replace("[^a-zA-Z\\s]".toRegex(), "").trim()
-            val domain = cleanName.split(" ").firstOrNull()?.lowercase()?.filter { it.isLetter() } ?: symbol.lowercase()
-            val logoUrl = "https://logo.clearbit.com/$domain.com"
-            
-            repository.insertCompanies(listOf(
-                Company(
-                    symbol = symbol,
-                    name = companyName, 
-                    market = market,
-                    logoInitials = symbol.take(3),
-                    logoUrl = logoUrl,
-                    sector = "Genel" // Default sector for new discoveries
-                )
-            ))
-        }
-    }
-
-    // Portfolio Health Check
-    private val _portfolioHealthCheckResult = MutableStateFlow<String>("")
-    val portfolioHealthCheckResult: StateFlow<String> = _portfolioHealthCheckResult
-
-    private val _isHealthChecking = MutableStateFlow(false)
-    val isHealthChecking: StateFlow<Boolean> = _isHealthChecking
-
-    fun runPortfolioHealthCheck() {
-        val apiKey = settingsManager.getGeminiApiKey()
-        if (apiKey.isNullOrBlank()) {
-            _portfolioHealthCheckResult.value = "Hata: Portföy sağlık taraması yapabilmek için lütfen öncelikle Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
-            return
-        }
-        viewModelScope.launch {
-            _isHealthChecking.value = true
-            try {
-                val holdings = repository.getAllBasketItemsDirect()
-                val companies = allCompanies.first()
-                if (holdings.isEmpty()) {
-                    _portfolioHealthCheckResult.value = "Portföyünüzde henüz hisse bulunmuyor. Lütfen bir sepete hisse ekleyin ve tekrar deneyin."
-                } else {
-                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                    _portfolioHealthCheckResult.value = service.getPortfolioHealthCheck(holdings, companies)
-                }
-            } catch (e: Exception) {
-                _portfolioHealthCheckResult.value = "Hata oluştu: ${e.localizedMessage ?: "Bilinmeyen hata"}"
-            } finally {
-                _isHealthChecking.value = false
-            }
-        }
-    }
-
-    // Portfolio Rebalancing
-    private val _portfolioRebalanceResult = MutableStateFlow<String>("")
-    val portfolioRebalanceResult: StateFlow<String> = _portfolioRebalanceResult
-
-    private val _isRebalancing = MutableStateFlow(false)
-    val isRebalancing: StateFlow<Boolean> = _isRebalancing
-
-    fun runPortfolioRebalance() {
-        val apiKey = settingsManager.getGeminiApiKey()
-        if (apiKey.isNullOrBlank()) {
-            _portfolioRebalanceResult.value = "Hata: Portföy dengeleme analizi yapabilmek için lütfen öncelikle Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
-            return
-        }
-        viewModelScope.launch {
-            _isRebalancing.value = true
-            try {
-                val holdings = repository.getAllBasketItemsDirect()
-                val companies = allCompanies.first()
-                if (holdings.isEmpty()) {
-                    _portfolioRebalanceResult.value = "Portföyünüzde henüz hisse bulunmuyor. Lütfen bir sepete hisse ekleyin ve tekrar deneyin."
-                } else {
-                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
-                    _portfolioRebalanceResult.value = service.getPortfolioRebalanceReport(holdings, companies)
-                }
-            } catch (e: Exception) {
-                _portfolioRebalanceResult.value = "Hata oluştu: ${e.localizedMessage ?: "Bilinmeyen hata"}"
-            } finally {
-                _isRebalancing.value = false
-            }
-        }
-    }
-
-    // Price Alerts
+    // [FIX-0] Restored methods after search extraction
     fun insertPriceAlert(symbol: String, market: String, targetPrice: Double, isAbove: Boolean) {
         viewModelScope.launch {
             repository.insertPriceAlert(PriceAlert(
@@ -860,11 +754,67 @@ class FinanceViewModel @Inject constructor(
 
     val allPriceAlerts: Flow<List<PriceAlert>> = repository.getAllPriceAlertsFlow()
 
-    fun removeFromWatchlist(item: com.nexus.porsuk.data.local.entity.WatchlistItem) {
+    fun runPortfolioHealthCheck() {
+        val apiKey = settingsManager.getGeminiApiKey()
+        if (apiKey.isNullOrBlank()) {
+            _portfolioHealthCheckResult.value = "Hata: Portföy sağlık taraması yapabilmek için lütfen öncelikle Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
+            return
+        }
         viewModelScope.launch {
-            repository.removeFromWatchlist(item)
+            _isHealthChecking.value = true
+            try {
+                val holdings = repository.getAllBasketItemsDirect()
+                val companies = allCompanies.first()
+                if (holdings.isEmpty()) {
+                    _portfolioHealthCheckResult.value = "Portföyünüzde henüz hisse bulunmuyor. Lütfen bir sepete hisse ekleyin ve tekrar deneyin."
+                } else {
+                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                    _portfolioHealthCheckResult.value = service.getPortfolioHealthCheck(holdings, companies)
+                }
+            } catch (e: Exception) {
+                _portfolioHealthCheckResult.value = "Hata oluştu: ${e.localizedMessage ?: "Bilinmeyen hata"}"
+            } finally {
+                _isHealthChecking.value = false
+            }
         }
     }
+
+    fun runPortfolioRebalance() {
+        val apiKey = settingsManager.getGeminiApiKey()
+        if (apiKey.isNullOrBlank()) {
+            _portfolioRebalanceResult.value = "Hata: Portföy dengeleme analizi yapabilmek için lütfen öncelikle Ayarlar sayfasından geçerli bir Gemini API anahtarı kaydedin."
+            return
+        }
+        viewModelScope.launch {
+            _isRebalancing.value = true
+            try {
+                val holdings = repository.getAllBasketItemsDirect()
+                val companies = allCompanies.first()
+                if (holdings.isEmpty()) {
+                    _portfolioRebalanceResult.value = "Portföyünüzde henüz hisse bulunmuyor. Lütfen bir sepete hisse ekleyin ve tekrar deneyin."
+                } else {
+                    val service = com.nexus.porsuk.data.remote.GeminiService(apiKey)
+                    _portfolioRebalanceResult.value = service.getPortfolioRebalanceReport(holdings, companies)
+                }
+            } catch (e: Exception) {
+                _portfolioRebalanceResult.value = "Hata oluştu: ${e.localizedMessage ?: "Bilinmeyen hata"}"
+            } finally {
+                _isRebalancing.value = false
+            }
+        }
+    }
+
+    private val _portfolioHealthCheckResult = MutableStateFlow<String>("")
+    val portfolioHealthCheckResult: StateFlow<String> = _portfolioHealthCheckResult
+
+    private val _isHealthChecking = MutableStateFlow(false)
+    val isHealthChecking: StateFlow<Boolean> = _isHealthChecking
+
+    private val _portfolioRebalanceResult = MutableStateFlow<String>("")
+    val portfolioRebalanceResult: StateFlow<String> = _portfolioRebalanceResult
+
+    private val _isRebalancing = MutableStateFlow(false)
+    val isRebalancing: StateFlow<Boolean> = _isRebalancing
 
     fun addBasketWithTemplate(name: String, market: String, templateType: String) {
         viewModelScope.launch {

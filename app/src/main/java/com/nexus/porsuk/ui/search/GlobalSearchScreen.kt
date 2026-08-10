@@ -44,20 +44,22 @@ private val ErrorRed = Color(0xFFF44336)
 fun GlobalSearchScreen(
     onBack: () -> Unit,
     onStockClick: (String, String) -> Unit,
-    viewModel: FinanceViewModel = hiltViewModel()
+    viewModel: FinanceViewModel = hiltViewModel(),
+    searchViewModel: SearchViewModel = hiltViewModel()
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(0) }
 
     val companies by viewModel.allCompanies.collectAsState(initial = emptyList())
-    val tefasFunds by viewModel.allTefasFunds.collectAsState(initial = emptyList())
+    val tefasFunds by viewModel.allTefasFunds.collectAsState()
     val prices by viewModel.prices.collectAsState()
+    val searchResults by searchViewModel.searchResults.collectAsState()
 
     val categories = remember {
         listOf("Tümü", "Hisseler", "Fonlar", "Kripto", "Döviz", "Emtia")
     }
 
-    val dynamicSearchItems = remember(companies, tefasFunds, prices) {
+    val dynamicSearchItems = remember(companies, tefasFunds, prices, searchResults) {
         val list = mutableListOf<SearchResultItem>()
 
         // 1. Canlı Hisse Senetleri
@@ -85,7 +87,7 @@ fun GlobalSearchScreen(
             list.add(
                 SearchResultItem(
                     symbol = fund.code,
-                    title = fund.title,
+                    title = fund.name,
                     category = "Fonlar",
                     valueStr = "₺${String.format(java.util.Locale.US, "%.4f", fund.price)}",
                     changeStr = "TEFAS",
@@ -138,7 +140,12 @@ fun GlobalSearchScreen(
                 // Search Input Field
                 OutlinedTextField(
                     value = query,
-                    onValueChange = { query = it },
+                    onValueChange = { 
+                        query = it 
+                        if (it.length > 2) {
+                            searchViewModel.searchStock(it, "IST")
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),

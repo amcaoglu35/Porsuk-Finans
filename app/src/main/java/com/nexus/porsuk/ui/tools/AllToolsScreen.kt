@@ -42,7 +42,6 @@ fun AllToolsScreen(
         ToolItemData("Portföy Doktoru", "Sağlık Skoru, Çeşitlendirme ve Rebalans Önerileri", "🩺", "portfolio_doctor", "Öne Çıkanlar & Teşhis"),
         ToolItemData("İzleme Listesi", "Sınırsız Takip Listeleri ve Akıllı Klasörler", "⭐", "watchlist", "Öne Çıkanlar & Teşhis"),
         ToolItemData("Alarmlarım", "Fiyat, Yüzde ve İndikatör Alarmları", "🔔", "alerts", "Öne Çıkanlar & Teşhis"),
-        ToolItemData("Aracı Kurum Merkezi", "Midas, IBKR, Alpaca ve Binance Entegrasyonu", "🏦", "broker_hub", "Öne Çıkanlar & Teşhis"),
         ToolItemData("Güvenlik & Gizlilik", "Biyometrik Kilit, Denetim Kayıtları ve Güvenlik Skoru", "🛡️", "security_center", "Öne Çıkanlar & Teşhis"),
         ToolItemData("Premium Üyelik", "Sınırsız Özellikler ve Gelişmiş AI Modelleri", "👑", "upgrade", "Öne Çıkanlar & Teşhis"),
 
