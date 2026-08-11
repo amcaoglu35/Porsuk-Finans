@@ -670,10 +670,11 @@ fun PorsukApp(
                     ) { backStackEntry ->
                         val symbol1 = backStackEntry.arguments?.getString("symbol1") ?: "THYAO"
                         val symbol2 = backStackEntry.arguments?.getString("symbol2") ?: "PGSUS"
+                        val duelloViewModel: com.nexus.porsuk.ui.stock.HisseDuelloViewModel = hiltViewModel()
                         com.nexus.porsuk.ui.stock.HisseDuelloScreen(
                             initialSymbol1 = symbol1,
                             initialSymbol2 = symbol2,
-                            viewModel = financeViewModel,
+                            viewModel = duelloViewModel,
                             onBack = { navController.popBackStack() },
                             onStockClick = { s, m -> navController.navigate(Screen.CompanyDetail.createRoute(s, m)) }
                         )

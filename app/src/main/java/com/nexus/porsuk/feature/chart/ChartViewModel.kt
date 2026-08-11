@@ -23,20 +23,28 @@ class ChartViewModel @Inject constructor(
     private val drawingRepository: DrawingRepository
 ) : ViewModel() {
 
-    private val symbol: String = savedStateHandle["symbol"] ?: "THYAO.IS"
+    private val initialSymbol: String = savedStateHandle["symbol"] ?: "THYAO.IS"
 
-    private val _uiState = MutableStateFlow(ChartUiState(symbol = symbol))
+    private val _uiState = MutableStateFlow(ChartUiState(symbol = initialSymbol))
     val uiState: StateFlow<ChartUiState> = _uiState.asStateFlow()
 
     init {
-        loadCandles(symbol, _uiState.value.selectedTimeFrame, _uiState.value.selectedChartType)
-        loadPortfolioMarkers(symbol)
-        loadSavedDrawings(symbol)
+        loadData(initialSymbol, _uiState.value.selectedTimeFrame)
+        loadPortfolioMarkers(initialSymbol)
+        loadSavedDrawings(initialSymbol)
+    }
+
+    fun loadData(targetSymbol: String, tf: ChartTimeFrame) {
+        _uiState.update { it.copy(symbol = targetSymbol, selectedTimeFrame = tf, isLoading = true) }
+        viewModelScope.launch {
+            chartRepository.getCandles(targetSymbol, tf, _uiState.value.selectedChartType).collect { list ->
+                _uiState.update { it.copy(candles = list, isLoading = false) }
+            }
+        }
     }
 
     fun selectTimeFrame(timeFrame: ChartTimeFrame) {
-        _uiState.update { it.copy(selectedTimeFrame = timeFrame, isLoading = true) }
-        loadCandles(_uiState.value.symbol, timeFrame, _uiState.value.selectedChartType)
+        loadData(_uiState.value.symbol, timeFrame)
     }
 
     fun selectChartType(chartType: ChartType) {
@@ -44,8 +52,39 @@ class ChartViewModel @Inject constructor(
         loadCandles(_uiState.value.symbol, _uiState.value.selectedTimeFrame, chartType)
     }
 
+    fun changeChartType(type: ChartType) {
+        selectChartType(type)
+    }
+
     fun selectTool(tool: DrawingToolType) {
         _uiState.update { it.copy(selectedTool = tool) }
+    }
+
+    fun toggleAiAnalysis() {
+        if (_uiState.value.aiAnalysis != null) {
+            _uiState.update { it.copy(aiAnalysis = null) }
+            return
+        }
+        
+        _uiState.update { it.copy(isAiLoading = true) }
+        // Actual AI implementation would go here. For now, dummy logic to fix compilation.
+        viewModelScope.launch {
+             // Mock delay
+             kotlinx.coroutines.delay(1000)
+             _uiState.update { it.copy(
+                 isAiLoading = false,
+                 aiAnalysis = AiChartAnalysis(
+                     trend = "Yükseliş",
+                     pattern = "Bayrak",
+                     supportLevels = listOf(300.0, 310.0),
+                     resistanceLevels = listOf(330.0, 340.0),
+                     riskScore = 40,
+                     confidence = 85,
+                     scenario = "Fiyatın 320 seviyesini kırması durumunda 350 hedefi radarda.",
+                     signal = TechnicalSignalType.BUY
+                 )
+             )}
+        }
     }
 
     fun togglePortfolioOverlay() {

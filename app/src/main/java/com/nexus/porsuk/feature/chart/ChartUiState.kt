@@ -11,9 +11,19 @@ data class ChartUiState(
     val selectedChartType: ChartType = ChartType.CANDLESTICK,
     val selectedTool: DrawingToolType = DrawingToolType.CROSSHAIR,
     val candles: List<CandleStickItem> = emptyList(),
+    val compareCandles: Map<String, List<CandleStickItem>> = emptyMap(),
+    val indicators: Map<IndicatorType, List<Double>> = emptyMap(),
     val drawings: List<ChartDrawingObject> = emptyList(),
     val portfolioMarkers: List<PortfolioTransactionMarker> = emptyList(),
     val showPortfolioOverlay: Boolean = true,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val isAiLoading: Boolean = false,
+    val aiAnalysis: AiChartAnalysis? = null,
+    val errorMessage: String? = null,
+    val settings: ChartSettings = ChartSettings()
+)
+
+data class ChartSettings(
+    val chartType: ChartType = ChartType.CANDLESTICK,
+    val showVolume: Boolean = true
 )

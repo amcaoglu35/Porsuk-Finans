@@ -1,4 +1,4 @@
-package com.nexus.porsuk.ui.chart
+package com.nexus.porsuk.feature.chart
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nexus.porsuk.domain.model.*
-import com.nexus.porsuk.ui.chart.components.AdvancedChart
+import com.nexus.porsuk.feature.chart.components.AdvancedChart
 import com.nexus.porsuk.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)

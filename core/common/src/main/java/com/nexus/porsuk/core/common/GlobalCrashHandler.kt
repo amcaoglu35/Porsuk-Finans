@@ -3,7 +3,6 @@ package com.nexus.porsuk.core.common
 import android.content.Context
 import android.content.Intent
 import android.os.Process
-import com.nexus.porsuk.MainActivity
 import kotlin.system.exitProcess
 
 /**
@@ -18,12 +17,13 @@ class GlobalCrashHandler(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         PorsukLogger.e("FATAL CRASH on thread ${thread.name}: ${throwable.localizedMessage}", throwable)
 
-        // Restart app logic
-        val intent = Intent(context, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            putExtra("CRASH_RESTART", true)
+        // Restart app logic - removed direct dependency on MainActivity
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        launchIntent?.let {
+            it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            it.putExtra("CRASH_RESTART", true)
+            context.startActivity(it)
         }
-        context.startActivity(intent)
 
         // Kill current process
         Process.killProcess(Process.myPid())
