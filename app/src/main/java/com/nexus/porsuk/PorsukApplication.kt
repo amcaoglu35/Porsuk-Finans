@@ -25,14 +25,18 @@ class PorsukApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize Core Infrastructure
-        com.nexus.porsuk.core.common.GlobalCrashHandler.initialize(this)
+        try {
+            // Initialize Core Infrastructure
+            com.nexus.porsuk.core.common.GlobalCrashHandler.initialize(this)
 
-        // Ensure PriceAlertManager is started
-        priceAlertManager.hashCode() 
+            // Ensure PriceAlertManager is started
+            priceAlertManager.hashCode() 
 
-        // Schedule System Workers
-        com.nexus.porsuk.worker.AutomationWorker.schedule(this)
-        com.nexus.porsuk.worker.DailySummaryWorker.schedule(this)
+            // Schedule System Workers
+            com.nexus.porsuk.worker.AutomationWorker.schedule(this)
+            com.nexus.porsuk.worker.DailySummaryWorker.schedule(this)
+        } catch (e: Exception) {
+            android.util.Log.e("PorsukApp", "FATAL CRASH IN APPLICATION ONCREATE", e)
+        }
     }
 }

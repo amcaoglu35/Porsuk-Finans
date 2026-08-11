@@ -146,6 +146,7 @@ abstract class PorsukDatabase : RoomDatabase() {
                     "porsuk_database"
                 )
                 .addMigrations(*com.nexus.porsuk.data.local.db.DatabaseMigrations.ALL_MIGRATIONS)
+                .fallbackToDestructiveMigration()
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

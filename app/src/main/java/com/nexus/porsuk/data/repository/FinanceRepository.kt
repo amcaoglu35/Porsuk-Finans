@@ -7,10 +7,11 @@ import com.nexus.porsuk.data.remote.api.NewsApi
 import com.nexus.porsuk.data.remote.datasource.FredRemoteDataSource
 import com.nexus.porsuk.domain.model.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Singleton
 class FinanceRepository @Inject constructor(
     private val assetDao: AssetDao,
     private val scraper: GoogleFinanceScraper,
@@ -37,11 +38,10 @@ class FinanceRepository @Inject constructor(
     val exchangeRates = MutableStateFlow<Map<String, Double>>(mapOf("USD" to 34.5, "EUR" to 37.2))
 
     init {
-        tefasFundDao.let { dao ->
-            runBlocking {
-                if (dao.getActiveFundCount() == 0) {
-                    dao.insertOrUpdateFunds(getInitialTefasFunds())
-                }
+        // Run initial data population in background to avoid blocking main thread during Hilt injection
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            if (tefasFundDao.getActiveFundCount() == 0) {
+                tefasFundDao.insertOrUpdateFunds(getInitialTefasFunds())
             }
         }
     }

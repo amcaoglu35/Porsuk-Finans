@@ -48,10 +48,6 @@ object AppDatabaseModule {
 
     @Provides
     @Singleton
-    fun provideEventBus(): com.nexus.porsuk.core.common.PorsukEventBus = com.nexus.porsuk.core.common.PorsukEventBus()
-
-    @Provides
-    @Singleton
     fun provideSettingsManager(@ApplicationContext context: Context): SettingsManager {
         return SettingsManager(context)
     }

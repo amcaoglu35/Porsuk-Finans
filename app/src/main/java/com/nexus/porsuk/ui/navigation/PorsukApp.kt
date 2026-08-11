@@ -647,21 +647,6 @@ fun PorsukApp(
                     }
 
                     composable(
-                        route = Screen.CompanyDetail.route,
-                        arguments = listOf(
-                            navArgument("symbol") { type = NavType.StringType },
-                            navArgument("market") { 
-                                type = NavType.StringType
-                                defaultValue = "IST"
-                            }
-                        )
-                    ) {
-                        com.nexus.porsuk.feature.companydetail.CompanyDetailScreen(
-                            onNavigateBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(
                         route = Screen.HisseDuello.route,
                         arguments = listOf(
                             navArgument("symbol1") { type = NavType.StringType; defaultValue = "THYAO" },
